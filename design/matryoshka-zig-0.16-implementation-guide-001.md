@@ -17,9 +17,9 @@ Reading path:
 7+ Cancellation, shutdown, idioms     (Part 2)
 ```
 
-For architecture and rationale → `matryoshka-architecture-foundation-4.md`.
+For architecture and rationale → `matryoshka-architecture-foundation-4-001.md`.
 
-For exact API signatures → `matryoshka-api-reference.md`.
+For exact API signatures → `matryoshka-api-reference-001.md`.
 
 ---
 
@@ -366,7 +366,7 @@ const _Mbox = struct {
 
 ## API
 
-`io` is only needed at construction. All other functions use `mbox.io`. For full signatures see `matryoshka-api-reference.md`. Implementation notes:
+`io` is only needed at construction. All other functions use `mbox.io`. For full signatures see `matryoshka-api-reference-001.md`. Implementation notes:
 
 - `mbox_receive` takes `timeout_ns: ?u64` — `null` waits forever, value is nanoseconds.
 - `mbox_close` returns a `std.DoublyLinkedList` of remaining items. Idempotent via the `closed` CAS — second call returns an empty list.
@@ -453,7 +453,7 @@ mbox.len += 1;
 mbox.cond.signal(io);
 ```
 
-For the full OOB ordering example see `matryoshka-api-reference.md` (Advanced: OOB ordering).
+For the full OOB ordering example see `matryoshka-api-reference-001.md` (Advanced: OOB ordering).
 
 ## receive_batch
 
@@ -558,7 +558,7 @@ pub const GetError = error{ Closed, NotAvailable, NotCreated, AlreadyInUse };
 
 ## API
 
-For full signatures see `matryoshka-api-reference.md`. `io` is only needed at construction; all other functions use `p.io`.
+For full signatures see `matryoshka-api-reference-001.md`. `io` is only needed at construction; all other functions use `p.io`.
 
 ## pool_get_wait logic
 
@@ -667,11 +667,11 @@ Pool is not a symmetric acquire/release pair:
 
 The `on_put` hook decides fate: set `m.* = null` to destroy, leave non-null to keep in pool.
 
-See `matryoshka-architecture-foundation-4.md` for the rationale.
+See `matryoshka-architecture-foundation-4-001.md` for the rationale.
 
 ## Hook discipline
 
-For the hook contract see `matryoshka-api-reference.md`. Zig-specific notes:
+For the hook contract see `matryoshka-api-reference-001.md`. Zig-specific notes:
 
 - Hooks run outside the pool mutex (same as Odin). Hooks must not call pool APIs on the same pool instance — a contract violation, not a deadlock.
 - Get path: release lock → call `on_get` → caller proceeds.
@@ -700,7 +700,7 @@ else if (pool_is_it_you(poly.tag)) { ... }
 
 There is no generic dispose. Use `mbox.destroy` and `pool.destroy` directly. Application types destroy themselves.
 
-For the rationale see `matryoshka-architecture-foundation-4.md`, section 10.
+For the rationale see `matryoshka-architecture-foundation-4-001.md`, section 10.
 
 # 7. Cancellation
 
@@ -822,7 +822,7 @@ A worker that receives `error.Canceled` from `mbox_receive` must return its item
 
 Every public function declares whether it is cancelable or cancel-protected.
 
-See `matryoshka-api-reference.md`, Cancel contract summary table, for the complete list.
+See `matryoshka-api-reference-001.md`, Cancel contract summary table, for the complete list.
 
 Implementation note: all cancel-protected operations use `mutex.lockUncancelable(io)` — simpler and more explicit than `swapCancelProtection(.blocked)` plus `mutex.lock(io) catch unreachable`.
 
@@ -1141,7 +1141,7 @@ On the Threaded backend, each `select.concurrent` call may allocate a worker thr
 
 On `global_single_threaded`, `receive_future` and `get_wait_future` return `error.ConcurrencyUnavailable`. The synchronous API remains available.
 
-See `matryoshka-api-reference.md` for the type and function signatures.
+See `matryoshka-api-reference-001.md` for the type and function signatures.
 
 **Mailbox-less coordination.**
 

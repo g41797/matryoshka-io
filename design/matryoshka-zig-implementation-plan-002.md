@@ -22,6 +22,11 @@ build from them, in what order, and how to know each step is done.
 - Do not write real code before the build/test infrastructure is verified (Stage 0).
 - Iterative: build a stage, checkpoint, rethink, then plan the next stage.
 
+### Document Versioning (MUST)
+- Never overwrite an important design doc. Create a new file with incremented version suffix (-001, -002, etc.).
+- If other docs reference the updated doc, update those links to the new version.
+- `design/context.md` is the stable entry point — always points to the latest `collected-context-NNN.md`.
+
 ### Git (MUST)
 - Do not use git directly. All git operations go through the owner.
 
@@ -33,9 +38,9 @@ build from them, in what order, and how to know each step is done.
 - Each fix in a multi-fix plan needs its own approval.
 
 ### Implementation (MUST)
-- Source of truth for signatures, types, errors: `matryoshka-api-reference.md`.
-- Source of truth for Zig details: `matryoshka-zig-0.16-implementation-guide.md`.
-- Source of truth for architecture: `matryoshka-architecture-foundation-4.md`.
+- Source of truth for signatures, types, errors: `matryoshka-api-reference-002.md`.
+- Source of truth for Zig details: `matryoshka-zig-0.16-implementation-guide-001.md`.
+- Source of truth for architecture: `matryoshka-architecture-foundation-4-001.md`.
 - Never send a stack-allocated item. Use `alloc.create` or `pool.get`.
 - After transfer (`send`, `put`), set `m.* = null`. Ownership invariant.
 - After `close`, drain the returned list. Free heap items or return pool items.
@@ -461,6 +466,7 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 - Show intent before code changes. Get owner approval.
 - Plan approval is NOT code change approval.
 - Architectural changes need explicit owner approval.
+- Never overwrite important docs. New version with incremented suffix (-001, -002, etc.). Update cross-references.
 
 ## Constraints for Next Agent (MUST)
 - Git disabled. Do NOT run any git commands.
@@ -471,10 +477,10 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference.md
-- Zig details: matryoshka-zig-0.16-implementation-guide.md
-- Architecture: matryoshka-architecture-foundation-4.md
-- Scenarios: task1-scenarios.md (86), task2-scenarios.md (61)
+- API: matryoshka-api-reference-002.md
+- Zig details: matryoshka-zig-0.16-implementation-guide-001.md
+- Architecture: matryoshka-architecture-foundation-4-001.md
+- Scenarios: task1-scenarios-001.md (86), task2-scenarios-001.md (61)
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - This file + the plan file.
 
@@ -494,7 +500,7 @@ Three blocks: polynode, mbox, pool. Both mbox and pool optional.
 - Document rules apply to all markdown.
 - condition_waitTimeout copied from legacy mailbox (Open Item 5).
 
-## Open Items (carried from collected-context.md)
+## Open Items (carried from collected-context-001.md)
 - 5  condition_waitTimeout workaround
 - 6  Io.Evented backend not tested
 - 10 which Layer 2-3 examples need real threads
@@ -534,13 +540,13 @@ One paragraph. What was done and why.
 
 | Doc | Owns |
 |-----|------|
-| collected-context.md | Master reference. Paths, 26 proposals, decisions, open items, scenario counts. Read first. |
-| matryoshka-api-reference.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
-| matryoshka-zig-0.16-implementation-guide.md | Zig how-to. Blocks 1-4, cancellation, Master patterns, rules, comptime opportunities, Odin→Zig appendix. |
-| matryoshka-architecture-foundation-4.md | Language-independent architecture. Layers, channels, patterns, rationale. |
-| task1-scenarios.md | 86 scenarios, Layers 1-3. The Stage 1-3 test plan. |
-| task2-scenarios.md | 61 scenarios, Layer 4 + cross-layer + event sources + mailbox-less. The Stage 5-8 test plan. |
-| proposal-26-async-integration.md | Event source adapter design. The Stage 7 spec. |
+| collected-context-002.md | Master reference. Paths, 27 proposals, decisions, open items, scenario counts. Read first. |
+| matryoshka-api-reference-002.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
+| matryoshka-zig-0.16-implementation-guide-001.md | Zig how-to. Blocks 1-4, cancellation, Master patterns, rules, comptime opportunities, Odin→Zig appendix. |
+| matryoshka-architecture-foundation-4-001.md | Language-independent architecture. Layers, channels, patterns, rationale. |
+| task1-scenarios-001.md | 86 scenarios, Layers 1-3. The Stage 1-3 test plan. |
+| task2-scenarios-001.md | 61 scenarios, Layer 4 + cross-layer + event sources + mailbox-less. The Stage 5-8 test plan. |
+| proposal-26-async-integration-001.md | Event source adapter design. The Stage 7 spec. |
 
 This plan owns: stage order, folder structure, checkpoints, status tracking.
 It does not repeat API, architecture, or scenario detail — those live above.

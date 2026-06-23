@@ -70,8 +70,8 @@
 - Source layout at top level is Odin-specific; Zig source layout to be decided separately
 
 ### Architecture Documents
-- `/home/g41797/dev/root/github.com/g41797/tofusite/root/mailbox/matryoshka-architecture-foundation-4.md`
-- `/home/g41797/dev/root/github.com/g41797/tofusite/root/mailbox/matryoshka-zig-0.16-implementation-guide.md`
+- `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/matryoshka-architecture-foundation-4-001.md`
+- `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/matryoshka-zig-0.16-implementation-guide-001.md`
 
 ### Zig 0.16 Io Source (read for Master/cancellation design)
 - `Io.zig` (3461 lines): Future, Group, Select, Queue, CancelProtection, Mutex, Condition, recancel, checkCancel
@@ -88,18 +88,18 @@
 - File I/O basics (0.16): https://ziggit.dev/t/file-i-o-basics-0-16/14968
 
 ### Working Folder
-- All planning/tracking docs: `/home/g41797/dev/root/github.com/g41797/tofusite/root/mailbox/`
-- `task1-scenarios.md` — Layer 1-3 test/example scenarios (86 items, revised against API reference)
-- `task2-scenarios.md` — Layer 4 scenarios + Io findings + design decisions (61 items, includes cross-layer + stdlib + Select event sources + Proposal 26 + communication patterns + mailbox-less patterns)
-- `matryoshka-api-reference.md` — clean API reference, source of truth for implementation (Proposal 8, created 2026-06-20)
-- `proposal-26-async-integration.md` — Mailbox and Pool as event sources for Io.Select (Proposal 26, created 2026-06-22)
-- `matryoshka-zig-implementation-plan.md` — staged implementation plan: 10 stages, 147 scenarios mapped, STATUS.md template, repo folder structure (created 2026-06-22, updated with tofu project rules: 4-mode verification, coding style, code change approval, session history template)
+- All planning/tracking docs: `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/`
+- `task1-scenarios-001.md` — Layer 1-3 test/example scenarios (86 items, revised against API reference)
+- `task2-scenarios-001.md` — Layer 4 scenarios + Io findings + design decisions (61 items, includes cross-layer + stdlib + Select event sources + Proposal 26 + communication patterns + mailbox-less patterns)
+- `matryoshka-api-reference-001.md` — clean API reference, source of truth for implementation (Proposal 8, created 2026-06-20)
+- `proposal-26-async-integration-001.md` — Mailbox and Pool as event sources for Io.Select (Proposal 26, created 2026-06-22)
+- `matryoshka-zig-implementation-plan-001.md` — staged implementation plan: 10 stages, 147 scenarios mapped, STATUS.md template, repo folder structure (created 2026-06-22, updated with tofu project rules: 4-mode verification, coding style, code change approval, session history template)
 
 ## Task Docs Revision (2026-06-20)
 
-Both task scenario docs revised against `matryoshka-api-reference.md`:
+Both task scenario docs revised against `matryoshka-api-reference-001.md`:
 
-### Changes applied to task1-scenarios.md (80 → 86 items)
+### Changes applied to task1-scenarios-001.md (80 → 86 items)
 - All function names → module-function style (`mbox.send`, `pool.get`, `polynode.reset`)
 - `mailbox_is_it_you` → `mbox.is_it_you`, `pool_is_it_you` → `pool.is_it_you`
 - `matryoshka_dispose` → per-module `mbox.destroy`/`pool.destroy`
@@ -109,7 +109,7 @@ Both task scenario docs revised against `matryoshka-api-reference.md`:
 - Added scenarios: `mbox.new`/`mbox.destroy` (26), `mbox.receive` null timeout (32), `mbox.try_receive` empty/success (45-46), `pool.new`/`pool.init`/`pool.destroy` (57), `pool.get_wait` timeout/forever (77-78)
 - Cross-layer notes updated with API convention references (Proposals 2, 3, 4, 6)
 
-### Changes applied to task2-scenarios.md (37 → 38 items)
+### Changes applied to task2-scenarios-001.md (37 → 38 items)
 - All scenario descriptions → module-function style
 - Return types → `std.DoublyLinkedList`, walked via `popFirst()`
 - All `mbox_close`/`pool_close`/`pool_put` → `mbox.close`/`pool.close`/`pool.put`
@@ -321,7 +321,7 @@ while (select.await()) |event| switch (event) {
 - matryoshka_dispose dropped from Block 4 — API reference says "no generic dispose"
 - Style converted to human-oriented: short sentences, bullets, ASCII diagrams
 - Odin→Zig idiom mapping preserved as Appendix A (340 lines, reference material)
-- Backup at matryoshka-zig-0.16-implementation-guide.md.bak
+- Backup at matryoshka-zig-0.16-implementation-guide-001.md.bak
 
 ### Communication patterns added (2026-06-22)
 - "multiplexer" replaced with established pattern names: fan-in, fan-out, pipeline, job pool
@@ -369,7 +369,7 @@ while (select.await()) |event| switch (event) {
 - `global_single_threaded`: both limits = `.nothing` → concurrent returns error, async runs inline
 - Cancellation via OS signals (EINTR on POSIX)
 
-## Task 2 Review Findings (external AI review of task2-scenarios.md)
+## Task 2 Review Findings (external AI review of task2-scenarios-001.md)
 
 ### Confirmed correct
 - Io as the concurrency abstraction (Io == scheduling + synchronization + cancellation + I/O)
@@ -390,7 +390,7 @@ while (select.await()) |event| switch (event) {
 - Layer 4 examples demonstrate Master patterns, not a Master type
 - Added to implementation guide as opening subsection of "Master as the Correct Abstraction"
 
-## Scenario Review Findings (external AI review of task1-scenarios.md)
+## Scenario Review Findings (external AI review of task1-scenarios-001.md)
 
 ### Added: Ownership-state transition tests
 - Layer 1: FREE → IN_FLIGHT → HELD → IN_FLIGHT → FREE (explicit state machine)
@@ -414,7 +414,7 @@ while (select.await()) |event| switch (event) {
 - "Master, Cancel, Futures, Io.Group, and subsystem coordination are intentionally excluded. Layers 1–3 must be fully testable without them."
 
 ### Close ordering tests
-- Already covered in task2-scenarios.md cross-layer section (items 36-37)
+- Already covered in task2-scenarios-001.md cross-layer section (items 36-37)
 - Not duplicated in task1 — they require concurrency (worker thread returning items during close)
 
 ### Architecture doc (foundation-4.md)
@@ -467,7 +467,7 @@ All decisions applied to API reference, implementation guide, task1, and task2.
 | 5 | Module naming | polynode.zig, mbox.zig, pool.zig, matryoshka.zig root |
 | 6 | Handle param type | `mbh: MailboxHandle` (already a pointer, no extra `*`) |
 | 7 | Drop dispose.zig | Per-module destroy only, no generic dispatch |
-| 8 | API reference document | matryoshka-api-reference.md is source of truth |
+| 8 | API reference document | matryoshka-api-reference-001.md is source of truth |
 | 9 | pool.put returns void | Caller checks `m.*` after call; hook decides fate |
 | 10 | Handle type not opaque | Resolved by Proposal 13 |
 | 11 | NodeMixin to test helpers | Core polynode exports: PolyNode, PolyTag, MayItem, reset, is_linked |
