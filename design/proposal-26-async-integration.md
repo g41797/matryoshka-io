@@ -296,3 +296,301 @@ Design is backend-independent: result-by-value ownership eliminates cross-thread
 | 13 (Handles are PolyNode items) | `receive_future` recovers `_Mbox` via `@fieldParentPtr("poly", mbh)` — handle is still a PolyNode |
 | 17 (Diamond dependencies) | `ReceiveResult` lives in mbox, `PoolResult` in pool — independent siblings |
 | 25 (Wrapper cancel policy) | **Superseded for cancel-close mixing.** Cancel never triggers close. Adapters are format converters, not policy. Proposal 25's insight about per-event-source flexibility is preserved: the caller can write custom adapters with any behavior they want and feed them to `select.concurrent` |
+
+
+# Recommendation: Keep `receive_future`, Remove `receive_select`
+
+## Status
+
+Recommended for Matryoshka Zig.
+
+## Summary
+
+If only one asynchronous mailbox API remains, keep:
+
+```zig
+pub fn receive_future(
+    mbh: MailboxHandle,
+    timeout_ns: ?u64,
+) ConcurrentError!Io.Future(ReceiveResult)
+```
+
+and remove:
+
+```zig
+pub fn receive_select(
+    mbh: MailboxHandle,
+    timeout_ns: ?u64,
+) ReceiveResult
+```
+
+Apply the same decision symmetrically to Pool:
+
+```zig
+pub fn get_wait_future(...)
+```
+
+keep,
+
+```zig
+pub fn get_wait_select(...)
+```
+
+remove.
+
+---
+
+## Rationale
+
+### Future is an Io primitive
+
+`Future` is a fundamental part of Zig's Io model.
+
+It participates naturally in:
+
+* `Future.await`
+* `Future.cancel`
+* `Io.Group`
+* `Io.Select`
+* custom coordination logic
+
+A Future is reusable across multiple coordination strategies.
+
+A Select adapter is useful only for Select.
+
+Therefore:
+
+```text
+Future > Select adapter
+```
+
+as a public API abstraction.
+
+---
+
+## Layering
+
+Matryoshka Layer 2 and Layer 3 already depend on:
+
+```zig
+std.Io
+```
+
+because Mailbox and Pool store:
+
+```zig
+io: Io
+```
+
+internally.
+
+However, they should not expose APIs dedicated to a specific Layer 4 mechanism.
+
+`Io.Select` is only one possible consumer.
+
+Future is lower-level and more general.
+
+Keeping Future preserves the existing layer boundaries:
+
+```text
+Layer 2 (Mailbox)
+    ↓
+Layer 3 (Pool)
+    ↓
+std.Io Future
+    ↓
+Layer 4 chooses:
+    - Future.await
+    - Io.Group
+    - Io.Select
+    - custom coordination
+```
+
+The dependency direction remains clean.
+
+---
+
+## API Consistency
+
+Current synchronous APIs:
+
+```zig
+mbox.receive(...)
+pool.get_wait(...)
+```
+
+Natural asynchronous counterparts:
+
+```zig
+mbox.receive_future(...)
+pool.get_wait_future(...)
+```
+
+This is easy to discover and easy to teach.
+
+A developer immediately understands:
+
+```text
+receive        = synchronous
+receive_future = asynchronous
+```
+
+and
+
+```text
+get_wait        = synchronous
+get_wait_future = asynchronous
+```
+
+without introducing additional concepts.
+
+---
+
+## Select Does Not Need Dedicated Support
+
+A dedicated Select adapter is not required.
+
+Applications can use the Future result however they want.
+
+Example:
+
+```zig
+const fut = try mbox.receive_future(inbox, null);
+
+const result = fut.await(io);
+
+switch (result) {
+    .item => |m| { ... },
+    .closed => { ... },
+    .canceled => { ... },
+    .timeout => { ... },
+}
+```
+
+Or the Future can participate in larger coordination patterns.
+
+The important point is that the mailbox exports an asynchronous operation.
+
+How the application coordinates that operation is a Layer 4 decision.
+
+---
+
+## Avoid API Surface Growth
+
+Keeping both APIs creates pressure for more variants:
+
+```zig
+receive(...)
+receive_future(...)
+receive_select(...)
+receive_group(...)
+receive_async(...)
+receive_batch_future(...)
+```
+
+and similarly for Pool.
+
+This gradually turns Matryoshka into a scheduling framework.
+
+That is not its purpose.
+
+Matryoshka should focus on:
+
+```text
+Ownership
+Movement
+Lifecycle
+```
+
+while exposing enough Io integration to participate naturally in Zig applications.
+
+A single asynchronous primitive is sufficient.
+
+---
+
+## Result Types Remain Valuable
+
+The result unions are still useful:
+
+```zig
+pub const ReceiveResult = union(enum) {
+    item: MayItem,
+    closed: void,
+    timeout: void,
+    canceled: void,
+};
+```
+
+```zig
+pub const PoolResult = union(enum) {
+    item: MayItem,
+    closed: void,
+    timeout: void,
+    canceled: void,
+    not_created: void,
+};
+```
+
+Result-by-value preserves ownership semantics and avoids cross-thread pointer hazards.
+
+This part of Proposal 26 should remain unchanged.
+
+---
+
+## Recommended API
+
+### Mailbox
+
+```zig
+pub const ReceiveResult = union(enum) {
+    item: MayItem,
+    closed: void,
+    timeout: void,
+    canceled: void,
+};
+
+pub fn receive_future(
+    mbh: MailboxHandle,
+    timeout_ns: ?u64,
+) ConcurrentError!Io.Future(ReceiveResult);
+```
+
+### Pool
+
+```zig
+pub const PoolResult = union(enum) {
+    item: MayItem,
+    closed: void,
+    timeout: void,
+    canceled: void,
+    not_created: void,
+};
+
+pub fn get_wait_future(
+    ph: PoolHandle,
+    tag: *const anyopaque,
+    timeout_ns: ?u64,
+) ConcurrentError!Io.Future(PoolResult);
+```
+
+---
+
+## Final Verdict
+
+Keep:
+
+```zig
+mbox.receive_future(...)
+pool.get_wait_future(...)
+```
+
+Remove:
+
+```zig
+mbox.receive_select(...)
+pool.get_wait_select(...)
+```
+
+Reason:
+
+`Future` is the fundamental Io abstraction and composes naturally with all higher-level coordination mechanisms, including `Io.Select`. A dedicated Select adapter provides less capability while increasing API surface and coupling Matryoshka to a specific Layer 4 coordination pattern.
