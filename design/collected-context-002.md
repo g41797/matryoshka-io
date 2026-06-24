@@ -91,7 +91,7 @@
 - All planning/tracking docs: `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/`
 - `task1-scenarios-001.md` — Layer 1-3 test/example scenarios (86 items, revised against API reference)
 - `task2-scenarios-001.md` — Layer 4 scenarios + Io findings + design decisions (61 items, includes cross-layer + stdlib + Select event sources + Proposal 26 + communication patterns + mailbox-less patterns)
-- `matryoshka-api-reference-005.md` — clean API reference, source of truth for implementation (Proposal 8, created 2026-06-20; updated through Proposal 31)
+- `matryoshka-api-reference-006.md` — clean API reference, source of truth for implementation (Proposal 8, created 2026-06-20; updated through Proposal 31)
 - `proposal-26-async-integration-001.md` — Mailbox and Pool as event sources for Io.Select (Proposal 26, created 2026-06-22)
 - `matryoshka-zig-implementation-plan-002.md` — staged implementation plan: 10 stages, 147 scenarios mapped, STATUS.md template, repo folder structure (created 2026-06-22, updated 2026-06-23 with doc versioning rule, API reference link to -002)
 
@@ -467,7 +467,7 @@ All decisions applied to API reference, implementation guide, task1, and task2.
 | 5 | Module naming | polynode.zig, mailbox.zig, pool.zig, matryoshka.zig root |
 | 6 | Handle param type | `mbh: MailboxHandle` (already a pointer, no extra `*`) |
 | 7 | Drop dispose.zig | Per-module destroy only, no generic dispatch |
-| 8 | API reference document | matryoshka-api-reference-005.md is source of truth |
+| 8 | API reference document | matryoshka-api-reference-006.md is source of truth |
 | 9 | pool.put returns void | Caller checks `m.*` after call; hook decides fate |
 | 10 | Handle type not opaque | Resolved by Proposal 13 |
 | 11 | NodeMixin to test helpers | Core polynode exports: PolyNode, PolyTag, NodeHandle, Slot, reset, is_linked |

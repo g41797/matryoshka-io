@@ -38,7 +38,7 @@ build from them, in what order, and how to know each step is done.
 - Each fix in a multi-fix plan needs its own approval.
 
 ### Implementation (MUST)
-- Source of truth for signatures, types, errors: `matryoshka-api-reference-005.md`.
+- Source of truth for signatures, types, errors: `matryoshka-api-reference-006.md`.
 - Source of truth for Zig details: `matryoshka-zig-0.16-implementation-guide-001.md`.
 - Source of truth for architecture: `matryoshka-architecture-foundation-4-001.md`.
 - Never send a stack-allocated item. Use `alloc.create` or `pool.get`.
@@ -477,7 +477,7 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-005.md
+- API: matryoshka-api-reference-006.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Scenarios: task1-scenarios-001.md (86), task2-scenarios-001.md (61)
@@ -541,7 +541,7 @@ One paragraph. What was done and why.
 | Doc | Owns |
 |-----|------|
 | collected-context-002.md | Master reference. Paths, 27 proposals, decisions, open items, scenario counts. Read first. |
-| matryoshka-api-reference-005.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
+| matryoshka-api-reference-006.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
 | matryoshka-zig-0.16-implementation-guide-001.md | Zig how-to. Blocks 1-4, cancellation, Master patterns, rules, comptime opportunities, Odin→Zig appendix. |
 | matryoshka-architecture-foundation-4-001.md | Language-independent architecture. Layers, channels, patterns, rationale. |
 | task1-scenarios-001.md | 86 scenarios, Layers 1-3. The Stage 1-3 test plan. |
