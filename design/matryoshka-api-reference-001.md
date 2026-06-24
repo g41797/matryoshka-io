@@ -3,7 +3,7 @@
 Matryoshka is a small ownership-oriented infrastructure toolkit. It provides three independent building blocks:
 
 - **polynode** — ownership identity
-- **mbox** — ownership transport
+- **mailbox** — ownership transport
 - **pool** — ownership lifecycle
 
 Applications combine these blocks to create coordinators, workers, services, pipelines, and other higher-level architectures. All objects follow the same ownership rules based on `PolyNode` and `MayItem`.
@@ -75,20 +75,20 @@ Tag check, typed cast, and initialization are user code — see `tests/helpers/t
 
 PolyNode embeds `std.DoublyLinkedList.Node`. Every PolyNode-based item participates in standard `std.DoublyLinkedList` operations — no custom list type, no adapter.
 
-Batch operations like `mbox.close()`, `mbox.receive_batch()`, and `pool.put_all()` use plain `std.DoublyLinkedList`. Walk results with `popFirst()` — standard Zig, nothing Matryoshka-specific.
+Batch operations like `mailbox.close()`, `mailbox.receive_batch()`, and `pool.put_all()` use plain `std.DoublyLinkedList`. Walk results with `popFirst()` — standard Zig, nothing Matryoshka-specific.
 
 ---
 
-## mbox
+## mailbox
 
 Ownership transport between execution contexts.
 
 ```zig
-const mbox = @import("matryoshka").mbox;
+const mailbox = @import("matryoshka").mailbox;
 
 // typical usage:
-try mbox.send(inbox, &item);              // item is now null
-try mbox.receive(inbox, &item, null);     // item is now non-null
+try mailbox.send(inbox, &item);              // item is now null
+try mailbox.receive(inbox, &item, null);     // item is now non-null
 ```
 
 ### Types
@@ -156,7 +156,7 @@ Returns true if tag identifies a MailboxHandle.
 
 ### Integration with std.Io
 
-`mbox.receive` may be used from tasks spawned through `io.concurrent()`, `Io.Group`, or `Io.Select`. When a mailbox is closed, blocked receivers wake with `error.Closed`. When a task is canceled while blocked in `mbox.receive`, the operation returns `error.Canceled`. This allows mailbox operations to compose naturally with Zig's `std.Io` concurrency primitives.
+`mailbox.receive` may be used from tasks spawned through `io.concurrent()`, `Io.Group`, or `Io.Select`. When a mailbox is closed, blocked receivers wake with `error.Closed`. When a task is canceled while blocked in `mailbox.receive`, the operation returns `error.Canceled`. This allows mailbox operations to compose naturally with Zig's `std.Io` concurrency primitives.
 
 ### Event source helpers
 
@@ -180,7 +180,7 @@ Result carries the item by value — no cross-thread `*MayItem` pointer. When `s
 ```zig
 pub fn receive_select(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult
 ```
-Adapter from error-union API to `ReceiveResult`. Creates a local `MayItem`, calls `receive`, maps the result to the union. Use as a Select event source via `select.concurrent(.tag, mbox.receive_select, .{mbh, timeout})`.
+Adapter from error-union API to `ReceiveResult`. Creates a local `MayItem`, calls `receive`, maps the result to the union. Use as a Select event source via `select.concurrent(.tag, mailbox.receive_select, .{mbh, timeout})`.
 
 ```zig
 pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.Future(ReceiveResult)
@@ -363,11 +363,11 @@ Cancel never triggers close. On `error.Canceled`, the adapter returns `.canceled
 
 ```zig
 pub const polynode = @import("polynode.zig");
-pub const mbox = @import("mbox.zig");
+pub const mailbox = @import("mailbox.zig");
 pub const pool = @import("pool.zig");
 ```
 
-No generic `dispose`. Use `mbox.destroy` and `pool.destroy` directly. Application types destroy themselves.
+No generic `dispose`. Use `mailbox.destroy` and `pool.destroy` directly. Application types destroy themselves.
 
 ---
 
@@ -379,10 +379,10 @@ Master is an architectural role — the coordination boundary that owns and comp
 
 | What | Where it comes from |
 |------|-------------------|
-| Transport | `mbox.MailboxHandle` — one or more mailboxes |
+| Transport | `mailbox.MailboxHandle` — one or more mailboxes |
 | Lifecycle | `pool.PoolHandle` + `pool.PoolHooks` — item reuse and policy |
 | Memory | `std.mem.Allocator` — who allocates and frees |
-| Scheduling | `std.Io` — passed to `mbox.new` and `pool.new` |
+| Scheduling | `std.Io` — passed to `mailbox.new` and `pool.new` |
 | Worker coordination | `io.concurrent()` → `Future`, or `Io.Group` |
 | Cancellation | `Future.cancel(io)` or `group.cancel(io)` |
 | Application state | Domain-specific — whatever the subsystem needs |
@@ -400,9 +400,9 @@ PolyNode + Mailbox + Pool + Io.Select   full stack
 
 A Master may be:
 ```zig
-const Server = struct { inbox: mbox.MailboxHandle, pool: pool.PoolHandle, ... };
+const Server = struct { inbox: mailbox.MailboxHandle, pool: pool.PoolHandle, ... };
 const Scheduler = struct { pool: pool.PoolHandle, ... };  // no mailbox
-const Pipeline = struct { stages: [3]mbox.MailboxHandle, ... };
+const Pipeline = struct { stages: [3]mailbox.MailboxHandle, ... };
 fn main(init: std.process.Init) !void { ... }
 ```
 
@@ -414,19 +414,19 @@ Matryoshka provides the building blocks. The application assembles them.
 
 | Function | Cancelable | Cancel-protected | Notes |
 |----------|-----------|-----------------|-------|
-| `mbox.send` | yes | no | work path |
-| `mbox.send_oob` | yes | no | work path |
-| `mbox.receive` | yes | no | primary cancel point |
-| `mbox.try_receive` | yes | no | non-blocking |
-| `mbox.receive_batch` | yes | no | non-blocking |
-| `mbox.close` | no | yes (`lockUncancelable`) | cleanup |
+| `mailbox.send` | yes | no | work path |
+| `mailbox.send_oob` | yes | no | work path |
+| `mailbox.receive` | yes | no | primary cancel point |
+| `mailbox.try_receive` | yes | no | non-blocking |
+| `mailbox.receive_batch` | yes | no | non-blocking |
+| `mailbox.close` | no | yes (`lockUncancelable`) | cleanup |
 | `pool.get` | yes | no | non-blocking |
 | `pool.get_wait` | yes | no | primary cancel point |
 | `pool.put` | no | yes (`lockUncancelable`) | cleanup |
 | `pool.put_all` | no | yes (`lockUncancelable`) | cleanup |
 | `pool.close` | no | yes (`lockUncancelable`) | cleanup |
-| `mbox.receive_select` | yes | no | adapter — inherits from `mbox.receive` |
-| `mbox.receive_future` | yes | no | spawns `receive_select` concurrently |
+| `mailbox.receive_select` | yes | no | adapter — inherits from `mailbox.receive` |
+| `mailbox.receive_future` | yes | no | spawns `receive_select` concurrently |
 | `pool.get_wait_select` | yes | no | adapter — inherits from `pool.get_wait` |
 | `pool.get_wait_future` | yes | no | spawns `get_wait_select` concurrently |
 
@@ -442,12 +442,12 @@ HELD       — owned by infrastructure (in mailbox queue or pool free-list)
 
 | Operation | Before → After |
 |-----------|---------------|
-| `mbox.send` | IN_FLIGHT → HELD |
-| `mbox.receive` | HELD → IN_FLIGHT |
+| `mailbox.send` | IN_FLIGHT → HELD |
+| `mailbox.receive` | HELD → IN_FLIGHT |
 | `pool.get` | HELD → IN_FLIGHT |
 | `pool.put` (keep) | IN_FLIGHT → HELD |
 | `pool.put` (destroy) | IN_FLIGHT → FREE |
-| `mbox.close` | HELD → returned to caller |
+| `mailbox.close` | HELD → returned to caller |
 | `pool.close` | HELD → passed to on_close |
 
 ---

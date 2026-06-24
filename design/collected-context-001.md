@@ -23,11 +23,11 @@
 **Three mailbox variants** (all share Io.Mutex + Io.Condition, closed atomic, interrupted bool, condition_waitTimeout):
 1. `MailBox(Letter)` — generic, non-intrusive. Envelope wraps user Letter type with prev/next
 2. `MailBoxIntrusive(Envelope)` — user type IS the envelope (must have prev/next). Same API
-3. `TypeErasedMailbox` — intrusive, type-erased via `std.DoublyLinkedList.Node`. Direct predecessor to `_Mbox`
+3. `TypeErasedMailbox` — intrusive, type-erased via `std.DoublyLinkedList.Node`. Direct predecessor to `_Mailbox`
 
 **API** (same for all three): `init(io)`, `send`, `receive(timeout_ns)`, `interrupt`, `close`, `letters`
 
-**What TypeErasedMailbox has that _Mbox needs**:
+**What TypeErasedMailbox has that _Mailbox needs**:
 - `Io.Mutex` + `Io.Condition` ✓
 - `closed: std.atomic.Value(bool)` with pre-lock fast path ✓
 - `interrupted: bool` under mutex ✓
@@ -45,7 +45,7 @@
 - `lockUncancelable` for close (currently `mutex.lock catch return error.Closed`)
 - `error.Canceled` propagation (currently remaps to `error.Closed`)
 
-**Decision**: Use this repo as the development target for Matryoshka Zig implementation. TypeErasedMailbox evolves into `_Mbox`, PolyNode/Pool/dispose added alongside. Legacy variants (MailBox, MailBoxIntrusive) remain for backward compatibility.
+**Decision**: Use this repo as the development target for Matryoshka Zig implementation. TypeErasedMailbox evolves into `_Mailbox`, PolyNode/Pool/dispose added alongside. Legacy variants (MailBox, MailBoxIntrusive) remain for backward compatibility.
 
 ### Tofu Project (scaffolding reference — not a template to copy)
 - Root: `/home/g41797/dev/root/github.com/g41797/tofu`
@@ -100,19 +100,19 @@
 Both task scenario docs revised against `matryoshka-api-reference-001.md`:
 
 ### Changes applied to task1-scenarios-001.md (80 → 86 items)
-- All function names → module-function style (`mbox.send`, `pool.get`, `polynode.reset`)
-- `mailbox_is_it_you` → `mbox.is_it_you`, `pool_is_it_you` → `pool.is_it_you`
-- `matryoshka_dispose` → per-module `mbox.destroy`/`pool.destroy`
+- All function names → module-function style (`mailbox.send`, `pool.get`, `polynode.reset`)
+- `mailbox_is_it_you` → `mailbox.is_it_you`, `pool_is_it_you` → `pool.is_it_you`
+- `matryoshka_dispose` → per-module `mailbox.destroy`/`pool.destroy`
 - Return types: `std.DoublyLinkedList` not `?*Node`, empty list not `null`
 - Batch walk: `popFirst()` auto-clears prev/next — no manual `polynode.reset`
 - Timeout: `?u64` with null (wait forever) and non-null scenarios added
-- Added scenarios: `mbox.new`/`mbox.destroy` (26), `mbox.receive` null timeout (32), `mbox.try_receive` empty/success (45-46), `pool.new`/`pool.init`/`pool.destroy` (57), `pool.get_wait` timeout/forever (77-78)
+- Added scenarios: `mailbox.new`/`mailbox.destroy` (26), `mailbox.receive` null timeout (32), `mailbox.try_receive` empty/success (45-46), `pool.new`/`pool.init`/`pool.destroy` (57), `pool.get_wait` timeout/forever (77-78)
 - Cross-layer notes updated with API convention references (Proposals 2, 3, 4, 6)
 
 ### Changes applied to task2-scenarios-001.md (37 → 38 items)
 - All scenario descriptions → module-function style
 - Return types → `std.DoublyLinkedList`, walked via `popFirst()`
-- All `mbox_close`/`pool_close`/`pool_put` → `mbox.close`/`pool.close`/`pool.put`
+- All `mailbox_close`/`pool_close`/`pool_put` → `mailbox.close`/`pool.close`/`pool.put`
 - Scenario 38 added: "Pool + Mailbox flow" moved from task1 Layer 3 (cross-layer, not pure pool)
 
 ### Total: 147 scenarios (86 + 61), all consistent with API reference
@@ -160,7 +160,7 @@ Both task scenario docs revised against `matryoshka-api-reference-001.md`:
 
 ### Cancel Never Triggers Close (Proposal 26)
 - Cancel (`error.Canceled`) is an Io/scheduler operation
-- Close (`mbox.close` / `pool.close`) is a Master/application decision
+- Close (`mailbox.close` / `pool.close`) is a Master/application decision
 - Adapters return `.canceled` with void payload — mailbox/pool remains open
 - Master decides whether to close after receiving cancel
 - Applies equally to Mailbox and Pool (extends Rule 6 principle to Mailbox)
@@ -173,8 +173,8 @@ Both task scenario docs revised against `matryoshka-api-reference-001.md`:
 ## Mailbox Design Decisions (Zig divergences from Odin)
 
 ### Interrupt replaced by send_oob
-- Odin: `mbox_interrupt` sets `interrupted: bool`, receiver checks in wait loop, `error.Interrupted`
-- Zig: `mbox_send_oob` prepends a PolyNode to front of queue
+- Odin: `mailbox_interrupt` sets `interrupted: bool`, receiver checks in wait loop, `error.Interrupted`
+- Zig: `mailbox_send_oob` prepends a PolyNode to front of queue
 - Rationale: with PolyNode-based mailbox, any signal IS a PolyNode with a tag. OOB items carry actual data. True front-of-queue priority (interrupt was only checked when queue empty). No `interrupted` field, no `error.Interrupted`, no `error.AlreadyInterrupted`
 - Impact: 3-channel contract (DATA/INTERRUPT/CANCEL) → 2-channel contract (DATA/CANCEL). INTERRUPT merged into DATA via send_oob
 
@@ -182,14 +182,14 @@ Both task scenario docs revised against `matryoshka-api-reference-001.md`:
 - Odin: `sync.mutex_lock` never returns errors — no issue
 - Zig implementation guide originally proposed: `io.swapCancelProtection(.blocked)` + `mutex.lock(io) catch unreachable`
 - Revised: `mutex.lockUncancelable(io)` — built-in, simpler, more explicit
-- Applies to: `mbox_close`, `pool_close`, `pool_put`, `pool_put_all`
+- Applies to: `mailbox_close`, `pool_close`, `pool_put`, `pool_put_all`
 
-### mbox_send is cancelable (work path)
+### mailbox_send is cancelable (work path)
 - `mutex.lock(io)` is a cancellation point — if sender's task is canceled, `error.Canceled` propagates
 - Caller still owns item (MayItem not cleared) — item not lost
 - Contrast: `pool_put` is cancel-protected (cleanup path — item would be lost)
 
-### _Mbox and _Pool store `io: Io` (managed pattern)
+### _Mailbox and _Pool store `io: Io` (managed pattern)
 - Zig 0.16 moved containers to "unmanaged" (allocator per-call). Does NOT apply to infrastructure objects
 - Containers (ArrayList, HashMap): generic, many instances, only some ops need allocator → unmanaged
 - Infrastructure (Mailbox, Pool, http.Client): long-lived, every op needs io → store io at construction
@@ -200,29 +200,29 @@ Both task scenario docs revised against `matryoshka-api-reference-001.md`:
 - One queue, one ownership model, one dispatch model, one shutdown model
 - On the current Threaded backend, Select may require additional worker tasks and often additional threads per event source — future backends (Evented, Uring) may behave differently
 - Outside Matryoshka, `Io.Select` remains useful for integrating external Io sources — the two approaches are complementary
-- `error.Canceled` propagation from `mbox_receive` (not remapped to `error.Closed`) is required for Select composability
+- `error.Canceled` propagation from `mailbox_receive` (not remapped to `error.Closed`) is required for Select composability
 
 ### Mailbox and Pool as Select event sources (Proposal 26)
 
 **When to use**: When a Master needs to coordinate mailbox items or pool availability with external Io operations (sockets, files, timers) that are not PolyNode-based. When items carry ownership, many senders fan into one mailbox — keeping ownership, shutdown, dispatch, and backpressure under one model. When items do not carry ownership, other approaches may be simpler.
 
-**How it works**: Matryoshka provides library adapters (`mbox.receive_select`, `pool.get_wait_select`) that convert blocking APIs to `ReceiveResult`/`PoolResult` tagged unions. These are passed directly to `select.concurrent` as event sources. The blocking `Io.Condition.wait` inside the adapter is a real Io wait — Select spawns a dedicated worker that blocks until the operation completes.
+**How it works**: Matryoshka provides library adapters (`mailbox.receive_select`, `pool.get_wait_select`) that convert blocking APIs to `ReceiveResult`/`PoolResult` tagged unions. These are passed directly to `select.concurrent` as event sources. The blocking `Io.Condition.wait` inside the adapter is a real Io wait — Select spawns a dedicated worker that blocks until the operation completes.
 
 ```zig
 const MasterEvent = union(enum) {
-    inbox: mbox.ReceiveResult,
+    inbox: mailbox.ReceiveResult,
     pool: pool.PoolResult,
     timer: void,
 };
 
-try select.concurrent(.inbox, mbox.receive_select, .{ inbox, null });
+try select.concurrent(.inbox, mailbox.receive_select, .{ inbox, null });
 try select.concurrent(.pool, pool.get_wait_select, .{ job_pool, JOB_TAG, null });
 
 while (select.await()) |event| switch (event) {
     .inbox => |r| switch (r) {
         .item => |m| {
             processMessage(m);
-            try select.concurrent(.inbox, mbox.receive_select, .{ inbox, null });
+            try select.concurrent(.inbox, mailbox.receive_select, .{ inbox, null });
         },
         .closed => break,
         .canceled => break,
@@ -244,7 +244,7 @@ while (select.await()) |event| switch (event) {
 
 **Result by value**: Adapters return items inside the result union, not through `*MayItem` pointers. No cross-thread pointer hazards.
 
-**Future helpers**: `mbox.receive_future` / `pool.get_wait_future` spawn the adapter concurrently using the stored `io` and return `Io.Future(ReceiveResult)` / `Io.Future(PoolResult)`. Can be awaited directly without Select.
+**Future helpers**: `mailbox.receive_future` / `pool.get_wait_future` spawn the adapter concurrently using the stored `io` and return `Io.Future(ReceiveResult)` / `Io.Future(PoolResult)`. Can be awaited directly without Select.
 
 **Pool as event source**: Pool availability becomes an event. The job-pool pattern: worker calls `pool.put` → `get_wait_select` event source fires → Master gets item → Master submits new work.
 
@@ -266,11 +266,11 @@ while (select.await()) |event| switch (event) {
 - `select.cancel()` / `select.cancelDiscard()` cancels remaining event sources
 - Internally uses `Io.Group` + `Io.Queue` — each event source is a Group member, results go to Queue
 
-### Why Variant 1 (`mbox.concurrent`) was rejected
+### Why Variant 1 (`mailbox.concurrent`) was rejected
 - Hard-wires one adapter per call — no flexibility for different cancel handling
 - Uses `anytype` for Select and tag parameters — couples Layer 2/3 to Layer 4's union shape
 - Reuses name `concurrent` with different semantics from `io.concurrent` — confusing
-- Makes mbox/pool module reach *up* into Master's Select union — inverts layer dependency
+- Makes mailbox/pool module reach *up* into Master's Select union — inverts layer dependency
 
 ### Why Variant 2 (`receive_future`) was chosen
 - Returns `Io.Future(ReceiveResult)` — caller decides how to use it (await, Select, Group)
@@ -279,7 +279,7 @@ while (select.await()) |event| switch (event) {
 - Adapters (`receive_select`, `get_wait_select`) can be passed directly to `select.concurrent`
 
 ### Cross-thread ownership safety
-- Synchronous `mbox.receive` takes `m: *MayItem` — pointer to caller's stack variable
+- Synchronous `mailbox.receive` takes `m: *MayItem` — pointer to caller's stack variable
 - In async case, concurrent task writes through this pointer from a different thread
 - Solution: result carries item by value inside tagged union — no `*MayItem` crosses thread boundary
 - Adapter creates local `MayItem`, calls blocking API, packages result into union
@@ -287,7 +287,7 @@ while (select.await()) |event| switch (event) {
 
 ### Cancel/Close separation principle
 - Cancel (`error.Canceled`) is Io scheduler operation — external to application
-- Close (`mbox.close`/`pool.close`) is Master/application decision — explicit action
+- Close (`mailbox.close`/`pool.close`) is Master/application decision — explicit action
 - Adapters never close on cancel — they return `.canceled` and let Master decide
 - This eliminates `receiveOrClose` wrapper from the original external proposal
 - One adapter per operation, not a policy choice
@@ -375,7 +375,7 @@ while (select.await()) |event| switch (event) {
 - Io as the concurrency abstraction (Io == scheduling + synchronization + cancellation + I/O)
 - Cancellation and Close are different (`error.Canceled` vs `error.Closed`)
 - Fan-in mailbox — strongest Matryoshka-specific insight
-- Storing Io in _Mbox and _Pool (infrastructure, not container)
+- Storing Io in _Mailbox and _Pool (infrastructure, not container)
 
 ### Corrected
 - Select/thread claim reworded: "may require additional worker tasks and often additional threads" — not "one OS thread per event source" (backend-dependent)
@@ -434,7 +434,7 @@ while (select.await()) |event| switch (event) {
 
 ### Block 2 (Mailbox)
 - `master.odin` — Master struct (inbox + builder + alloc), newMaster/freeMaster
-- `readme_worker.odin` — basic worker loop with mbox_wait_receive, close+join
+- `readme_worker.odin` — basic worker loop with mailbox_wait_receive, close+join
 - `shutdown_exit.odin` — exit via sentinel message (EXIT_TAG)
 - `pipeline.odin` — producer → transformer → consumer chain, 3 Masters
 - `request_response.odin` — two Masters exchanging items bidirectionally
@@ -463,8 +463,8 @@ All decisions applied to API reference, implementation guide, task1, and task2.
 | 1 | send_oob replaces interrupt | FIFO among OOBs via oob_count + oob_last |
 | 2 | std.DoublyLinkedList for batches | close, receive_batch, on_close, put_all all use linked list |
 | 3 | Timeout as `?u64` | null = wait forever, value = nanoseconds |
-| 4 | Module-function API style | `mbox.send(mbh, &item)` not `mbox_send(mbh, &item)` |
-| 5 | Module naming | polynode.zig, mbox.zig, pool.zig, matryoshka.zig root |
+| 4 | Module-function API style | `mailbox.send(mbh, &item)` not `mailbox_send(mbh, &item)` |
+| 5 | Module naming | polynode.zig, mailbox.zig, pool.zig, matryoshka.zig root |
 | 6 | Handle param type | `mbh: MailboxHandle` (already a pointer, no extra `*`) |
 | 7 | Drop dispose.zig | Per-module destroy only, no generic dispatch |
 | 8 | API reference document | matryoshka-api-reference-001.md is source of truth |
@@ -493,7 +493,7 @@ Note - 24 applied (2026-06-22): all "DLL" abbreviations replaced with full name 
 
 ### Implementation
 
-5. **condition_waitTimeout workaround** — Zig 0.16 `Io.Condition` has no `waitTimeout` (open issue codeberg/zig#31278). Workaround exists in reference mailbox (`mailbox.zig`). Must be copied as private helper for both `_Mbox` and `_Pool`. May become unnecessary if upstream fixes the issue.
+5. **condition_waitTimeout workaround** — Zig 0.16 `Io.Condition` has no `waitTimeout` (open issue codeberg/zig#31278). Workaround exists in reference mailbox (`mailbox.zig`). Must be copied as private helper for both `_Mailbox` and `_Pool`. May become unnecessary if upstream fixes the issue.
 
 6. **Io.Evented backend** — WIP in 0.16, not production-ready. Design targets both Threaded and Evented, but testing is Threaded-only for now. Select cost claims are backend-dependent.
 

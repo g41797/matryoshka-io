@@ -11,7 +11,7 @@ Reading path:
 1  What you are building
 2  Zig 0.16 — hard constraints        ← read first; the rest assumes it
 3  Block 1 — PolyNode + MayItem
-4  Block 2 — Mailbox (_Mbox)
+4  Block 2 — Mailbox (_Mailbox)
 5  Block 3 — Pool (_Pool)
 6  Block 4 — Infrastructure as Items
 7+ Cancellation, shutdown, idioms     (Part 2)
@@ -19,7 +19,7 @@ Reading path:
 
 For architecture and rationale → `matryoshka-architecture-foundation-4-001.md`.
 
-For exact API signatures → `matryoshka-api-reference-001.md`.
+For exact API signatures → `matryoshka-api-reference-005.md`.
 
 ---
 
@@ -86,7 +86,7 @@ pub fn wait(cond: *Condition, io: Io, mutex: *Mutex) Cancelable!void {
 Consequences:
 
 - Every wait is a cancellation point returning `Cancelable!void`.
-- `_Mbox` and `_Pool` must use `Io.Mutex` and `Io.Condition`.
+- `_Mailbox` and `_Pool` must use `Io.Mutex` and `Io.Condition`.
 - All `std.Thread.*` synchronization primitives were removed in 0.16.0.
 
 ## 2.2 Removed primitives — hard constraint
@@ -109,7 +109,7 @@ These do not exist in `std.Thread` anymore. Confirmed: `grep "pub" Thread.zig` r
 
 This is not a recommendation. "Must not use" now means "does not exist."
 
-`std.Thread.Mutex/Condition` would not go through the IO vtable and could not return `error.Canceled`. They must never appear in `_Mbox` or `_Pool`.
+`std.Thread.Mutex/Condition` would not go through the IO vtable and could not return `error.Canceled`. They must never appear in `_Mailbox` or `_Pool`.
 
 ## 2.3 Two backends
 
@@ -118,7 +118,7 @@ Io.Threaded   OS threads + futex.        Production-ready.   ← target this
 Io.Evented    fibers (green threads).    Work in progress.   Not production-ready.
 ```
 
-`_Mbox` and `_Pool` are correct for both backends — all blocking goes through the IO vtable.
+`_Mailbox` and `_Pool` are correct for both backends — all blocking goes through the IO vtable.
 
 The `Io.Evented` backend itself is incomplete in 0.16.0. Target `Io.Threaded` for production.
 
@@ -191,13 +191,13 @@ m.deinit(alloc);                // allocator required
 
 **No `Io.Condition.waitTimeout`** (open issue codeberg/zig#31278).
 
-Use `condition_waitTimeout` from the reference implementation. It calls `io.futexWaitTimeout` directly. Both `mbox_receive` and `pool_get_wait` depend on it.
+Use `condition_waitTimeout` from the reference implementation. It calls `io.futexWaitTimeout` directly. Both `mailbox_receive` and `pool_get_wait` depend on it.
 
 **Tests use `global_single_threaded`** — see 2.3.
 
 **`heap.ThreadSafeAllocator` removed** as an anti-pattern. Allocators are expected to be thread-safe on their own. `heap.ArenaAllocator` is thread-safe and lock-free by default.
 
-`_Mbox` and `_Pool` store `alloc` at init. Callers must pass a thread-safe allocator if `create`/`destroy` run from multiple threads. Matryoshka does not wrap allocators.
+`_Mailbox` and `_Pool` store `alloc` at init. Callers must pass a thread-safe allocator if `create`/`destroy` run from multiple threads. Matryoshka does not wrap allocators.
 
 ---
 
@@ -258,7 +258,7 @@ const poly: *PolyNode = @fieldParentPtr("node", dll_node_ptr);
 const ev: *Event = @fieldParentPtr("poly", poly);
 ```
 
-`_Mbox.list.append(&poly.node)` passes `*DoublyLinkedList.Node`. `list.popFirst()` returns `?*DoublyLinkedList.Node`.
+`_Mailbox.list.append(&poly.node)` passes `*DoublyLinkedList.Node`. `list.popFirst()` returns `?*DoublyLinkedList.Node`.
 
 Step 1 always happens inside mailbox or pool.
 
@@ -306,7 +306,7 @@ Invariants:
 `popFirst()` clears `prev`/`next` automatically. Single-item and batch (`std.DoublyLinkedList`) returns both auto-reset when walked with `popFirst()`:
 
 ```zig
-var remaining = mbox_close(inbox);
+var remaining = mailbox_close(inbox);
 while (remaining.popFirst()) |node| {
     const poly: *PolyNode = @fieldParentPtr("node", node);
     // popFirst already cleared prev/next — no manual polynode_reset needed
@@ -318,7 +318,7 @@ Manual `polynode_reset` is only needed when working with raw `*Node` pointers di
 
 ---
 
-# 4. Block 2 — Mailbox (_Mbox)
+# 4. Block 2 — Mailbox (_Mailbox)
 
 Odin reference: see Appendix.
 
@@ -329,29 +329,29 @@ Key invariant: data has priority over closed signals.
 `std.Io.Queue(Elem)` is a native MPMC queue backed by `Io.Mutex` + `Io.Condition`. It cannot serve as Mailbox's internal queue. Three reasons:
 
 1. **Bounded vs unbounded.** `Io.Queue` uses a fixed ring buffer — `putOne` blocks when full. Mailbox is unbounded — send never blocks except on mutex acquisition. Different backpressure semantics.
-2. **Different close semantics.** `Io.Queue.close()` leaves buffered elements retrievable before returning `error.Closed`. `mbox_close` must atomically snapshot and return all remaining items as a list. Different contracts.
-3. **Copy-based, not intrusive.** `Io.Queue` copies values into a `[]u8` ring buffer. Mailbox nodes are intrusive — they carry their own storage and are linked, not copied. `mbox_close` depends on the intrusive list for batch return.
+2. **Different close semantics.** `Io.Queue.close()` leaves buffered elements retrievable before returning `error.Closed`. `mailbox_close` must atomically snapshot and return all remaining items as a list. Different contracts.
+3. **Copy-based, not intrusive.** `Io.Queue` copies values into a `[]u8` ring buffer. Mailbox nodes are intrusive — they carry their own storage and are linked, not copied. `mailbox_close` depends on the intrusive list for batch return.
 
 Mailbox needs its own implementation.
 
 ## Starting point: TypeErasedMailbox
 
-`/home/g41797/dev/root/github.com/g41797/mailbox/src/mailbox.zig` has three mailbox variants. The third, `TypeErasedMailbox`, is the direct predecessor of `_Mbox`. It already:
+`/home/g41797/dev/root/github.com/g41797/mailbox/src/mailbox.zig` has three mailbox variants. The third, `TypeErasedMailbox`, is the direct predecessor of `_Mailbox`. It already:
 
 - uses `Io.Mutex` + `Io.Condition`
 - stores `io` in the struct
 - provides idempotent close returning the remaining head pointer
 
-## _Mbox struct
+## _Mailbox struct
 
 `io` is stored at init. Callers do not pass `io` per operation.
 
 `closed` is `std.atomic.Value(bool)` — allows a fast-path check before the mutex.
 
 ```zig
-pub const MailboxHandle = *PolyNode;  // opaque handle — @fieldParentPtr("poly", mbh) recovers *_Mbox
+pub const MailboxHandle = *PolyNode;  // opaque handle — @fieldParentPtr("poly", mbh) recovers *_Mailbox
 
-const _Mbox = struct {
+const _Mailbox = struct {
     poly:        PolyNode,                  // field "poly" — MailboxHandle points here
     mutex:       Io.Mutex,                  // guards list, len
     cond:        Io.Condition,              // blocked receivers wait here
@@ -366,11 +366,11 @@ const _Mbox = struct {
 
 ## API
 
-`io` is only needed at construction. All other functions use `mbox.io`. For full signatures see `matryoshka-api-reference-001.md`. Implementation notes:
+`io` is only needed at construction. All other functions use `mailbox.io`. For full signatures see `matryoshka-api-reference-005.md`. Implementation notes:
 
-- `mbox_receive` takes `timeout_ns: ?u64` — `null` waits forever, value is nanoseconds.
-- `mbox_close` returns a `std.DoublyLinkedList` of remaining items. Idempotent via the `closed` CAS — second call returns an empty list.
-- `mbox_receive_batch` takes all currently available items in one lock acquisition without waiting. Never blocks on `Io.Condition`.
+- `mailbox_receive` takes `timeout_ns: ?u64` — `null` waits forever, value is nanoseconds.
+- `mailbox_close` returns a `std.DoublyLinkedList` of remaining items. Idempotent via the `closed` CAS — second call returns an empty list.
+- `mailbox_receive_batch` takes all currently available items in one lock acquisition without waiting. Never blocks on `Io.Condition`.
 
 ## Receive state flow
 
@@ -392,14 +392,14 @@ wait loop:
 `Io.Condition` has no `waitTimeout` in 0.16 (issue #31278). Use `condition_waitTimeout`, which calls `io.futexWaitTimeout` directly.
 
 ```zig
-fn mbox_receive(mbh: MailboxHandle, m: *MayItem, timeout_ns: ?u64)
+fn mailbox_receive(mbh: MailboxHandle, m: *MayItem, timeout_ns: ?u64)
     (error{ Closed, Timeout } || Cancelable)!void
 {
-    const mbox: *_Mbox = @fieldParentPtr("poly", mbh);
+    const mailbox: *_Mailbox = @fieldParentPtr("poly", mbh);
 
     // fast path: already closed, no lock needed (atomic read)
-    if (mbox.closed.load(.acquire)) return error.Closed;
-    const io = mbox.io;
+    if (mailbox.closed.load(.acquire)) return error.Closed;
+    const io = mailbox.io;
 
     // null = wait forever (Io.Timeout.none); value = timeout in nanoseconds
     const timeout: Io.Timeout = if (timeout_ns) |ns|
@@ -409,26 +409,26 @@ fn mbox_receive(mbh: MailboxHandle, m: *MayItem, timeout_ns: ?u64)
     const deadline = timeout.toDeadline(io);
 
     // cancellation point: futexWait fires if contended
-    mbox.mutex.lock(io) catch |err| return err;   // propagates error.Canceled directly
-    defer mbox.mutex.unlock(io);
+    mailbox.mutex.lock(io) catch |err| return err;   // propagates error.Canceled directly
+    defer mailbox.mutex.unlock(io);
 
-    // re-check: mbox_close may have run between pre-check and lock
-    if (mbox.closed.load(.monotonic)) return error.Closed;
+    // re-check: mailbox_close may have run between pre-check and lock
+    if (mailbox.closed.load(.monotonic)) return error.Closed;
 
-    while (mbox.len == 0) {
-        if (mbox.closed.load(.monotonic)) return error.Closed;
-        condition_waitTimeout(&mbox.cond, io, &mbox.mutex, deadline) catch |err| switch (err) {
+    while (mailbox.len == 0) {
+        if (mailbox.closed.load(.monotonic)) return error.Closed;
+        condition_waitTimeout(&mailbox.cond, io, &mailbox.mutex, deadline) catch |err| switch (err) {
             error.Timeout   => return error.Timeout,
             error.Canceled  => return err,          // propagates error.Canceled directly
         };
     }
 
     // dequeue and update OOB tracking
-    const node = mbox.list.popFirst().?;
-    mbox.len -= 1;
-    if (mbox.oob_count > 0) {
-        mbox.oob_count -= 1;
-        if (mbox.oob_count == 0) mbox.oob_last = null;
+    const node = mailbox.list.popFirst().?;
+    mailbox.len -= 1;
+    if (mailbox.oob_count > 0) {
+        mailbox.oob_count -= 1;
+        if (mailbox.oob_count == 0) mailbox.oob_last = null;
     }
     m.* = @as(*PolyNode, @fieldParentPtr("node", node));
 }
@@ -436,76 +436,76 @@ fn mbox_receive(mbh: MailboxHandle, m: *MayItem, timeout_ns: ?u64)
 
 ## send / send_oob
 
-`mbox_send`: appends under mutex, then `cond.signal(io)`.
+`mailbox_send`: appends under mutex, then `cond.signal(io)`.
 
-`mbox_send_oob`: inserts after the last OOB node — FIFO among OOBs, all OOBs before regular items. Uses `oob_last` for O(1) insertion:
+`mailbox_send_oob`: inserts after the last OOB node — FIFO among OOBs, all OOBs before regular items. Uses `oob_last` for O(1) insertion:
 
 ```zig
 // under mutex:
-if (mbox.oob_last) |last| {
-    mbox.list.insertAfter(last, &poly.node);
+if (mailbox.oob_last) |last| {
+    mailbox.list.insertAfter(last, &poly.node);
 } else {
-    mbox.list.prepend(&poly.node);
+    mailbox.list.prepend(&poly.node);
 }
-mbox.oob_last = &poly.node;
-mbox.oob_count += 1;
-mbox.len += 1;
-mbox.cond.signal(io);
+mailbox.oob_last = &poly.node;
+mailbox.oob_count += 1;
+mailbox.len += 1;
+mailbox.cond.signal(io);
 ```
 
-For the full OOB ordering example see `matryoshka-api-reference-001.md` (Advanced: OOB ordering).
+For the full OOB ordering example see `matryoshka-api-reference-005.md` (Advanced: OOB ordering).
 
 ## receive_batch
 
 The Zig equivalent of Odin's `try_receive_batch`. Snapshots the entire list under one lock. Returns an empty list if nothing available.
 
 ```zig
-fn mbox_receive_batch(mbh: MailboxHandle) (error{Closed} || Cancelable)!std.DoublyLinkedList {
-    const mbox: *_Mbox = @fieldParentPtr("poly", mbh);
+fn mailbox_receive_batch(mbh: MailboxHandle) (error{Closed} || Cancelable)!std.DoublyLinkedList {
+    const mailbox: *_Mailbox = @fieldParentPtr("poly", mbh);
 
-    if (mbox.closed.load(.acquire)) return error.Closed;
+    if (mailbox.closed.load(.acquire)) return error.Closed;
 
-    mbox.mutex.lock(mbox.io) catch |err| return err;   // cancel point
-    defer mbox.mutex.unlock(mbox.io);
+    mailbox.mutex.lock(mailbox.io) catch |err| return err;   // cancel point
+    defer mailbox.mutex.unlock(mailbox.io);
 
-    if (mbox.closed.load(.acquire)) return error.Closed;
+    if (mailbox.closed.load(.acquire)) return error.Closed;
 
     // snapshot entire list without closing
-    const result = mbox.list;
-    mbox.list = .{};
-    mbox.len = 0;
-    mbox.oob_count = 0;
-    mbox.oob_last = null;
+    const result = mailbox.list;
+    mailbox.list = .{};
+    mailbox.len = 0;
+    mailbox.oob_count = 0;
+    mailbox.oob_last = null;
     return result;
 }
 ```
 
 The caller walks the returned list via `popFirst()` — which clears `prev`/`next` on each node.
 
-## mbox_close
+## mailbox_close
 
 CAS for idempotency, then `lockUncancelable` to acquire the mutex regardless of cancel state.
 
 ```zig
-pub fn mbox_close(mbh: MailboxHandle, io: Io) std.DoublyLinkedList {
-    const mbox: *_Mbox = @fieldParentPtr("poly", mbh);
+pub fn mailbox_close(mbh: MailboxHandle, io: Io) std.DoublyLinkedList {
+    const mailbox: *_Mailbox = @fieldParentPtr("poly", mbh);
 
     // CAS: only one caller ever does the work; others return empty list
-    if (mbox.closed.cmpxchgStrong(false, true, .acq_rel, .acquire) != null)
+    if (mailbox.closed.cmpxchgStrong(false, true, .acq_rel, .acquire) != null)
         return .{ .first = null, .last = null };
 
-    mbox.mutex.lockUncancelable(io);   // blocks until acquired, never returns error.Canceled
-    defer mbox.mutex.unlock(io);
+    mailbox.mutex.lockUncancelable(io);   // blocks until acquired, never returns error.Canceled
+    defer mailbox.mutex.unlock(io);
 
     // snapshot the list under lock
-    const result = mbox.list;
-    mbox.list = .{};
-    mbox.len = 0;
-    mbox.oob_count = 0;
-    mbox.oob_last = null;
+    const result = mailbox.list;
+    mailbox.list = .{};
+    mailbox.len = 0;
+    mailbox.oob_count = 0;
+    mailbox.oob_last = null;
 
     // wake any workers waiting in condition_waitTimeout
-    mbox.cond.broadcast(io);
+    mailbox.cond.broadcast(io);
 
     return result;
 }
@@ -515,7 +515,7 @@ Workers waiting in `cond.wait` wake on broadcast. They see `closed = true` and r
 
 Workers acquiring the lock after close releases it see `closed = true` on the post-lock check.
 
-Workers calling `mbox_receive` after close completes hit the pre-lock fast path.
+Workers calling `mailbox_receive` after close completes hit the pre-lock fast path.
 
 For cancel protection rationale, see Section 7.
 
@@ -527,7 +527,7 @@ Odin reference: see Appendix.
 
 ## _Pool struct
 
-Same pattern as `_Mbox`: `io` stored at init, `closed` is atomic for the pre-lock fast path.
+Same pattern as `_Mailbox`: `io` stored at init, `closed` is atomic for the pre-lock fast path.
 
 ```zig
 pub const PoolHandle = *PolyNode;  // opaque handle — @fieldParentPtr("poly", ph) recovers *_Pool
@@ -558,11 +558,11 @@ pub const GetError = error{ Closed, NotAvailable, NotCreated, AlreadyInUse };
 
 ## API
 
-For full signatures see `matryoshka-api-reference-001.md`. `io` is only needed at construction; all other functions use `p.io`.
+For full signatures see `matryoshka-api-reference-005.md`. `io` is only needed at construction; all other functions use `p.io`.
 
 ## pool_get_wait logic
 
-Symmetric with `mbox_receive`: takes `timeout_ns: ?u64` (`null` = forever), converts to a deadline, uses `condition_waitTimeout`. `error.Timeout` is propagated directly — not remapped to `error.Closed`.
+Symmetric with `mailbox_receive`: takes `timeout_ns: ?u64` (`null` = forever), converts to a deadline, uses `condition_waitTimeout`. `error.Timeout` is propagated directly — not remapped to `error.Closed`.
 
 ```zig
 fn pool_get_wait(ph: PoolHandle, tag: *const anyopaque, m: *MayItem, timeout_ns: ?u64) (GetError || Cancelable || error{Timeout})!void {
@@ -604,7 +604,7 @@ fn pool_get_wait(ph: PoolHandle, tag: *const anyopaque, m: *MayItem, timeout_ns:
 
 ## pool_close
 
-Takes no `io` parameter — uses `p.io`. Unlike `mbox_close`, it returns `void`: `on_close` receives the full collected list, so there is nothing to return.
+Takes no `io` parameter — uses `p.io`. Unlike `mailbox_close`, it returns `void`: `on_close` receives the full collected list, so there is nothing to return.
 
 ```zig
 pub fn pool_close(ph: PoolHandle) void {
@@ -671,7 +671,7 @@ See `matryoshka-architecture-foundation-4-001.md` for the rationale.
 
 ## Hook discipline
 
-For the hook contract see `matryoshka-api-reference-001.md`. Zig-specific notes:
+For the hook contract see `matryoshka-api-reference-005.md`. Zig-specific notes:
 
 - Hooks run outside the pool mutex (same as Odin). Hooks must not call pool APIs on the same pool instance — a contract violation, not a deadlock.
 - Get path: release lock → call `on_get` → caller proceeds.
@@ -698,7 +698,7 @@ if (mailbox_is_it_you(poly.tag)) { ... }
 else if (pool_is_it_you(poly.tag)) { ... }
 ```
 
-There is no generic dispose. Use `mbox.destroy` and `pool.destroy` directly. Application types destroy themselves.
+There is no generic dispose. Use `mailbox.destroy` and `pool.destroy` directly. Application types destroy themselves.
 
 For the rationale see `matryoshka-architecture-foundation-4-001.md`, section 10.
 
@@ -763,7 +763,7 @@ Zig 0.16 offers two ways to unblock a worker. Both are valid. They differ in who
 ```
 Broadcast path              Future.cancel path
 ─────────────              ──────────────────
-mbox_close / pool_close    future.cancel(io)
+mailbox_close / pool_close    future.cancel(io)
      ↓                          ↓
 cond.broadcast             Io marks task canceled
      ↓                          ↓
@@ -774,11 +774,11 @@ error.Closed               error.Canceled
 worker exits loop          worker exits loop
 ```
 
-Broadcast path: `mbox_close` / `pool_close` call `cond.broadcast(io)` internally.
+Broadcast path: `mailbox_close` / `pool_close` call `cond.broadcast(io)` internally.
 
 Future.cancel path: spawn the worker with `io.concurrent()` and call `future.cancel(io)` on shutdown.
 
-Both require `mbox_close` and `pool_close` afterward. `future.cancel` stops the worker. It does not close anything.
+Both require `mailbox_close` and `pool_close` afterward. `future.cancel` stops the worker. It does not close anything.
 
 ## 7.3 Cancel-protected vs cancelable operations
 
@@ -791,11 +791,11 @@ Two mechanisms make operations cancel-protected.
 `lockUncancelable` — for a single lock acquisition:
 
 ```zig
-mbox.mutex.lockUncancelable(io);   // blocks until acquired, never returns error.Canceled
-defer mbox.mutex.unlock(io);
+mailbox.mutex.lockUncancelable(io);   // blocks until acquired, never returns error.Canceled
+defer mailbox.mutex.unlock(io);
 ```
 
-Used by `mbox_close`, `pool_close`, `pool_put`, and `pool_put_all`.
+Used by `mailbox_close`, `pool_close`, `pool_put`, and `pool_put_all`.
 
 `CancelProtection` — for a larger region:
 
@@ -816,13 +816,13 @@ Use `swapCancelProtection` when several Io calls in a region all need protection
 
 `pool_put` MUST be cancel-protected.
 
-A worker that receives `error.Canceled` from `mbox_receive` must return its item reliably. If `pool_put` could itself fail with `error.Canceled`, the item would be lost with no owner. `pool_put` returns `void` and uses `lockUncancelable` internally.
+A worker that receives `error.Canceled` from `mailbox_receive` must return its item reliably. If `pool_put` could itself fail with `error.Canceled`, the item would be lost with no owner. `pool_put` returns `void` and uses `lockUncancelable` internally.
 
 ## 7.4 Cancel contract
 
 Every public function declares whether it is cancelable or cancel-protected.
 
-See `matryoshka-api-reference-001.md`, Cancel contract summary table, for the complete list.
+See `matryoshka-api-reference-005.md`, Cancel contract summary table, for the complete list.
 
 Implementation note: all cancel-protected operations use `mutex.lockUncancelable(io)` — simpler and more explicit than `swapCancelProtection(.blocked)` plus `mutex.lock(io) catch unreachable`.
 
@@ -830,10 +830,10 @@ Implementation note: all cancel-protected operations use `mutex.lockUncancelable
 
 These are distinct. Do not remap one to the other.
 
-- `error.Closed` — `mbox_close` or `pool_close` was called.
+- `error.Closed` — `mailbox_close` or `pool_close` was called.
 - `error.Canceled` — the task was canceled while the mailbox or pool was still open.
 
-Different causes. Different meaning. Propagate `error.Canceled` directly from `mbox_receive` and `pool_get_wait`.
+Different causes. Different meaning. Propagate `error.Canceled` directly from `mailbox_receive` and `pool_get_wait`.
 
 Both cause the worker to exit its loop. The worker may handle them differently.
 
@@ -843,11 +843,11 @@ A return from `Io.Condition.wait` is just a wakeup. It carries no application me
 
 The scheduler resumed the task. What the code finds after waking is the event.
 
-In `mbox_receive` the check sequence enforces this:
+In `mailbox_receive` the check sequence enforces this:
 
 ```zig
-while (mbox.len == 0) {
-    if (mbox.closed.load(.monotonic)) return error.Closed;    // mailbox shut down
+while (mailbox.len == 0) {
+    if (mailbox.closed.load(.monotonic)) return error.Closed;    // mailbox shut down
     condition_waitTimeout(...) catch |err| switch (err) {
         error.Timeout  => return error.Timeout,               // caller's deadline
         error.Canceled => return err,                         // task canceled — propagated directly
@@ -868,7 +868,7 @@ Odin has no cancellation.
 
 `sync.mutex_lock` and `sync.cond_wait` never return errors.
 
-The only way to wake a blocked Odin worker is the `mbox_close` / `pool_close` broadcast.
+The only way to wake a blocked Odin worker is the `mailbox_close` / `pool_close` broadcast.
 
 There is no injection mechanism and no `CancelProtection`.
 
@@ -936,7 +936,7 @@ fn worker_proc(io: Io, m: *Master) !void {
     while (true) {
         var item: MayItem = null;
 
-        mbox_receive(m.inbox, io, &item, timeout_ns) catch |err| switch (err) {
+        mailbox_receive(m.inbox, io, &item, timeout_ns) catch |err| switch (err) {
             error.Closed     => break,
             error.Canceled   => break,
             error.Timeout    => continue,
@@ -973,7 +973,7 @@ Item-on-exit pattern: whenever the worker exits while holding an item, try `pool
 
 ## 8.4 Shutdown: broadcast path
 
-Master closes both mbox and pool before joining the worker.
+Master closes both mailbox and pool before joining the worker.
 
 The close broadcasts wake the worker regardless of which operation it is blocked in.
 
@@ -983,12 +983,12 @@ Master decides to stop
     ├─ pool_close(m.pool)       — sets closed, calls on_close with full item list, broadcasts
     │       worker in pool_get_wait wakes → error.Closed → exits loop
     │
-    ├─ mbox_close(m.inbox)      — sets closed, snapshots, broadcasts
-    │       worker in mbox_receive wakes → error.Closed → exits loop
+    ├─ mailbox_close(m.inbox)      — sets closed, snapshots, broadcasts
+    │       worker in mailbox_receive wakes → error.Closed → exits loop
     │
     ├─ join worker (await future or group)
     │
-    ├─ walk mbox list → free each node
+    ├─ walk mailbox list → free each node
     └─ free Master
 ```
 
@@ -998,26 +998,26 @@ Both closes must run before join — the worker may be blocked in either.
 
 ## 8.5 Shutdown: Future.cancel path
 
-Master cancels the worker task first, then closes mbox and pool.
+Master cancels the worker task first, then closes mailbox and pool.
 
 ```
 Master decides to stop
     │
     ├─ future.cancel(io)
     │       worker task marked canceled
-    │       worker blocked in mbox_receive or pool_get_wait → error.Canceled → exits loop
+    │       worker blocked in mailbox_receive or pool_get_wait → error.Canceled → exits loop
     │       future.cancel awaits worker completion, returns
     │
     ├─ pool_close(m.pool)       — calls on_close for remaining items (worker already exited)
-    ├─ mbox_close(m.inbox)      — snapshot remaining items
+    ├─ mailbox_close(m.inbox)      — snapshot remaining items
     │
-    ├─ walk mbox list → free each node
+    ├─ walk mailbox list → free each node
     └─ free Master
 ```
 
 `future.cancel` returns only after the worker has exited.
 
-`pool_close` and `mbox_close` run after join — no race with the worker.
+`pool_close` and `mailbox_close` run after join — no race with the worker.
 
 ## 8.6 Shutdown ordering and teardown
 
@@ -1025,22 +1025,22 @@ Both paths converge on the same teardown.
 
 ```
 Broadcast path:
-    pool_close + mbox_close → join → walk mbox list → free Master
+    pool_close + mailbox_close → join → walk mailbox list → free Master
 
 Future.cancel path:
-    future.cancel → pool_close + mbox_close → walk mbox list → free Master
+    future.cancel → pool_close + mailbox_close → walk mailbox list → free Master
 ```
 
-Key rule: `mbox_close` and `pool_close` are always required.
+Key rule: `mailbox_close` and `pool_close` are always required.
 
 Without them, items in the queue or pool are lost.
 
-- `mbox_close` returns remaining items as a `std.DoublyLinkedList` — caller walks via `popFirst()`.
+- `mailbox_close` returns remaining items as a `std.DoublyLinkedList` — caller walks via `popFirst()`.
 - `pool_close` calls `on_close` once with the full remaining list — nothing returned.
 
 Order between the two closes does not affect correctness.
 
-In the broadcast path, calling `mbox_close` before `pool_close` lets the worker return its item via `pool_put` while the pool is still open. If `pool_close` fires first, the worker wraps the item in a single-item list and calls `on_close` directly. Same result, different path.
+In the broadcast path, calling `mailbox_close` before `pool_close` lets the worker return its item via `pool_put` while the pool is still open. If `pool_close` fires first, the worker wraps the item in a single-item list and calls `on_close` directly. Same result, different path.
 
 ## 8.7 Multiple workers: Io.Group
 
@@ -1053,11 +1053,11 @@ group.cancel(io);   // cancels all members, awaits all, returns void
 
 `group.cancel(io)` replaces `Thread.Pool` + `Thread.WaitGroup`, both removed in 0.16.0.
 
-After `group.cancel`, call `pool_close` and `mbox_close` to reclaim remaining items.
+After `group.cancel`, call `pool_close` and `mailbox_close` to reclaim remaining items.
 
 ## 8.8 Mailbox and Pool as event sources
 
-`_Mbox` and `_Pool` store `io: Io` internally.
+`_Mailbox` and `_Pool` store `io: Io` internally.
 
 Their blocking operations wait on `Io.Condition` — real Io waits.
 
@@ -1067,7 +1067,7 @@ Without library helpers, every application writes identical adapter functions. T
 
 **Result by value, not out-pointer.**
 
-The synchronous `mbox_receive` takes `m: *MayItem`. In the concurrent case a worker task would write through this pointer from a different thread — a cross-thread reference to stack memory.
+The synchronous `mailbox_receive` takes `m: *MayItem`. In the concurrent case a worker task would write through this pointer from a different thread — a cross-thread reference to stack memory.
 
 The adapters eliminate this by returning the item by value inside a tagged union:
 
@@ -1095,7 +1095,7 @@ On `error.Canceled`, adapters return `.canceled`. The mailbox or pool stays open
 ```zig
 pub fn receive_select(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
     var item: MayItem = null;
-    mbox_receive(mbh, &item, timeout_ns) catch |err| switch (err) {
+    mailbox_receive(mbh, &item, timeout_ns) catch |err| switch (err) {
         error.Canceled => return .{ .canceled = {} },
         error.Closed   => return .{ .closed = {} },
         error.Timeout  => return .{ .timeout = {} },
@@ -1104,7 +1104,7 @@ pub fn receive_select(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
 }
 
 pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.Future(ReceiveResult) {
-    const self: *_Mbox = @fieldParentPtr("poly", mbh);
+    const self: *_Mailbox = @fieldParentPtr("poly", mbh);
     return self.io.concurrent(receive_select, .{ mbh, timeout_ns });
 }
 ```
@@ -1141,7 +1141,7 @@ On the Threaded backend, each `select.concurrent` call may allocate a worker thr
 
 On `global_single_threaded`, `receive_future` and `get_wait_future` return `error.ConcurrencyUnavailable`. The synchronous API remains available.
 
-See `matryoshka-api-reference-001.md` for the type and function signatures.
+See `matryoshka-api-reference-005.md` for the type and function signatures.
 
 **Mailbox-less coordination.**
 
@@ -1176,8 +1176,8 @@ Add mailbox when independent senders need to deliver ownership-carrying items:
 
 ### What to reuse
 
-- `TypeErasedMailbox` → starting point for `_Mbox`
-- `condition_waitTimeout` → private helper for both `_Mbox` and `_Pool`
+- `TypeErasedMailbox` → starting point for `_Mailbox`
+- `condition_waitTimeout` → private helper for both `_Mailbox` and `_Pool`
 - `std.DoublyLinkedList` → intrusive list for all batch operations
 - `std.AutoHashMapUnmanaged` → per-tag free-lists in `_Pool`
 
@@ -1231,7 +1231,7 @@ Add mailbox when independent senders need to deliver ownership-carrying items:
     Infrastructure may be transported. It must never be implicitly retained by the items it carries.
 
 12. **Do NOT use a cancelable lock in close/put operations.**
-    `mbox_close`, `pool_close`, `pool_put`, and `pool_put_all` must complete regardless of cancel state.
+    `mailbox_close`, `pool_close`, `pool_put`, and `pool_put_all` must complete regardless of cancel state.
     Use `mutex.lockUncancelable(io)`.
     The cancelable variant means a canceled task fails to close/put and leaks items.
 
@@ -1240,7 +1240,7 @@ Add mailbox when independent senders need to deliver ownership-carrying items:
     Hooks are policy; pool is infrastructure. Mixing them collapses the separation.
 
 14. **Do NOT expose `error.Canceled` from `pool_put` or `pool_put_all`.**
-    These are cleanup paths — a worker returning its item after `error.Canceled` from `mbox_receive`.
+    These are cleanup paths — a worker returning its item after `error.Canceled` from `mailbox_receive`.
     If `pool_put` could fail with `error.Canceled`, the item would be lost with no owner.
     Both use `mutex.lockUncancelable(io)` and return `void`.
 
@@ -1351,12 +1351,12 @@ The internal queue still stores `*PolyNode` — the typed wrapper handles the ca
 // send: upcast *Foo -> *PolyNode
 fn send(mbh: MailboxHandle, item: MayItem(Foo)) !void {
     const node: ?*PolyNode = if (item) |p| &p.poly else null;
-    return mbox_send(mbh, node);
+    return mailbox_send(mbh, node);
 }
 
 // receive: downcast *PolyNode -> ?*Foo via FooNode.cast
 fn receive(mbh: MailboxHandle) !MayItem(Foo) {
-    const node = try mbox_receive(mbh);
+    const node = try mailbox_receive(mbh);
     return FooNode.cast(node);
 }
 ```
@@ -1443,13 +1443,13 @@ In practice `PoolHooks` already enforces this via its field types — this is be
 
 ### Atomic pre-lock fast-path
 
-Both `_Mbox` and `_Pool` use `closed: std.atomic.Value(bool)` to check closed state before acquiring the mutex. This avoids lock contention on the common post-close path:
+Both `_Mailbox` and `_Pool` use `closed: std.atomic.Value(bool)` to check closed state before acquiring the mutex. This avoids lock contention on the common post-close path:
 
 ```zig
-if (mbox.closed.load(.acquire)) return error.Closed;   // no mutex acquired (fast path)
-mbox.mutex.lock(io) catch |err| return err;            // propagates error.Canceled directly
-defer mbox.mutex.unlock(io);
-if (mbox.closed.load(.monotonic)) return error.Closed; // re-check under lock
+if (mailbox.closed.load(.acquire)) return error.Closed;   // no mutex acquired (fast path)
+mailbox.mutex.lock(io) catch |err| return err;            // propagates error.Canceled directly
+defer mailbox.mutex.unlock(io);
+if (mailbox.closed.load(.monotonic)) return error.Closed; // re-check under lock
 ```
 
 The double check prevents a race: close may fire between the first check and the lock acquire.
@@ -1565,10 +1565,10 @@ m = null;                           // release ownership
 **At API boundaries** — Odin passes `^MayItem` (pointer to the optional); Zig passes `*MayItem`:
 
 ```odin
-mbox_send :: proc(mb: Mailbox, m: ^MayItem) -> SendResult
+mailbox_send :: proc(mb: Mailbox, m: ^MayItem) -> SendResult
 ```
 ```zig
-pub fn mbox_send(mbh: MailboxHandle, m: *MayItem) error{Closed}!void
+pub fn mailbox_send(mbh: MailboxHandle, m: *MayItem) error{Closed}!void
 ```
 
 ---
@@ -1592,8 +1592,8 @@ Odin uses `^` as both pointer-type sigil and dereference operator. Zig uses `*` 
 **Odin** — `cast(^T)ptr` for bare pointer reinterpretation:
 
 ```odin
-// offset-0 cast: works because _Mbox has 'using poly: PolyNode' first
-mbx_Ptr := cast(^_Mbox)mb
+// offset-0 cast: works because _Mailbox has 'using poly: PolyNode' first
+mbx_Ptr := cast(^_Mailbox)mb
 
 // in _pop: list.Node cast to PolyNode
 result := cast(^PolyNode)raw
@@ -1603,14 +1603,14 @@ result := cast(^PolyNode)raw
 
 ```zig
 // Preferred: field-based recovery (type-safe, compile-checked)
-const mbox: *_Mbox = @fieldParentPtr("poly", mb);
+const mailbox: *_Mailbox = @fieldParentPtr("poly", mb);
 const poly: *PolyNode = @fieldParentPtr("node", dll_node);
 
 // Only when you truly need raw reinterpretation (rare in matryoshka)
-const ptr: *_Mbox = @ptrCast(@alignCast(raw));
+const ptr: *_Mailbox = @ptrCast(@alignCast(raw));
 ```
 
-**Rule**: In matryoshka, `cast(^_Mbox)mb` → `@fieldParentPtr("poly", mb)`. Never use `@ptrCast` where `@fieldParentPtr` applies — `@fieldParentPtr` validates field existence and type at compile time.
+**Rule**: In matryoshka, `cast(^_Mailbox)mb` → `@fieldParentPtr("poly", mb)`. Never use `@ptrCast` where `@fieldParentPtr` applies — `@fieldParentPtr` validates field existence and type at compile time.
 
 ---
 
@@ -1623,14 +1623,14 @@ This is matryoshka's central idiom — the handle IS the embedded `PolyNode` poi
 ```odin
 Mailbox :: ^PolyNode  // type alias
 
-mbox_new :: proc(alloc: mem.Allocator) -> Mailbox {
-    mbx, _ := new(_Mbox, alloc)     // _Mbox has 'using poly: PolyNode' at offset 0
+mailbox_new :: proc(alloc: mem.Allocator) -> Mailbox {
+    mbx, _ := new(_Mailbox, alloc)     // _Mailbox has 'using poly: PolyNode' at offset 0
     mbx^.tag = MAILBOX_TAG
     return cast(Mailbox)mbx         // safe: poly is at offset 0
 }
 
-_unwrap :: proc(m: Mailbox) -> ^_Mbox {
-    return cast(^_Mbox)m            // safe: reverse of the above cast
+_unwrap :: proc(m: Mailbox) -> ^_Mailbox {
+    return cast(^_Mailbox)m            // safe: reverse of the above cast
 }
 ```
 
@@ -1639,14 +1639,14 @@ _unwrap :: proc(m: Mailbox) -> ^_Mbox {
 ```zig
 pub const MailboxHandle = *PolyNode;      // same type alias concept
 
-pub fn mbox_new(io: Io, alloc: std.mem.Allocator) !MailboxHandle {
-    const mbx = try alloc.create(_Mbox);
+pub fn mailbox_new(io: Io, alloc: std.mem.Allocator) !MailboxHandle {
+    const mbx = try alloc.create(_Mailbox);
     mbx.* = .{ .poly = .{ .node = .{}, .tag = MAILBOX_TAG }, .io = io, ... };
     return &mbx.poly;               // return pointer to the embedded PolyNode
 }
 
-fn unwrap(mbh: MailboxHandle) *_Mbox {
-    return @fieldParentPtr("poly", mbh);  // recover _Mbox from its poly field
+fn unwrap(mbh: MailboxHandle) *_Mailbox {
+    return @fieldParentPtr("poly", mbh);  // recover _Mailbox from its poly field
 }
 ```
 
@@ -1672,13 +1672,13 @@ sync.cond_broadcast(&ptr^.cond)
 **Zig** — IO-scheduled, every wait is a cancellation point:
 
 ```zig
-mbox.mutex.lock(io) catch |err| return err;               // propagates error.Canceled directly
-defer mbox.mutex.unlock(io);
-try mbox.cond.wait(io, &mbox.mutex);                      // Cancelable!void
-condition_waitTimeout(&mbox.cond, io, &mbox.mutex, dl)    // workaround for missing waitTimeout
+mailbox.mutex.lock(io) catch |err| return err;               // propagates error.Canceled directly
+defer mailbox.mutex.unlock(io);
+try mailbox.cond.wait(io, &mailbox.mutex);                      // Cancelable!void
+condition_waitTimeout(&mailbox.cond, io, &mailbox.mutex, dl)    // workaround for missing waitTimeout
     catch |err| switch (err) { ... };
-mbox.cond.signal(io);
-mbox.cond.broadcast(io);
+mailbox.cond.signal(io);
+mailbox.cond.broadcast(io);
 ```
 
 | Odin | Zig | Notes |
@@ -1690,7 +1690,7 @@ mbox.cond.broadcast(io);
 | `sync.cond_signal(&c)` | `c.signal(io)` | — |
 | `sync.cond_broadcast(&c)` | `c.broadcast(io)` | — |
 
-**Critical**: `std.Thread.Mutex` and `std.Thread.Condition` must NOT be used in `_Mbox` or `_Pool`. They do not go through the IO vtable and cannot return `error.Canceled`.
+**Critical**: `std.Thread.Mutex` and `std.Thread.Condition` must NOT be used in `_Mailbox` or `_Pool`. They do not go through the IO vtable and cannot return `error.Canceled`.
 
 ---
 
@@ -1833,7 +1833,7 @@ hooks.tags = &TAGS;
 **Odin**:
 
 ```odin
-mbx, err := new(_Mbox, alloc)
+mbx, err := new(_Mailbox, alloc)
 if err != .None { return nil }
 // ...
 free(mb, alloc)
@@ -1842,8 +1842,8 @@ free(mb, alloc)
 **Zig**:
 
 ```zig
-const mbx = try alloc.create(_Mbox);
-mbx.* = std.mem.zeroes(_Mbox);  // explicit zero-init (or use .{} literal)
+const mbx = try alloc.create(_Mailbox);
+mbx.* = std.mem.zeroes(_Mailbox);  // explicit zero-init (or use .{} literal)
 // ...
 alloc.destroy(mb);
 ```
@@ -1864,18 +1864,18 @@ alloc.destroy(mb);
 ```odin
 SendResult :: enum { Ok, Closed, Invalid }
 
-mbox_send :: proc(mb: Mailbox, m: ^MayItem) -> SendResult
+mailbox_send :: proc(mb: Mailbox, m: ^MayItem) -> SendResult
 
-if mbox_send(inbox, &mi) != .Ok { ... }
+if mailbox_send(inbox, &mi) != .Ok { ... }
 ```
 
 **Zig** — error union, checked with `try` / `catch` / `switch`:
 
 ```zig
-pub fn mbox_send(mbh: MailboxHandle, m: *MayItem) error{Closed}!void
+pub fn mailbox_send(mbh: MailboxHandle, m: *MayItem) error{Closed}!void
 
-try mbox_send(inbox, &mi);                              // propagate
-mbox_send(inbox, &mi) catch |err| { ... };              // handle
+try mailbox_send(inbox, &mi);                              // propagate
+mailbox_send(inbox, &mi) catch |err| { ... };              // handle
 ```
 
 **Mapping of specific enums**:
@@ -1885,9 +1885,9 @@ mbox_send(inbox, &mi) catch |err| { ... };              // handle
 | `SendResult.Ok` | `void` (success) |
 | `SendResult.Closed` | `error.Closed` |
 | `SendResult.Invalid` | `error.Invalid` or `@panic` |
-| `RecvResult.Ok` | `void` (single item) or `?*std.DoublyLinkedList.Node` (batch — `mbox_receive_batch`) |
+| `RecvResult.Ok` | `void` (single item) or `?*std.DoublyLinkedList.Node` (batch — `mailbox_receive_batch`) |
 | `RecvResult.Closed` | `error.Closed` |
-| `RecvResult.Interrupted` | removed — OOB via `mbox_send_oob` |
+| `RecvResult.Interrupted` | removed — OOB via `mailbox_send_oob` |
 | `RecvResult.Timeout` | `error.Timeout` |
 | `RecvResult.Already_In_Use` | `@panic` (precondition violation) |
 | `Pool_Get_Result.Ok` | `void` |
@@ -1897,7 +1897,7 @@ mbox_send(inbox, &mi) catch |err| { ... };              // handle
 | `Pool_Get_Result.Timeout` | `error.Timeout` (from `pool_get_wait` with `timeout_ns`) |
 | `Pool_Get_Result.Already_In_Use` | `@panic` (precondition violation) |
 
-**Note on nil returns**: Odin's `mbox_new` returns `nil` on allocation failure. Zig returns `error.OutOfMemory` via `!MailboxHandle`. This makes failure explicit and composable.
+**Note on nil returns**: Odin's `mailbox_new` returns `nil` on allocation failure. Zig returns `error.OutOfMemory` via `!MailboxHandle`. This makes failure explicit and composable.
 
 ---
 
@@ -1930,7 +1930,7 @@ switch (res) {
 With error unions:
 
 ```zig
-mbox_receive(inbox, &mi, timeout_ns) catch |err| switch (err) {
+mailbox_receive(inbox, &mi, timeout_ns) catch |err| switch (err) {
     error.Closed       => return,
     error.Canceled     => return,
     error.Timeout      => continue,
@@ -1951,10 +1951,10 @@ mailbox_tag: PolyTag = {}
 MAILBOX_TAG: rawptr = &mailbox_tag
 
 @(private)
-_Mbox :: struct { ... }
+_Mailbox :: struct { ... }
 
 @(private)
-_unwrap :: proc(m: Mailbox) -> ^_Mbox { ... }
+_unwrap :: proc(m: Mailbox) -> ^_Mailbox { ... }
 ```
 
 **Zig** — declarations without `pub` are private by default:
@@ -1963,9 +1963,9 @@ _unwrap :: proc(m: Mailbox) -> ^_Mbox { ... }
 var mailbox_tag: PolyTag = .{};         // private: no pub
 pub const MAILBOX_TAG: *const anyopaque = &mailbox_tag;
 
-const _Mbox = struct { ... };            // private: no pub
+const _Mailbox = struct { ... };            // private: no pub
 
-fn unwrap(m: Mailbox) *_Mbox { ... }    // private: no pub
+fn unwrap(m: Mailbox) *_Mailbox { ... }    // private: no pub
 ```
 
 **Note**: In Zig, `pub` is explicit — you must mark things public. In Odin, symbols are public by default and made private with `@(private)`. The visibility model is inverted.
@@ -1999,14 +1999,14 @@ pub inline fn mailbox_is_it_you(tag: *const anyopaque) bool {
 **Odin**:
 
 ```odin
-panic("mbox_send: node is still linked — detach before sending")
+panic("mailbox_send: node is still linked — detach before sending")
 panic("non-mailbox is used for mailbox operations")
 ```
 
 **Zig**:
 
 ```zig
-@panic("mbox_send: node is still linked — detach before sending");
+@panic("mailbox_send: node is still linked — detach before sending");
 @panic("non-mailbox is used for mailbox operations");
 ```
 
@@ -2030,7 +2030,7 @@ p := matryoshka.pool_new(alloc)
 const p = try pool_new(io, allocator);
 ```
 
-**Impact**: Every function that allocates in Odin can use `context.allocator` without a parameter. In Zig, any function that allocates must receive `alloc: std.mem.Allocator` explicitly. This is already reflected in the Zig API: `mbox_new(io, alloc)` and `pool_new(io, alloc)`.
+**Impact**: Every function that allocates in Odin can use `context.allocator` without a parameter. In Zig, any function that allocates must receive `alloc: std.mem.Allocator` explicitly. This is already reflected in the Zig API: `mailbox_new(io, alloc)` and `pool_new(io, alloc)`.
 
 ---
 
@@ -2115,15 +2115,15 @@ Odin's `for ... { if raw == nil { break } }` pattern maps to Zig's `while (expr)
 ```odin
 result := list.List{}    // explicit zero struct literal
 // or:
-_mbox: _Mbox            // also zero-initialized (without =)
+_mailbox: _Mailbox            // also zero-initialized (without =)
 ```
 
 **Zig** — must be explicit:
 
 ```zig
 var result: std.DoublyLinkedList = .{};   // zero struct literal
-const mbox = try alloc.create(_Mbox);
-mbox.* = .{};                             // must zero-init after create
+const mailbox = try alloc.create(_Mailbox);
+mailbox.* = .{};                             // must zero-init after create
 ```
 
 Zig's `undefined` is deliberately NOT zero — it triggers safety checks in debug mode. Always use `.{}` or `std.mem.zeroes(T)` after `alloc.create(T)`.
@@ -2183,7 +2183,7 @@ The pattern is structurally identical. The only difference is `@fieldParentPtr` 
 | `#force_inline proc` | `inline fn` |
 | `@(private)` | omit `pub` |
 | `panic(msg)` | `@panic(msg)` |
-| `io` passed at each call | `io: Io` stored in `_Mbox` and `_Pool` at init |
+| `io` passed at each call | `io: Io` stored in `_Mailbox` and `_Pool` at init |
 | `context.allocator` implicit | explicit `alloc: std.mem.Allocator` parameter |
 | `sync.Mutex` + `sync.Cond` | `Io.Mutex` + `Io.Condition` (IO-aware, cancellable) |
 | `sync.cond_wait_with_timeout(...)` | `condition_waitTimeout(...)` (workaround for Zig issue #31278) |
@@ -2204,9 +2204,9 @@ The pattern is structurally identical. The only difference is `@fieldParentPtr` 
 | `thread.create(proc)` + `t.data = ptr` | `std.Thread.spawn(.{}, proc, .{ptr})` or `io.concurrent(proc, .{ptr})` |
 | `for tag in map { ... }` | `var it = map.iterator(); while (it.next()) \|e\| { ... }` |
 | `for { raw := pop(); if raw == nil { break } }` | `while (list.popFirst()) \|node\| { ... }` |
-| `try_receive_batch(mb)` | `mbox_receive_batch(mb)` — returns `std.DoublyLinkedList` (empty list if nothing) |
+| `try_receive_batch(mb)` | `mailbox_receive_batch(mb)` — returns `std.DoublyLinkedList` (empty list if nothing) |
 | `pool_put_all(p, m: ^MayItem)` | `pool_put_all(pool, list: *std.DoublyLinkedList)` — explicit list struct; same operation |
-| `mbox_interrupt(mb)` | `mbox_send_oob(mb, m)` — OOB signal is a PolyNode prepended to front |
+| `mailbox_interrupt(mb)` | `mailbox_send_oob(mb, m)` — OOB signal is a PolyNode prepended to front |
 | `mailbox_is_it_you(tag)` | `mailbox_is_it_you(tag: *const anyopaque) bool` |
 | `pool_is_it_you(tag)` | `pool_is_it_you(tag: *const anyopaque) bool` |
 | `pool_close(p) -> (list.List, ^PoolHooks)` | `pool_close(pool) void` — on_close receives `*std.DoublyLinkedList`; caller retains hooks reference |

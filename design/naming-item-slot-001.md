@@ -93,7 +93,7 @@ sender Slot
 |       ITEM        |
 +-------------------+
 
-mbox.send(...)
+mailbox.send(...)
 ```
 
 After:
@@ -151,7 +151,7 @@ which reads naturally:
 ```zig
 var slot: Slot = item;
 
-try mbox.send(mbh, &slot);
+try mailbox.send(mbh, &slot);
 
 // slot == null
 ```
@@ -161,7 +161,7 @@ and
 ```zig
 var slot: Slot = null;
 
-try mbox.receive(mbh, &slot);
+try mailbox.receive(mbh, &slot);
 
 // slot contains item
 ```

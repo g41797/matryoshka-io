@@ -6,7 +6,7 @@
 
 ## Summary
 
-Add event source helpers to `mbox` and `pool` modules so Mailbox and Pool become native participants in `Io.Select`. Since both already store `io: Io` internally, they can spawn concurrent tasks themselves.
+Add event source helpers to `mailbox` and `pool` modules so Mailbox and Pool become native participants in `Io.Select`. Since both already store `io: Io` internally, they can spawn concurrent tasks themselves.
 
 Adds 4 functions + 2 types. No changes to existing synchronous API.
 
@@ -15,7 +15,7 @@ Adds 4 functions + 2 types. No changes to existing synchronous API.
 Current blocking APIs work well inside dedicated worker loops:
 
 ```zig
-try mbox.receive(mbh, &item, null);
+try mailbox.receive(mbh, &item, null);
 try pool.get_wait(ph, tag, &item, null);
 ```
 
@@ -31,13 +31,13 @@ Pool availability as an event is especially important: it enables the job-pool p
 
 Two variants were proposed (from external AI review):
 
-**Variant 1** (`mbox.concurrent(&select, .inbox, mbh, null)`) — rejected:
+**Variant 1** (`mailbox.concurrent(&select, .inbox, mbh, null)`) — rejected:
 - Hard-wires one adapter per call — no flexibility
 - Uses `anytype` for Select and tag parameters
 - Makes Layer 2/3 reach up into Layer 4's Select union — inverts the layer dependency
 - Reuses the name `concurrent` with different semantics from `io.concurrent`
 
-**Variant 2** (`mbox.receive_future(mbh, null)` returning `Future`) — accepted:
+**Variant 2** (`mailbox.receive_future(mbh, null)` returning `Future`) — accepted:
 - Returns a Future — caller decides how to use it (await, feed to Select, feed to Group)
 - No `anytype` — fully concrete signatures
 - Layer 2/3 remain self-contained — the caller (Layer 4) feeds the result to Select using stock Io API
@@ -45,7 +45,7 @@ Two variants were proposed (from external AI review):
 ### Decision 2: Cancel and Close are separate — cancel never triggers close
 
 Cancel is an Io/scheduler operation (`error.Canceled` from Io runtime).
-Close is a Master/application decision (`mbox.close` / `pool.close`).
+Close is a Master/application decision (`mailbox.close` / `pool.close`).
 
 An adapter must **never** close a mailbox or pool in response to cancel. That's the Master's responsibility.
 
@@ -58,7 +58,7 @@ This eliminates the `receiveOrClose` wrapper from the original proposal. There i
 
 ### Decision 3: Result by value, not out-pointer
 
-`mbox.receive` takes `m: *MayItem` — a pointer to the caller's variable. In the async case, a concurrent task writing through this pointer creates a cross-thread reference to stack memory: the worker runs on a different thread, the Master only learns the result when `select.await()` returns.
+`mailbox.receive` takes `m: *MayItem` — a pointer to the caller's variable. In the async case, a concurrent task writing through this pointer creates a cross-thread reference to stack memory: the worker runs on a different thread, the Master only learns the result when `select.await()` returns.
 
 **The async result carries the item by value inside a tagged union.** No `*MayItem` parameter on the async path. The adapter creates a local `MayItem`, calls the blocking API, and packages the result into the union. The local never escapes the worker's stack.
 
@@ -69,7 +69,7 @@ This preserves Matryoshka's move semantics: the worker's local goes out of scope
 Both result types are symmetric — `.canceled` is `void` for both. No list payload, no policy variation. Cancel just reports.
 
 ```zig
-// mbox.zig
+// mailbox.zig
 pub const ReceiveResult = union(enum) {
     item: MayItem,
     closed: void,
@@ -96,7 +96,7 @@ Tagged union (not error union) because:
 
 ### Decision 5: No `anytype`
 
-The only comptime-generic boundary is `select.concurrent(.tag, mbox.receive_select, .{...})` — stock Io API the application already uses. The Matryoshka functions themselves are fully concrete.
+The only comptime-generic boundary is `select.concurrent(.tag, mailbox.receive_select, .{...})` — stock Io API the application already uses. The Matryoshka functions themselves are fully concrete.
 
 Rule 7 ("Do NOT use `anytype` for polymorphism where tag dispatch covers the use case") does not technically apply here because Select is genuinely comptime-generic. However, Variant 2 avoids `anytype` entirely, making the point moot.
 
@@ -107,7 +107,7 @@ Rule 7 ("Do NOT use `anytype` for polymorphism where tag dispatch covers the use
 - **"event source"** replaces "leg" — each Select event source is a concurrent task
 - **"adapter"** replaces "wrapper" — it's a format conversion, not a policy
 
-### mbox module
+### mailbox module
 
 ```zig
 pub const ReceiveResult = union(enum) {
@@ -121,7 +121,7 @@ pub const ReceiveResult = union(enum) {
 ```zig
 pub fn receive_select(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult
 ```
-Adapter from error-union API to `ReceiveResult` for use as a Select event source. Creates a local `MayItem`, calls `mbox.receive`, maps the result to the union. Suitable for `select.concurrent(.tag, mbox.receive_select, .{mbh, timeout})`.
+Adapter from error-union API to `ReceiveResult` for use as a Select event source. Creates a local `MayItem`, calls `mailbox.receive`, maps the result to the union. Suitable for `select.concurrent(.tag, mailbox.receive_select, .{mbh, timeout})`.
 
 ```zig
 pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.Future(ReceiveResult)
@@ -154,8 +154,8 @@ Spawns `get_wait_select` as a concurrent task using the pool's stored `io`. Retu
 
 | Function | Cancelable | Cancel-protected | Notes |
 |----------|-----------|-----------------|-------|
-| `mbox.receive_select` | yes | no | adapter — inherits from `mbox.receive` |
-| `mbox.receive_future` | yes | no | spawns `receive_select` concurrently |
+| `mailbox.receive_select` | yes | no | adapter — inherits from `mailbox.receive` |
+| `mailbox.receive_future` | yes | no | spawns `receive_select` concurrently |
 | `pool.get_wait_select` | yes | no | adapter — inherits from `pool.get_wait` |
 | `pool.get_wait_future` | yes | no | spawns `get_wait_select` concurrently |
 
@@ -165,14 +165,14 @@ Spawns `get_wait_select` as a concurrent task using the pool's stored `io`. Retu
 
 ```zig
 const Event = union(enum) {
-    inbox: mbox.ReceiveResult,
+    inbox: mailbox.ReceiveResult,
     timer: void,
     pool: pool.PoolResult,
 };
 
 var select = Io.Select(Event).init(io);
 
-try select.concurrent(.inbox, mbox.receive_select, .{ inbox, null });
+try select.concurrent(.inbox, mailbox.receive_select, .{ inbox, null });
 try select.concurrent(.pool, pool.get_wait_select, .{ job_pool, JOB_TAG, null });
 try select.concurrent(.timer, sleepWorker, .{ io, std.time.ns_per_s });
 
@@ -180,7 +180,7 @@ while (select.await()) |ev| switch (ev) {
     .inbox => |r| switch (r) {
         .item => |m| {
             processMessage(m);
-            try select.concurrent(.inbox, mbox.receive_select, .{ inbox, null });
+            try select.concurrent(.inbox, mailbox.receive_select, .{ inbox, null });
         },
         .closed => break,
         .canceled => break,
@@ -205,7 +205,7 @@ while (select.await()) |ev| switch (ev) {
 ### Future awaited directly
 
 ```zig
-const fut = try mbox.receive_future(inbox, null);
+const fut = try mailbox.receive_future(inbox, null);
 const result = fut.await(io);
 switch (result) {
     .item => |m| processMessage(m),
@@ -257,7 +257,7 @@ Note: the `.item` arm hands ownership to the Master. The `get_wait` that produce
 ```zig
 pub fn receive_select(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
     var item: MayItem = null;
-    mbox.receive(mbh, &item, timeout_ns) catch |err| switch (err) {
+    mailbox.receive(mbh, &item, timeout_ns) catch |err| switch (err) {
         error.Canceled => return .{ .canceled = {} },
         error.Closed   => return .{ .closed = {} },
         error.Timeout  => return .{ .timeout = {} },
@@ -266,7 +266,7 @@ pub fn receive_select(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
 }
 
 pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.Future(ReceiveResult) {
-    const self: *_Mbox = @fieldParentPtr("poly", mbh);
+    const self: *_Mailbox = @fieldParentPtr("poly", mbh);
     return self.io.concurrent(receive_select, .{ mbh, timeout_ns });
 }
 ```
@@ -279,7 +279,7 @@ Each Select event source may consume a worker thread on the Threaded backend. Th
 
 ### Single-threaded backends
 
-`receive_future` / `get_wait_future` return `error.ConcurrencyUnavailable` on `global_single_threaded`. This is by design — async event sources need real concurrency. The synchronous API (`mbox.receive`, `pool.get_wait`) remains available for single-threaded use.
+`receive_future` / `get_wait_future` return `error.ConcurrencyUnavailable` on `global_single_threaded`. This is by design — async event sources need real concurrency. The synchronous API (`mailbox.receive`, `pool.get_wait`) remains available for single-threaded use.
 
 ### Evented backend
 
@@ -290,11 +290,11 @@ Design is backend-independent: result-by-value ownership eliminates cross-thread
 | Proposal | Relationship |
 |----------|-------------|
 | 3 (Timeout as `?u64`) | Adapters pass through `timeout_ns: ?u64` unchanged |
-| 4 (Module-function style) | `mbox.receive_select`, `pool.get_wait_future` follow the convention |
+| 4 (Module-function style) | `mailbox.receive_select`, `pool.get_wait_future` follow the convention |
 | 6 (Handle param type) | Adapters take `MailboxHandle` / `PoolHandle` — same as core API |
 | 7/18 (No dispose) | Result types use `MayItem`, not wrapped types — caller disposes |
-| 13 (Handles are PolyNode items) | `receive_future` recovers `_Mbox` via `@fieldParentPtr("poly", mbh)` — handle is still a PolyNode |
-| 17 (Diamond dependencies) | `ReceiveResult` lives in mbox, `PoolResult` in pool — independent siblings |
+| 13 (Handles are PolyNode items) | `receive_future` recovers `_Mailbox` via `@fieldParentPtr("poly", mbh)` — handle is still a PolyNode |
+| 17 (Diamond dependencies) | `ReceiveResult` lives in mailbox, `PoolResult` in pool — independent siblings |
 | 25 (Wrapper cancel policy) | **Superseded for cancel-close mixing.** Cancel never triggers close. Adapters are format converters, not policy. Proposal 25's insight about per-event-source flexibility is preserved: the caller can write custom adapters with any behavior they want and feed them to `select.concurrent` |
 
 
@@ -415,14 +415,14 @@ The dependency direction remains clean.
 Current synchronous APIs:
 
 ```zig
-mbox.receive(...)
+mailbox.receive(...)
 pool.get_wait(...)
 ```
 
 Natural asynchronous counterparts:
 
 ```zig
-mbox.receive_future(...)
+mailbox.receive_future(...)
 pool.get_wait_future(...)
 ```
 
@@ -455,7 +455,7 @@ Applications can use the Future result however they want.
 Example:
 
 ```zig
-const fut = try mbox.receive_future(inbox, null);
+const fut = try mailbox.receive_future(inbox, null);
 
 const result = fut.await(io);
 
@@ -580,14 +580,14 @@ pub fn get_wait_future(
 Keep:
 
 ```zig
-mbox.receive_future(...)
+mailbox.receive_future(...)
 pool.get_wait_future(...)
 ```
 
 Remove:
 
 ```zig
-mbox.receive_select(...)
+mailbox.receive_select(...)
 pool.get_wait_select(...)
 ```
 

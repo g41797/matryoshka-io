@@ -37,9 +37,9 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ### Tests — Infrastructure as Items (Layer 1 level)
 
-18. **MailboxHandle is a PolyNode** — `MailboxHandle = *PolyNode`; verify `mbox.is_it_you(mbh.tag)` returns true
+18. **MailboxHandle is a PolyNode** — `MailboxHandle = *PolyNode`; verify `mailbox.is_it_you(mbh.tag)` returns true
 19. **PoolHandle is a PolyNode** — `PoolHandle = *PolyNode`; verify `pool.is_it_you(ph.tag)` returns true
-20. **Per-module destroy** — `mbox.destroy(mbh, alloc)` frees a closed mailbox. `pool.destroy(ph, alloc)` frees a closed pool
+20. **Per-module destroy** — `mailbox.destroy(mbh, alloc)` frees a closed mailbox. `pool.destroy(ph, alloc)` frees a closed pool
 
 ### Examples
 
@@ -55,43 +55,43 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ### Tests
 
-26. **mbox.new and mbox.destroy** — create mailbox, verify handle is non-null and `mbox.is_it_you` returns true; close then destroy, verify freed
-27. **Send and receive single item** — `mbox.send` one PolyNode, `mbox.receive` it, verify tag and data intact
+26. **mailbox.new and mailbox.destroy** — create mailbox, verify handle is non-null and `mailbox.is_it_you` returns true; close then destroy, verify freed
+27. **Send and receive single item** — `mailbox.send` one PolyNode, `mailbox.receive` it, verify tag and data intact
 28. **FIFO ordering** — send 3 items, receive 3, verify order preserved
 29. **Send to closed mailbox returns error.Closed** — close first, then send, verify error
 30. **Receive from closed mailbox returns error.Closed** — close first, then receive, verify error
-31. **Receive timeout (non-null ?u64)** — `mbox.receive` on empty open mailbox with `timeout_ns = 1000`, verify `error.Timeout`
-32. **Receive wait forever (null ?u64)** — `mbox.receive` with `timeout_ns = null` on a mailbox that gets an item sent from another context; verify item received, no `error.Timeout`
-33. **Close returns remaining items as std.DoublyLinkedList** — send 3 items, `mbox.close` without receiving, verify returned list has 3 items via `popFirst()` loop
-34. **Close is idempotent** — second `mbox.close` returns empty `std.DoublyLinkedList`
-35. **send_oob delivers to front of queue** — send 3 normal items, then `mbox.send_oob` 1 item; receive gets the OOB item first
-36. **send_oob wakes blocked receiver** — receiver blocked on empty mailbox, `mbox.send_oob` delivers item, receiver gets it
-37. **Multiple send_oob items maintain FIFO among themselves** — `mbox.send_oob` A then `mbox.send_oob` B; receive gets A first, then B (OOBs inserted after previous OOBs)
+31. **Receive timeout (non-null ?u64)** — `mailbox.receive` on empty open mailbox with `timeout_ns = 1000`, verify `error.Timeout`
+32. **Receive wait forever (null ?u64)** — `mailbox.receive` with `timeout_ns = null` on a mailbox that gets an item sent from another context; verify item received, no `error.Timeout`
+33. **Close returns remaining items as std.DoublyLinkedList** — send 3 items, `mailbox.close` without receiving, verify returned list has 3 items via `popFirst()` loop
+34. **Close is idempotent** — second `mailbox.close` returns empty `std.DoublyLinkedList`
+35. **send_oob delivers to front of queue** — send 3 normal items, then `mailbox.send_oob` 1 item; receive gets the OOB item first
+36. **send_oob wakes blocked receiver** — receiver blocked on empty mailbox, `mailbox.send_oob` delivers item, receiver gets it
+37. **Multiple send_oob items maintain FIFO among themselves** — `mailbox.send_oob` A then `mailbox.send_oob` B; receive gets A first, then B (OOBs inserted after previous OOBs)
 38. **send_oob to closed mailbox returns error.Closed** — same as normal send
 39. **Data priority over closed** — send item then close; receive gets the item first (or close returns it in remaining list)
-40. **Batch receive (mbox.receive_batch)** — send 5 items, `mbox.receive_batch` gets all 5 as `std.DoublyLinkedList`, mailbox empty after
-41. **Batch receive on empty returns empty list** — no items, `mbox.receive_batch` returns empty `std.DoublyLinkedList` (not error)
-42. **Batch items walkable via popFirst** — `mbox.receive_batch` returns `std.DoublyLinkedList`; walk via `popFirst()` which auto-clears prev/next — no manual `polynode.reset` needed. Standard stdlib iteration, nothing Matryoshka-specific
-43. **Send transfers ownership** — after `mbox.send`, caller's MayItem is null
-44. **Receive transfers ownership** — after `mbox.receive`, caller's MayItem is non-null, mailbox no longer holds it
-45. **try_receive on empty returns false** — `mbox.try_receive` on open empty mailbox returns false, MayItem stays null
-46. **try_receive gets item** — send item, `mbox.try_receive` returns true, MayItem is non-null
+40. **Batch receive (mailbox.receive_batch)** — send 5 items, `mailbox.receive_batch` gets all 5 as `std.DoublyLinkedList`, mailbox empty after
+41. **Batch receive on empty returns empty list** — no items, `mailbox.receive_batch` returns empty `std.DoublyLinkedList` (not error)
+42. **Batch items walkable via popFirst** — `mailbox.receive_batch` returns `std.DoublyLinkedList`; walk via `popFirst()` which auto-clears prev/next — no manual `polynode.reset` needed. Standard stdlib iteration, nothing Matryoshka-specific
+43. **Send transfers ownership** — after `mailbox.send`, caller's MayItem is null
+44. **Receive transfers ownership** — after `mailbox.receive`, caller's MayItem is non-null, mailbox no longer holds it
+45. **try_receive on empty returns false** — `mailbox.try_receive` on open empty mailbox returns false, MayItem stays null
+46. **try_receive gets item** — send item, `mailbox.try_receive` returns true, MayItem is non-null
 
 ### Tests — Ownership State Transitions (Mailbox)
 
-47. **IN_FLIGHT → HELD (mbox.send)** — item owned by caller; `mbox.send` transfers to mailbox; MayItem is null; item is HELD
-48. **HELD → IN_FLIGHT (mbox.receive)** — item in mailbox; `mbox.receive` transfers to caller; MayItem is non-null; item is IN_FLIGHT
-49. **Send linked item panics** — item already in a list; `mbox.send` should detect `polynode.is_linked` and panic
+47. **IN_FLIGHT → HELD (mailbox.send)** — item owned by caller; `mailbox.send` transfers to mailbox; MayItem is null; item is HELD
+48. **HELD → IN_FLIGHT (mailbox.receive)** — item in mailbox; `mailbox.receive` transfers to caller; MayItem is non-null; item is IN_FLIGHT
+49. **Send linked item panics** — item already in a list; `mailbox.send` should detect `polynode.is_linked` and panic
 
 ### Examples
 
 50. **Simple send-receive** — one thread sends, same thread receives (single-threaded Io), verify roundtrip
-51. **Worker loop pattern** — thread receives in a loop via `mbox.receive(mb, &item, null)`, processes each item, exits on `error.Closed`
-52. **OOB via send_oob** — sender sends a signal PolyNode (e.g., FLUSH_TAG) via `mbox.send_oob`; receiver gets it at front of queue, dispatches on tag, handles OOB inline
+51. **Worker loop pattern** — thread receives in a loop via `mailbox.receive(mb, &item, null)`, processes each item, exits on `error.Closed`
+52. **OOB via send_oob** — sender sends a signal PolyNode (e.g., FLUSH_TAG) via `mailbox.send_oob`; receiver gets it at front of queue, dispatches on tag, handles OOB inline
 53. **Pipeline** — chain of mailboxes: producer → transformer → consumer, items flow through, each stage closes the next
 54. **Request-response** — two mailboxes, send request to one, receive response from the other
 55. **Fan-in** — multiple senders to one mailbox, single receiver processes all
-56. **Shutdown with remaining item cleanup** — `mbox.close` returns `std.DoublyLinkedList`, walk via `popFirst()`, free each item. Close returns a plain stdlib list — cleanup code is standard Zig
+56. **Shutdown with remaining item cleanup** — `mailbox.close` returns `std.DoublyLinkedList`, walk via `popFirst()`, free each item. Close returns a plain stdlib list — cleanup code is standard Zig
 
 ---
 
@@ -118,7 +118,7 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 73. **Pool seeding** — pre-allocate N items with `.new_only` + `pool.put`, verify N available with `.available_only`
 74. **in_pool_count accuracy** — track count across get/put cycles, verify on_get and on_put receive correct counts
 75. **Hooks run outside lock** — verify no deadlock when on_get/on_put call into pool (indirect test via successful operation)
-76. **pool.put_all** — return a batch of items via `*std.DoublyLinkedList`; callee pops from caller's list. Accepts a standard stdlib list — no conversion needed from `mbox.receive_batch` or `mbox.close` results
+76. **pool.put_all** — return a batch of items via `*std.DoublyLinkedList`; callee pops from caller's list. Accepts a standard stdlib list — no conversion needed from `mailbox.receive_batch` or `mailbox.close` results
 77. **pool.get_wait timeout (non-null ?u64)** — `pool.get_wait` with `timeout_ns = 1000` on empty pool, verify `error.Timeout`
 78. **pool.get_wait forever (null ?u64)** — `pool.get_wait` with `timeout_ns = null` on pool that gets an item put from another context; verify item received
 
@@ -146,7 +146,7 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 - Builder/types are shared test infrastructure, not part of any layer's public API
 - Close ordering tests (pool then mailbox / mailbox then pool) are in Task 2 cross-layer section (scenarios 36-37)
 - Ownership-state tests validate the architecture's core invariants, not implementation details — they should survive any internal rewrite
-- API uses module-function style: `mbox.send(mb, &item)` not `mbox_send(mb, &item)` — see Proposal 4
+- API uses module-function style: `mailbox.send(mb, &item)` not `mailbox_send(mb, &item)` — see Proposal 4
 - Handle types are already pointers: `mbh: MailboxHandle` (= `*PolyNode`), not `mbh: *MailboxHandle` — see Proposal 6, 12
 - Batch returns are `std.DoublyLinkedList`, walked via `popFirst()` — no manual `polynode.reset` needed — see Proposal 2
 - stdlib compatibility is a feature: PolyNode embeds `std.DoublyLinkedList.Node`, so all batch/close/put_all operations use plain stdlib lists — see Proposal 23

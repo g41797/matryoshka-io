@@ -609,9 +609,9 @@ Every item ends up in exactly one owner's hands.
 
 Two implementation models satisfy this invariant:
 
-**Receive-empties model**: `mbox_close` sets the closed flag only. Receivers continue consuming items until the queue is empty, then get the closed signal. Inside the receive loop, data has priority — a queued item is returned before any closed or interrupted signal is checked.
+**Receive-empties model**: `mailbox_close` sets the closed flag only. Receivers continue consuming items until the queue is empty, then get the closed signal. Inside the receive loop, data has priority — a queued item is returned before any closed or interrupted signal is checked.
 
-**Close-snapshots model**: `mbox_close` removes all items from the queue atomically under the lock, then signals closed. Receivers that arrive after close find an empty queue and get the closed signal. Items go to `mbox_close`'s caller.
+**Close-snapshots model**: `mailbox_close` removes all items from the queue atomically under the lock, then signals closed. Receivers that arrive after close find an empty queue and get the closed signal. Items go to `mailbox_close`'s caller.
 
 In both models, no item is lost. The close caller recovers remaining items:
 - receive-empties: by consuming them via receive
@@ -1520,7 +1520,7 @@ release resources
 
 How items are recovered depends on the implementation model:
 
-- **Mailbox**: `mbox_close` returns the remaining list; caller walks and frees each item.
+- **Mailbox**: `mailbox_close` returns the remaining list; caller walks and frees each item.
 - **Pool**: `pool_close` either returns the remaining list for the caller to walk, or calls an `on_close` hook with the full list. The hook walks and frees. Which mechanism applies depends on whether the pool has registered hooks.
 
 Neither Mailbox nor Pool should know global shutdown policy.

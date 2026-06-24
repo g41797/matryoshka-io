@@ -8,7 +8,7 @@ build from them, in what order, and how to know each step is done.
 - Zig 0.16.0. Target backend: `Io.Threaded`.
 - 147 scenarios are the test plan: 86 in task1, 61 in task2.
 - Both Mailbox and Pool are optional.
-- `TypeErasedMailbox` in the legacy mailbox repo is the starting point for `_Mbox`.
+- `TypeErasedMailbox` in the legacy mailbox repo is the starting point for `_Mailbox`.
 - Human handles all git. No git operations in any stage.
 
 ---
@@ -38,17 +38,17 @@ build from them, in what order, and how to know each step is done.
 - Each fix in a multi-fix plan needs its own approval.
 
 ### Implementation (MUST)
-- Source of truth for signatures, types, errors: `matryoshka-api-reference-002.md`.
+- Source of truth for signatures, types, errors: `matryoshka-api-reference-005.md`.
 - Source of truth for Zig details: `matryoshka-zig-0.16-implementation-guide-001.md`.
 - Source of truth for architecture: `matryoshka-architecture-foundation-4-001.md`.
 - Never send a stack-allocated item. Use `alloc.create` or `pool.get`.
 - After transfer (`send`, `put`), set `m.* = null`. Ownership invariant.
 - After `close`, drain the returned list. Free heap items or return pool items.
-- `mbox.close`, `pool.close`, `pool.put`, `pool.put_all` use `lockUncancelable`.
-- Never use `std.Thread.Mutex` / `std.Thread.Condition` in `_Mbox` or `_Pool`.
+- `mailbox.close`, `pool.close`, `pool.put`, `pool.put_all` use `lockUncancelable`.
+- Never use `std.Thread.Mutex` / `std.Thread.Condition` in `_Mailbox` or `_Pool`.
 - `error.Canceled` is never remapped to `error.Closed`.
 - Copy `condition_waitTimeout` from the reference mailbox as a private helper
-  for both `_Mbox` and `_Pool` (Zig has no native `Io.Condition.waitTimeout`,
+  for both `_Mailbox` and `_Pool` (Zig has no native `Io.Condition.waitTimeout`,
   issue codeberg/zig#31278).
 - Architectural changes need explicit owner approval before implementation.
 
@@ -103,18 +103,18 @@ matryoshka-zig/
 ├── build.zig.zon             # name = matryoshka, version, no deps at start
 ├── README.md                 # library index, short usage per block
 ├── src/
-│   ├── matryoshka.zig        # root: re-exports polynode, mbox, pool
+│   ├── matryoshka.zig        # root: re-exports polynode, mailbox, pool
 │   ├── polynode.zig          # Block 1 — PolyNode, MayItem, PolyTag, reset, is_linked
-│   ├── mbox.zig              # Block 2 — _Mbox, MailboxHandle, send/receive/...
+│   ├── mailbox.zig              # Block 2 — _Mailbox, MailboxHandle, send/receive/...
 │   ├── pool.zig              # Block 3 — _Pool, PoolHandle, get/put/...
 │   └── internal/
-│       └── cond_timeout.zig  # condition_waitTimeout helper (shared by mbox + pool)
+│       └── cond_timeout.zig  # condition_waitTimeout helper (shared by mailbox + pool)
 ├── tests/
 │   ├── matryoshka_tests.zig  # test root: imports all suites below
 │   ├── helpers/
 │   │   └── types.zig         # Event, Sensor test types; NodeMixin; tag helpers
 │   ├── layer1_polynode.zig   # task1 scenarios 1-25
-│   ├── layer2_mbox.zig       # task1 scenarios 26-56
+│   ├── layer2_mailbox.zig       # task1 scenarios 26-56
 │   ├── layer3_pool.zig       # task1 scenarios 57-86
 │   ├── layer4_master.zig     # task2 scenarios 1-31
 │   ├── crosslayer.zig        # task2 scenarios 32-41
@@ -163,7 +163,7 @@ Stage 9   Docs + README + autodocs
 **What to build**
 - `build.zig` + `build.zig.zon`. Base on the mailbox `build.zig` (simple
   `addModule` + test step). Module name `matryoshka`, root `src/matryoshka.zig`.
-- Stub `src/matryoshka.zig` re-exporting empty `polynode`, `mbox`, `pool` files.
+- Stub `src/matryoshka.zig` re-exporting empty `polynode`, `mailbox`, `pool` files.
 - `tests/matryoshka_tests.zig` with one trivial passing test.
 - `design/STATUS.md` from the template in Section 5.
 - Copy `condition_waitTimeout` from `mailbox/src/mailbox.zig` into
@@ -199,7 +199,7 @@ Stage 9   Docs + README + autodocs
 - MayItem + multi-type list: 9-10
 - Ownership state transitions: 11-14
 - Ownership violation panics: 15-17 (see Open Item 11 — decide panic test style)
-- Infra-as-item at Layer 1: 18-20 (needs mbox/pool handles — defer 18-19 to
+- Infra-as-item at Layer 1: 18-20 (needs mailbox/pool handles — defer 18-19 to
   Stage 2/3, keep 20 once destroy exists; mark partial)
 - Examples: 21-25
 
@@ -219,8 +219,8 @@ Stage 9   Docs + README + autodocs
 
 **Purpose**: ownership transport, FIFO with an OOB front.
 
-**What to build** (guide Section 4, api-reference `mbox`)
-- Evolve `TypeErasedMailbox` into `_Mbox`. Add: `poly` field, `oob_count`,
+**What to build** (guide Section 4, api-reference `mailbox`)
+- Evolve `TypeErasedMailbox` into `_Mailbox`. Add: `poly` field, `oob_count`,
   `oob_last`, `?u64` timeout, `std.DoublyLinkedList` returns.
 - `new`, `destroy`, `send`, `send_oob`, `receive`, `try_receive`,
   `receive_batch`, `close`, `is_it_you`.
@@ -366,7 +366,7 @@ Stage 9   Docs + README + autodocs
 **Purpose**: bridge blocking mailbox/pool into `Io.Select` and `Io.Future`.
 
 **What to build** (Proposal 26, api-reference event source helpers)
-- `mbox.ReceiveResult`, `mbox.receive_select`, `mbox.receive_future`.
+- `mailbox.ReceiveResult`, `mailbox.receive_select`, `mailbox.receive_future`.
 - `pool.PoolResult`, `pool.get_wait_select`, `pool.get_wait_future`.
 - Result by value inside the union — no `*MayItem` crosses threads.
 - Cancel returns `.canceled`; never closes. Master decides shutdown.
@@ -417,7 +417,7 @@ Stage 9   Docs + README + autodocs
 
 **What to build** (tofu docs pipeline)
 - `zig build docs` via `getEmittedDocs()` → `docs/`.
-- Root `README.md` as a library index: polynode, mbox, pool, with a
+- Root `README.md` as a library index: polynode, mailbox, pool, with a
   copy-pasteable snippet per block.
 - Optional MkDocs Material site (kitchen/tools pattern), owner decides.
 - Final AI-sh scan across all `*.md` and `*.zig`.
@@ -477,7 +477,7 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-002.md
+- API: matryoshka-api-reference-005.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Scenarios: task1-scenarios-001.md (86), task2-scenarios-001.md (61)
@@ -490,7 +490,7 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 
 ## Project
 Ownership-transfer and lifecycle toolkit for Zig 0.16.
-Three blocks: polynode, mbox, pool. Both mbox and pool optional.
+Three blocks: polynode, mailbox, pool. Both mailbox and pool optional.
 
 ## Folder Structure
 (see plan, Section 2; update after Stage 0)
@@ -541,7 +541,7 @@ One paragraph. What was done and why.
 | Doc | Owns |
 |-----|------|
 | collected-context-002.md | Master reference. Paths, 27 proposals, decisions, open items, scenario counts. Read first. |
-| matryoshka-api-reference-002.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
+| matryoshka-api-reference-005.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
 | matryoshka-zig-0.16-implementation-guide-001.md | Zig how-to. Blocks 1-4, cancellation, Master patterns, rules, comptime opportunities, Odin→Zig appendix. |
 | matryoshka-architecture-foundation-4-001.md | Language-independent architecture. Layers, channels, patterns, rationale. |
 | task1-scenarios-001.md | 86 scenarios, Layers 1-3. The Stage 1-3 test plan. |
