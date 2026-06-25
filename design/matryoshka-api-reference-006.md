@@ -31,6 +31,56 @@ Module: `@import("matryoshka")`
 
 ---
 
+## Prolog: std.Io
+
+Zig 0.16 provides `std.Io` — the runtime's interface for concurrent and I/O operations.
+
+- `Io` — passed around to anything that needs threads, timers, or waiting. Think of it as "access to the runtime."
+- `Future(T)` — a result that isn't ready yet. You get the value by calling `.await()`.
+- `Io.Select` — waits on several Futures at once. Returns the first one that completes.
+- `Io.Group` — runs several tasks. Waits for all of them to finish.
+- `io.concurrent()` — runs a blocking function in a separate task. Returns a Future for the result.
+- `ConcurrentError` — spawning a task failed (e.g. single-threaded backend, no threads available).
+
+### Event sources
+
+An event source is anything that produces a `Future`.
+
+```text
+  Timer ─────────► Future(void)
+  Socket read ───► Future([]u8)
+  File I/O ──────► Future([]u8)
+  concurrent() ──► Future(T)
+                        │
+                        ▼
+                   Io.Select
+                      │   │
+                      ▼   ▼
+               completed  canceled
+               (result)   (error.Canceled)
+```
+
+### Cancel
+
+A function that waits — for data, for a timeout, for a condition — can be canceled by the runtime.
+- If a function can be canceled, its return type includes `Cancelable` in the error union.
+- `Cancelable` comes from `std.Io`.
+
+Cancel is something you do to a Future, not something that happens on its own:
+
+```text
+  concurrent() ──► Future(T)
+                      │
+              ┌───────┼───────┐
+              ▼               ▼
+          .await()        .cancel(io)
+              │               │
+              ▼               ▼
+           result      error.Canceled
+```
+
+---
+
 ## Ownership model
 
 ```text
@@ -211,7 +261,7 @@ try mailbox.receive(inbox, &slot, null);     // slot is now non-null
 pub const MailboxHandle = NodeHandle;
 ```
 
-MailboxHandle is itself a PolyNode.
+MailboxHandle is itself a *PolyNode.
 A mailbox can be:
 - sent through another mailbox
 - stored in pools
@@ -231,17 +281,6 @@ pub fn new(io: Io, alloc: std.mem.Allocator) !MailboxHandle
 pub fn send(mbh: MailboxHandle, m: *Slot) error{Closed}!void
 ```
 - Appends handle to tail.
-- Transfers ownership — `m.*` set to null.
-- Assert:
-  - `mailbox.is_it_you(mbh.*.tag)`
-  - `m.* != null`
-  - `!polynode.is_linked(m.*)`
-
-```zig
-pub fn send_oob(mbh: MailboxHandle, m: *Slot) error{Closed}!void
-```
-- Inserts handle after last OOB handle.
-- FIFO among OOBs, all OOBs before regular handles.
 - Transfers ownership — `m.*` set to null.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
@@ -269,23 +308,22 @@ pub fn try_receive(mbh: MailboxHandle, m: *Slot) error{Closed}!bool
   - `m.* == null`
 
 ```zig
-pub fn receive_batch(mbh: MailboxHandle) (error{Closed} || Cancelable)!std.DoublyLinkedList
+pub fn receive_batch(mbh: MailboxHandle) error{Closed}!std.DoublyLinkedList
 ```
 - Non-blocking.
-- Snapshots entire queue under one lock acquisition.
-- Returns empty `std.DoublyLinkedList` if queue is currently empty — does not wait, does not return error for empty.
-- Resets OOB tracking.
+- Takes everything from the queue at once.
+- Returns empty `std.DoublyLinkedList` if queue is currently empty.
+- Does not wait. Does not return error for empty.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
 
 ```zig
 pub fn close(mbh: MailboxHandle) std.DoublyLinkedList
 ```
-- Idempotent.
-- Snapshots remaining handles, broadcasts to wake blocked receivers.
+- Can be called more than once.
 - Returns remaining handles as list (empty list on second call).
-- Uses `lockUncancelable`.
-- Resets OOB tracking.
+- Collects all handles still in the queue.
+- Wakes up any receivers waiting on the mailbox.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
 
@@ -331,8 +369,8 @@ pub const ReceiveResult = union(enum) {
 };
 ```
 
-- Carries the handle by value — no cross-thread `*Slot` pointer.
-- When `select.await()` returns `.item`, the caller is sole owner.
+- The handle is inside the result, not behind a pointer. No `*Slot` is shared across threads.
+- When you get `.item`, the handle is yours. The mailbox no longer holds it.
 
 #### Functions
 
@@ -352,16 +390,14 @@ pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.F
 
 #### Cancel behavior
 
-- Cancel never triggers close.
 - On `error.Canceled`, the adapter returns `.canceled` — the mailbox remains open.
 - Closing is the Master's responsibility.
 
 #### When to use
 
-**Inside Matryoshka**: when handles carry ownership, use fan-in.
-- Many senders send tagged PolyNodes to one mailbox.
-- Master dispatches on tag.
-- One queue, one ownership model, one shutdown model.
+**Inside Matryoshka**: many senders push tagged PolyNodes into one mailbox.
+- Master reads them all from one place.
+- One queue, one ownership model, one shutdown path.
 
 **Bridging to external Io**: use `receive_future`.
 - Combines mailbox traffic with other sources in one `Io.Select` loop:
@@ -370,7 +406,21 @@ pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.F
   - files
   - pool availability
 
-### Advanced: OOB ordering
+### Advanced: OOB (out of the box)
+
+```zig
+pub fn send_oob(mbh: MailboxHandle, m: *Slot) error{Closed}!void
+```
+- Inserts handle after last OOB handle.
+- FIFO among OOBs, all OOBs before regular handles.
+- Transfers ownership — `m.*` set to null.
+- Assert:
+  - `mailbox.is_it_you(mbh.*.tag)`
+  - `m.* != null`
+  - `!polynode.is_linked(m.*)`
+
+
+OOB ordering:
 
 ```
 send(R1), send(R2):       [R1, R2]                oob=0
@@ -385,7 +435,7 @@ receive → O2:             [R1, R2, R3]            oob=0
 
 ## pool
 
-Lifecycle management with hooks.
+Lifecycle management with user supplied hooks.
 
 ```zig
 const pool = @import("matryoshka").pool;
@@ -402,7 +452,7 @@ pool.put(ph, &slot);                                      // slot is now null (i
 pub const PoolHandle = NodeHandle;
 ```
 
-PoolHandle is itself a PolyNode.
+PoolHandle is itself a *PolyNode.
 A pool can be:
 - sent through a mailbox
 - embedded into larger ownership graphs
@@ -455,7 +505,7 @@ pub fn destroy(ph: PoolHandle, alloc: std.mem.Allocator) void
 ```zig
 pub fn init(ph: PoolHandle, hooks: PoolHooks) !void
 ```
-- Registers hooks and tag set.
+- Registers hooks.
 - Called once after `new`.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
@@ -490,7 +540,6 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *Slot, timeout_ns: ?u6
 pub fn put(ph: PoolHandle, m: *Slot) void
 ```
 - Returns handle to pool.
-- Cancel-protected (`lockUncancelable`).
 - **Open pool**:
   - Calls `on_put` hook.
   - Policy decides keep or destroy.
@@ -508,7 +557,6 @@ pub fn put(ph: PoolHandle, m: *Slot) void
 pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
 ```
 - Returns batch of handles to pool.
-- Cancel-protected.
 - Pops from caller's list.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
@@ -517,11 +565,10 @@ pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
 ```zig
 pub fn close(ph: PoolHandle) void
 ```
-- Idempotent.
+- Can be called more than once.
 - Collects all handles from all per-tag free-lists.
 - Calls `on_close` once with the full list.
 - Broadcasts to wake blocked `get_wait` callers.
-- Cancel-protected (`lockUncancelable`).
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
 
@@ -549,7 +596,7 @@ Cancel and close in concurrent tasks:
 - Pool closed — blocked callers wake with `error.Closed`.
 - Task canceled — the operation returns `error.Canceled`.
 
-Pool availability as event enables the job-pool pattern:
+When a handle becomes available, the Master can react. This is the job-pool pattern:
 - Worker returns a handle.
 - Master is notified.
 - Master submits new work.
@@ -566,10 +613,9 @@ pub const PoolResult = union(enum) {
 };
 ```
 
-- Carries the handle by value — no cross-thread `*Slot` pointer.
-- The `.item` arm hands ownership to the caller.
-- The `get_wait` that produced it has already removed the handle from the pool.
-- Re-spawn the event source only after deciding the handle's fate.
+- The handle is inside the result, not behind a pointer. No `*Slot` is shared across threads.
+- When you get `.item`, the handle is yours. The pool no longer holds it.
+- Create a new future only after you've decided what to do with this handle.
 
 #### Functions
 
@@ -589,13 +635,14 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
 
 #### Cancel behavior
 
-- Cancel never triggers close.
 - On `error.Canceled`, the adapter returns `.canceled` — the pool remains open.
 - Closing is the Master's responsibility.
 
 ### Hook discipline
 
-- Hooks run outside the pool mutex.
+- Hooks run outside the pool's internal lock.
+- The pool updates its own state first, then releases the lock, then calls your hook.
+- Your hook code does not block other pool operations.
 - `on_get`:
   - Must either leave `m.* == null` (creation failed) OR set `m.*` to a valid node (created or reinitialized).
   - No other state is permitted.
@@ -606,8 +653,8 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
   - Receives `*std.DoublyLinkedList`.
   - Walks via `popFirst()`, frees each handle.
 - Do NOT call pool functions on the same pool from inside hooks.
-  - Not a deadlock — hooks run outside the mutex.
-  - Contract violation — calling back collapses the infrastructure/policy separation.
+  - Not a deadlock — hooks run outside the lock.
+  - Contract violation — the pool cannot manage what it's holding if hooks change it at the same time.
 
 ---
 
@@ -618,10 +665,6 @@ pub const polynode = @import("polynode.zig");
 pub const mailbox = @import("mailbox.zig");
 pub const pool = @import("pool.zig");
 ```
-
-No generic `dispose`.
-- Use `mailbox.destroy` and `pool.destroy` directly.
-- Application types destroy themselves.
 
 ---
 
@@ -670,25 +713,9 @@ The application assembles them.
 
 ### Event sources
 
-In `std.Io`, an event source is anything that produces a `Future`.
-`Io.Select` multiplexes multiple Futures and returns the first one that completes.
+See **Prolog: std.Io** for the general `Future` → `Io.Select` pattern.
 
-Typical event sources:
-
-```text
-  Timer ──────► Future(void)  ──┐
-  Socket read ─► Future([]u8) ──┼──► Io.Select ──► Master dispatch
-  File I/O ───► Future([]u8) ──┘
-```
-
-A blocking operation becomes an event source via `io.concurrent()`:
-- Runs the operation in a spawned task.
-- Task produces a `Future`.
-- `Future` is passed to `Io.Select`.
-- `select.await()` returns the first completed result.
-- Master handles the result and re-arms the source.
-
-Matryoshka uses this pattern to make mailbox and pool into event sources:
+Matryoshka plugs into the same pattern:
 
 ```text
   receive_future ──► Future(ReceiveResult) ──┐
@@ -697,36 +724,41 @@ Matryoshka uses this pattern to make mailbox and pool into event sources:
   Socket read ─────► Future([]u8)          ──┘
 ```
 
-Same `Future` → `Io.Select` pattern as any other `std.Io` source.
 - `mailbox.receive_future` — mailbox as event source.
 - `pool.get_wait_future` — pool as event source.
+- Master calls `select.await()`, handles the result, re-arms the source.
 
 ---
 
-## Cancel indicator
+## Cancel model
+
+Only functions that wait on a condition can be canceled.
+Everything else runs to completion.
+
+- A waiting function blocks until a handle becomes available or a timeout expires.
+- While waiting, the runtime can cancel the operation. The function returns `error.Canceled`.
+- All other functions do their work and return. They cannot be canceled.
 
 A function is cancelable if and only if its return type includes `Cancelable` in the error union.
 The signature is the single source of truth.
 
-If `Cancelable` is not in the return type, the function is not cancelable.
-
 ## Cancel contract summary
 
-| Function | Cancelable | Cancel-protected | Notes |
-|----------|-----------|-----------------|-------|
-| `mailbox.send` | no | no | non-blocking |
-| `mailbox.send_oob` | no | no | non-blocking |
-| `mailbox.receive` | yes | no | primary cancel point |
-| `mailbox.try_receive` | no | no | non-blocking |
-| `mailbox.receive_batch` | yes | no | non-blocking |
-| `mailbox.close` | no | yes (`lockUncancelable`) | cleanup |
-| `pool.get` | no | no | non-blocking |
-| `pool.get_wait` | yes | no | primary cancel point |
-| `pool.put` | no | yes (`lockUncancelable`) | cleanup |
-| `pool.put_all` | no | yes (`lockUncancelable`) | cleanup |
-| `pool.close` | no | yes (`lockUncancelable`) | cleanup |
-| `mailbox.receive_future` | yes | no | spawns `receive` concurrently |
-| `pool.get_wait_future` | yes | no | spawns `get_wait` concurrently |
+| Function | Cancelable | Notes |
+|----------|-----------|-------|
+| `mailbox.send` | no | non-blocking |
+| `mailbox.send_oob` | no | non-blocking |
+| `mailbox.receive` | **yes** | waits for a handle |
+| `mailbox.try_receive` | no | non-blocking |
+| `mailbox.receive_batch` | no | non-blocking |
+| `mailbox.close` | no | non-blocking |
+| `pool.get` | no | non-blocking |
+| `pool.get_wait` | **yes** | waits for a handle |
+| `pool.put` | no | non-blocking |
+| `pool.put_all` | no | non-blocking |
+| `pool.close` | no | non-blocking |
+| `mailbox.receive_future` | **yes** | spawns `receive` concurrently |
+| `pool.get_wait_future` | **yes** | spawns `get_wait` concurrently |
 
 ---
 
