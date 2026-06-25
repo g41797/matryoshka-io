@@ -13,6 +13,58 @@ build from them, in what order, and how to know each step is done.
 
 ---
 
+## 0. Sources of Truth
+
+All paths are absolute. No "see other doc" references.
+
+### Odin matryoshka — `/home/g41797/dev/root/github.com/g41797/matryoshka/`
+
+Proto implementation. Use as reference for logic, tests, examples.
+
+- Sources: `polynode.odin`, `mailbox.odin`, `pool.odin`, `poolhooks.odin`, `dispose.odin`, `doc.odin`
+- Tests: `tests/block1/`, `tests/block2/`, `tests/block3/`, `tests/block4/`
+- Examples: `examples/block1/`, `examples/block2/`, `examples/block3/`, `examples/block4/`
+- Kitchen (housekeeping): `kitchen/`
+  - Build/test scripts: `build_and_test.sh`, `build_and_test_debug.sh`, `build_and_test_quick.sh`
+  - MkDocs site: `mkdocs.yml`, `kitchen/docs/` (deepdives, quickrefs, API ref, addendums)
+  - Tools: `kitchen/tools/` (`build_site.sh`, `preview_site.sh`, `preview_apidocs.sh`, `generate_apidocs.sh`, `count_lines.py`)
+  - Logo: `kitchen/_logo/`
+
+### tofu — `/home/g41797/dev/root/github.com/g41797/tofu/`
+
+Zig repo with build infrastructure to adapt. Structure from Odin kitchen, real scripts from tofu.
+
+- Zig build: `build.zig`, `build.zig.zon`
+- CI/CD workflows: `.github/workflows/` (`linux.yml`, `mac.yml`, `windows.yml`, `docs.yml`)
+- Build-and-test scripts: `zbta_linux.sh`, `zbta_mac.sh`, `zbta_win.cmd`
+- Zig autodocs: `docs_zig.sh`, `docs_zig.cmd`
+- MkDocs site: `docs_site.sh`, `docs_site/` (`mkdocs.yml`, `docs/`, `overrides/`, `scripts/`)
+- Recipes (examples as module): `recipes/` (`cookbook.zig`, `recipes.zig`, etc.)
+- Test helpers: `src/ampe/helpers.zig` — `RunTasks` (spawn N tasks, wait all — old thread model, adapt to `Io.Group`), `AutoArrayHashMap` (managed wrapper for unmanaged hash map), `SleepMlsec`, `semaphore_waitTimeout` (uses `condition_waitTimeout`)
+- Git config: `.gitignore`, `.gitattributes`, `.gitmodules`
+- JetBrains run config: `.run/winportable_testall.yml`
+
+### mailbox — `/home/g41797/dev/root/github.com/g41797/mailbox/`
+
+Legacy Zig mailbox. Starting point for `_Mailbox`.
+
+- `src/mailbox.zig` — `TypeErasedMailbox`, `condition_waitTimeout` helper
+- `build.zig`, `build.zig.zon`
+
+### Design docs — `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/`
+
+- `matryoshka-api-reference-006.md` — signatures, types, error sets, cancel contract
+- `matryoshka-architecture-001.md` — why, concepts, flows
+- `matryoshka-architecture-foundation-4-001.md` — language-independent architecture
+- `matryoshka-zig-0.16-implementation-guide-001.md` — Zig how-to
+- `collected-context-002.md` — master reference, proposals, decisions
+- `task1-scenarios-001.md` — 86 scenarios (Layers 1-3) — historical source, will be re-partitioned
+- `task2-scenarios-001.md` — 61 scenarios (Layer 4+) — historical source, will be re-partitioned
+- `proposal-26-async-integration-001.md` — event source adapter design
+- `context.md` — entry point
+
+---
+
 ## 1. Process Rules
 
 ### Behaviour (MUST)
@@ -21,6 +73,45 @@ build from them, in what order, and how to know each step is done.
 - One stage at a time. Do not skip stages. Each stage must pass before the next starts.
 - Do not write real code before the build/test infrastructure is verified (Stage 0).
 - Iterative: build a stage, checkpoint, rethink, then plan the next stage.
+
+### Build Order Rules (MUST)
+
+**Helper code comes first**
+- Implementation guide contains code that is not part of the API (e.g. `NodeMixin`, test types like `Event`, `Sensor`).
+- This code is shared by both tests and examples.
+- It must have a proper home and be written as good, reusable code.
+
+**Tests are real code**
+- Tests are structured, reusable, well-named.
+- No throwaway test code. Same quality standards as production code.
+
+**Tests vs examples — different jobs**
+- Tests check implementation. Correctness, edge cases, error paths, state transitions, contract violations.
+- Examples show stories. Real usage patterns: "how to do fan-in", "how to seed a pool". They exercise the API in realistic, composed ways — this stress-tests the implementation harder than unit tests.
+
+**Examples have test wrappers**
+- Every example is runnable code.
+- A test wrapper calls the example and verifies it works.
+- If an example breaks, its test wrapper catches it immediately.
+
+**Examples come after tested code**
+- Examples demonstrate working API. They cannot be written until the API is proven by tests.
+- Order: helper code → implementation → tests → examples (with test wrappers) → docs.
+
+**Examples become docs**
+- Verified examples are pulled into documentation (autodocs, recipes, mkdocs site).
+- Docs never show broken code — test wrappers guarantee this.
+
+**Re-partition scenarios before each stage**
+- `task1-scenarios-001.md` and `task2-scenarios-001.md` were written before the test/example split was clear.
+- Before coding each stage, re-examine that stage's scenarios.
+- Decide which are tests (verify correctness) and which are examples (show stories).
+- This re-partitioning is part of each stage's planning step.
+
+### Document Versioning (MUST)
+- Never overwrite an important design doc. Create a new file with incremented version suffix (-001, -002, etc.).
+- If other docs reference the updated doc, update those links to the new version.
+- `design/context.md` is the stable entry point — always points to the latest `collected-context-NNN.md`.
 
 ### Git (MUST)
 - Do not use git directly. All git operations go through the owner.
@@ -33,9 +124,10 @@ build from them, in what order, and how to know each step is done.
 - Each fix in a multi-fix plan needs its own approval.
 
 ### Implementation (MUST)
-- Source of truth for signatures, types, errors: `matryoshka-api-reference-001.md`.
+- Source of truth for signatures, types, errors: `matryoshka-api-reference-006.md`.
 - Source of truth for Zig details: `matryoshka-zig-0.16-implementation-guide-001.md`.
 - Source of truth for architecture: `matryoshka-architecture-foundation-4-001.md`.
+- Architecture introduction (why, concepts, flows): `matryoshka-architecture-001.md`.
 - Never send a stack-allocated item. Use `alloc.create` or `pool.get`.
 - After transfer (`send`, `put`), set `m.* = null`. Ownership invariant.
 - After `close`, drain the returned list. Free heap items or return pool items.
@@ -108,14 +200,14 @@ matryoshka-zig/
 │   ├── matryoshka_tests.zig  # test root: imports all suites below
 │   ├── helpers/
 │   │   └── types.zig         # Event, Sensor test types; NodeMixin; tag helpers
-│   ├── layer1_polynode.zig   # task1 scenarios 1-25
-│   ├── layer2_mailbox.zig       # task1 scenarios 26-56
-│   ├── layer3_pool.zig       # task1 scenarios 57-86
-│   ├── layer4_master.zig     # task2 scenarios 1-31
-│   ├── crosslayer.zig        # task2 scenarios 32-41
-│   ├── event_source.zig      # task2 scenarios 42-56
-│   └── mailbox_less.zig      # task2 scenarios 57-61
-├── examples/                 # runnable Master patterns (Layer 4)
+│   ├── layer1_polynode.zig   # task1 test scenarios
+│   ├── layer2_mailbox.zig    # task1 test scenarios
+│   ├── layer3_pool.zig       # task1 test scenarios
+│   ├── layer4_master.zig     # task2 test scenarios
+│   ├── crosslayer.zig        # task2 test scenarios
+│   ├── event_source.zig      # task2 test scenarios
+│   └── mailbox_less.zig      # task2 test scenarios
+├── examples/                 # runnable usage stories, imported by test wrappers
 │   └── examples.zig          # built as its own module, imported by tests
 ├── design/
 │   ├── STATUS.md             # status + session log (created in Stage 0)
@@ -129,6 +221,7 @@ Notes:
   test types referenced by the API reference ("see tests/helpers/types.zig").
 - Examples are a separate module so production builds exclude them, and so the
   docs step can emit them as recipes (tofu pattern).
+- Each example has a test wrapper that calls it and verifies it works.
 
 ---
 
@@ -137,16 +230,17 @@ Notes:
 Build order from the implementation guide:
 
 ```text
-Stage 0   infrastructure
-Stage 1   Block 1  PolyNode
-Stage 2   Block 2  Mailbox        ┐ independent siblings
-Stage 3   Block 3  Pool           ┘ (Pool may start after Stage 1)
-Stage 4   Block 4  Infra as items
-Stage 5   Layer 4  Master (single-thread + concurrency)
-Stage 6   Cancellation + shutdown
-Stage 7   Event sources (Select / Future)
-Stage 8   Mailbox-less patterns + cross-layer
-Stage 9   Docs + README + autodocs
+Stage 0     infrastructure
+Stage 0.5   re-partition scenarios into tests + examples
+Stage 1     Block 1  PolyNode
+Stage 2     Block 2  Mailbox        ┐ independent siblings
+Stage 3     Block 3  Pool           ┘ (Pool may start after Stage 1)
+Stage 4     Block 4  Infra as items
+Stage 5     Layer 4  Master (single-thread + concurrency)
+Stage 6     Cancellation + shutdown
+Stage 7     Event sources (Select / Future)
+Stage 8     Mailbox-less patterns + cross-layer
+Stage 9     Docs + README + autodocs
 ```
 
 ---
@@ -177,6 +271,19 @@ Stage 9   Docs + README + autodocs
 
 ---
 
+### Stage 0.5 — Re-partition scenarios
+
+After Stage 0 skeleton is built, before Stage 1 coding.
+
+- `task1-scenarios-001.md` and `task2-scenarios-001.md` stay as-is (historical source).
+- **Create** `design/task1-tests-001.md` — test scenarios extracted from task1. Check implementation: correctness, edge cases, error paths, contract violations.
+- **Create** `design/task1-examples-001.md` — example/story scenarios extracted from task1. Show usage patterns, stress-test API in realistic composed ways.
+- **Create** `design/task2-tests-001.md` — test scenarios extracted from task2.
+- **Create** `design/task2-examples-001.md` — example/story scenarios extracted from task2.
+- Update `design/context.md` to point to new docs.
+
+---
+
 ### Stage 1 — Block 1: PolyNode
 
 **Purpose**: the ownership atom and its test types.
@@ -188,23 +295,16 @@ Stage 9   Docs + README + autodocs
   comptime helper (guide Section 10) — `TAG`, `isIt`, `cast`, `init`.
 - Two-level `@fieldParentPtr` recovery demonstrated in helpers.
 
-**Scenarios to verify** (task1)
-- Tags + casts: 1-6
-- reset / is_linked: 7-8
-- MayItem + multi-type list: 9-10
-- Ownership state transitions: 11-14
-- Ownership violation panics: 15-17 (see Open Item 11 — decide panic test style)
-- Infra-as-item at Layer 1: 18-20 (needs mailbox/pool handles — defer 18-19 to
-  Stage 2/3, keep 20 once destroy exists; mark partial)
-- Examples: 21-25
+**Scenarios to verify**: per task1-tests-001.md and task1-examples-001.md (Stage 1 rows).
 
 **Checkpoint**
-- All task1 scenarios 1-17 and 21-25 pass.
-- 18-20 marked deferred (depend on later blocks).
+- All Stage 1 test scenarios pass.
+- Stage 1 examples pass via test wrappers.
+- Deferred scenarios (depend on later blocks) marked.
 
 **Risks / dependencies**
 - Open Item 11: how to test a panic in Zig. Decide: `std.testing` panic capture
-  vs. `std.debug.assert` (`unreachable` in ReleaseSafe). Settle before 15-17.
+  vs. `std.debug.assert` (`unreachable` in ReleaseSafe). Settle before panic tests.
 - `NodeMixin` uses `var _tag` for unique address — confirm linker does not
   dedup (guide Section 10).
 
@@ -223,24 +323,16 @@ Stage 9   Docs + README + autodocs
 - Use `cond_timeout.zig` helper in `receive`.
 - Do NOT add `receive_select` / `receive_future` yet (Stage 7).
 
-**Scenarios to verify** (task1)
-- Core send/receive/FIFO/closed: 26-34
-- OOB ordering and wake: 35-39
-- Batch: 40-42
-- Ownership transfer + try_receive: 43-46
-- State transitions + violation: 47-49
-- Examples: 50-56 (single-thread where possible; fan-in/pipeline may need
-  real threads — Open Item 10)
-- Now also complete task1 scenario 18 (MailboxHandle is a PolyNode).
+**Scenarios to verify**: per task1-tests-001.md and task1-examples-001.md (Stage 2 rows).
 
 **Checkpoint**
-- task1 scenarios 26-56 pass.
-- task1 scenario 18 passes.
+- All Stage 2 test scenarios pass.
+- Stage 2 examples pass via test wrappers.
 - No `error.Canceled` remapped to `error.Closed`.
 
 **Risks / dependencies**
 - Open Item 10: which mailbox examples need real threads vs
-  `global_single_threaded`. fan-in (55) and pipeline (53) likely need
+  `global_single_threaded`. fan-in and pipeline likely need
   `Io.Threaded.init(gpa, .{})`.
 - Idempotent close + OOB reset must both happen under one lock.
 
@@ -259,20 +351,12 @@ Stage 9   Docs + README + autodocs
 - Hooks run outside the mutex. Closed-pool-on-put returns item to caller.
 - Do NOT add `get_wait_select` / `get_wait_future` yet (Stage 7).
 
-**Scenarios to verify** (task1)
-- get modes + on_get/on_put: 57-66
-- per-tag lists: 67
-- close + idempotency + closed behavior: 68-71
-- backpressure / seeding / counts / hooks-outside-lock: 72-75
-- put_all + get_wait timeout/forever: 76-78
-- state transitions + double-put: 79-82
-- Examples: 83-86
-- Now also complete task1 scenario 19 (PoolHandle is a PolyNode) and 20.
+**Scenarios to verify**: per task1-tests-001.md and task1-examples-001.md (Stage 3 rows).
 
 **Checkpoint**
-- task1 scenarios 57-86 pass.
-- task1 scenarios 19-20 pass.
-- All 86 task1 scenarios green. Layers 1-3 done.
+- All Stage 3 test scenarios pass.
+- Stage 3 examples pass via test wrappers.
+- All task1 tests and examples green. Layers 1-3 done.
 
 **Risks / dependencies**
 - `concatByMoving` for `close` collecting all per-tag lists (guide Section 5).
@@ -290,10 +374,8 @@ Stage 9   Docs + README + autodocs
 - No generic dispose — per-module `destroy` only.
 
 **Scenarios to verify**
-- Covered by task1 18-20 (already) plus cross-layer checks proven again here.
-- No new numbered scenarios own this block alone. Add a focused unit test:
-  mailbox-through-mailbox roundtrip, pool-as-item roundtrip (Open Item 8 —
-  no Zig examples written yet; this stage writes the first).
+- Covered by deferred Stage 1 scenarios plus cross-layer checks.
+- Add focused tests and examples: mailbox-through-mailbox roundtrip, pool-as-item roundtrip.
 
 **Checkpoint**
 - A mailbox sent through a mailbox is received, recovered by tag, and used.
@@ -315,13 +397,11 @@ Stage 9   Docs + README + autodocs
 - `Io.Group` for multiple workers, `group.await`.
 - Single-source and fan-in patterns. Timer-as-mailbox-item (no Select).
 
-**Scenarios to verify** (task2)
-- Worker lifecycle: 1-2
-- Master patterns: 17-21
-- Mailbox as fan-in: 22-24
+**Scenarios to verify**: per task2-tests-001.md and task2-examples-001.md (Stage 5 rows).
 
 **Checkpoint**
-- task2 1-2 and 17-24 pass.
+- All Stage 5 test scenarios pass.
+- Stage 5 examples pass via test wrappers.
 - `error.Canceled` paths NOT yet required (Stage 6).
 
 **Risks / dependencies**
@@ -340,18 +420,16 @@ Stage 9   Docs + README + autodocs
 - `recancel`, `checkCancel` usage in workers.
 - Verify cancel-protected ops never leak items.
 
-**Scenarios to verify** (task2)
-- Worker cancel mechanics: 3-5
-- Shutdown ordering: 6-10
-- Cancellation mechanics: 11-16
+**Scenarios to verify**: per task2-tests-001.md and task2-examples-001.md (Stage 6 rows).
 
 **Checkpoint**
-- task2 3-16 pass.
-- `error.Canceled != error.Closed` proven (11-12).
-- No item lost on cancel during `pool.put` (13).
+- All Stage 6 test scenarios pass.
+- Stage 6 examples pass via test wrappers.
+- `error.Canceled != error.Closed` proven.
+- No item lost on cancel during `pool.put`.
 
 **Risks / dependencies**
-- Cancel injection timing (5): takes effect at next Io wait.
+- Cancel injection timing: takes effect at next Io wait.
 - Both closes must run before join in the broadcast path.
 
 ---
@@ -367,19 +445,17 @@ Stage 9   Docs + README + autodocs
 - Cancel returns `.canceled`; never closes. Master decides shutdown.
 - `error.ConcurrencyUnavailable` on single-threaded backends.
 
-**Scenarios to verify** (task2)
-- Select event sources: 25-31, 42-48
-- Future helpers: 49-52
-- Communication patterns: 53-56
+**Scenarios to verify**: per task2-tests-001.md and task2-examples-001.md (Stage 7 rows).
 
 **Checkpoint**
-- task2 25-31, 42-56 pass.
-- Single-threaded returns `error.ConcurrencyUnavailable` (52).
-- Cancel/close separation proven (26, 27, 44, 45).
+- All Stage 7 test scenarios pass.
+- Stage 7 examples pass via test wrappers.
+- Single-threaded returns `error.ConcurrencyUnavailable`.
+- Cancel/close separation proven.
 
 **Risks / dependencies**
 - Open Item 6: only Threaded backend tested. Note thread cost in code + docs.
-- Open Item 12: socket/network scenarios (43, 60) need real Io — integration
+- Open Item 12: socket/network scenarios need real Io — integration
   tests, gate on platform if needed.
 
 ---
@@ -392,13 +468,12 @@ Stage 9   Docs + README + autodocs
 - Pool + Future, Pool + Select, Pool + Group examples.
 - Cross-layer ownership flows and shutdown ordering.
 
-**Scenarios to verify** (task2)
-- Cross-layer: 32-41
-- Mailbox-less: 57-61
+**Scenarios to verify**: per task2-tests-001.md and task2-examples-001.md (Stage 8 rows).
 
 **Checkpoint**
-- task2 32-41 and 57-61 pass.
-- All 61 task2 scenarios green. All 147 scenarios green.
+- All Stage 8 test scenarios pass.
+- Stage 8 examples pass via test wrappers.
+- All 147 scenarios green (tests + examples).
 
 **Risks / dependencies**
 - Scenario 61 documents the transition point (when to add a mailbox).
@@ -431,6 +506,9 @@ Stage 9   Docs + README + autodocs
 
 ## 4. Scenario → Stage Map
 
+Will be updated after Stage 0.5 re-partition.
+Original mapping (from task1/task2 before split):
+
 | Stage | task1 | task2 |
 |-------|-------|-------|
 | 1 | 1-17, 21-25 | — |
@@ -443,6 +521,8 @@ Stage 9   Docs + README + autodocs
 | 8 | — | 32-41, 57-61 |
 
 Totals: 86 task1 (Stages 1-3), 61 task2 (Stages 5-8).
+
+After Stage 0.5, this table will be replaced with test/example split per stage.
 
 ---
 
@@ -461,6 +541,7 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 - Show intent before code changes. Get owner approval.
 - Plan approval is NOT code change approval.
 - Architectural changes need explicit owner approval.
+- Never overwrite important docs. New version with incremented suffix (-001, -002, etc.). Update cross-references.
 
 ## Constraints for Next Agent (MUST)
 - Git disabled. Do NOT run any git commands.
@@ -471,11 +552,16 @@ Create `design/STATUS.md` in Stage 0. Newest session entry at top.
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-001.md
+- API: matryoshka-api-reference-006.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
-- Scenarios: task1-scenarios-001.md (86), task2-scenarios-001.md (61)
+- Architecture introduction: matryoshka-architecture-001.md
+- Tests: task1-tests-001.md, task2-tests-001.md
+- Examples: task1-examples-001.md, task2-examples-001.md
+- Scenarios (historical): task1-scenarios-001.md (86), task2-scenarios-001.md (61)
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
+- Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
+- tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - This file + the plan file.
 
 ## Participants
@@ -493,6 +579,9 @@ Three blocks: polynode, mailbox, pool. Both mailbox and pool optional.
 - STATUS.md first, updated after every stage.
 - Document rules apply to all markdown.
 - condition_waitTimeout copied from legacy mailbox (Open Item 5).
+- Tests check implementation. Examples show stories and stress-test.
+- Examples have test wrappers. Examples come after tested code.
+- Scenarios re-partitioned into tests + examples (Stage 0.5).
 
 ## Open Items (carried from collected-context-001.md)
 - 5  condition_waitTimeout workaround
@@ -534,12 +623,17 @@ One paragraph. What was done and why.
 
 | Doc | Owns |
 |-----|------|
-| collected-context-001.md | Master reference. Paths, 26 proposals, decisions, open items, scenario counts. Read first. |
-| matryoshka-api-reference-001.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
+| collected-context-002.md | Master reference. Paths, 27 proposals, decisions, open items, scenario counts. Read first. |
+| matryoshka-api-reference-006.md | Source of truth. Signatures, types, error sets, cancel contract, ownership lifecycle, contract violations. |
 | matryoshka-zig-0.16-implementation-guide-001.md | Zig how-to. Blocks 1-4, cancellation, Master patterns, rules, comptime opportunities, Odin→Zig appendix. |
+| matryoshka-architecture-001.md | Architecture introduction. Why matryoshka exists, concept progression, flows, layer map. MkDocs source. |
 | matryoshka-architecture-foundation-4-001.md | Language-independent architecture. Layers, channels, patterns, rationale. |
-| task1-scenarios-001.md | 86 scenarios, Layers 1-3. The Stage 1-3 test plan. |
-| task2-scenarios-001.md | 61 scenarios, Layer 4 + cross-layer + event sources + mailbox-less. The Stage 5-8 test plan. |
+| task1-scenarios-001.md | 86 scenarios, Layers 1-3. Historical source for re-partition. |
+| task2-scenarios-001.md | 61 scenarios, Layer 4 + cross-layer + event sources + mailbox-less. Historical source for re-partition. |
+| task1-tests-001.md | Test scenarios extracted from task1. Created in Stage 0.5. |
+| task1-examples-001.md | Example/story scenarios extracted from task1. Created in Stage 0.5. |
+| task2-tests-001.md | Test scenarios extracted from task2. Created in Stage 0.5. |
+| task2-examples-001.md | Example/story scenarios extracted from task2. Created in Stage 0.5. |
 | proposal-26-async-integration-001.md | Event source adapter design. The Stage 7 spec. |
 
 This plan owns: stage order, folder structure, checkpoints, status tracking.

@@ -9,4 +9,4 @@ Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) �
 
 Latest context: [collected-context-002.md](collected-context-002.md)
 
-Rules: [matryoshka-zig-implementation-plan-002.md](matryoshka-zig-implementation-plan-002.md) — Section 1 (Process Rules) and Rules section
+Rules and plan: [matryoshka-zig-implementation-plan-003.md](matryoshka-zig-implementation-plan-003.md) — Section 0 (Sources), Section 1 (Process Rules + Build Order Rules), stages
