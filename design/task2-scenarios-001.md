@@ -138,7 +138,7 @@ Example pattern (intent, not code):
 ## Mailbox Design Decisions
 
 ### mailbox_send is cancelable
-`mailbox_send` acquires `mutex.lock(io)` which is a cancellation point. If the sender's task is canceled, `error.Canceled` propagates. The caller still owns the item (MayItem not cleared) — item is not lost. This is correct: send is a work-path operation, cancellation is safe.
+`mailbox_send` acquires `mutex.lock(io)` which is a cancellation point. If the sender's task is canceled, `error.Canceled` propagates. The caller still owns the item (Slot not cleared) — item is not lost. This is correct: send is a work-path operation, cancellation is safe.
 
 Contrast with `pool_put` which is cancel-protected (cleanup path — item would be lost if put failed).
 
@@ -218,7 +218,7 @@ All Layer 4 examples use real `Io.Threaded.init(gpa, .{})` — concurrency, canc
 
 6. **Broadcast shutdown: mailbox.close before join** — Master closes mailbox (broadcasts), worker wakes with `error.Closed`, exits. Master joins, then closes pool, walks remaining items. `[mailbox.close broadcast, error.Closed, lockUncancelable]`
 7. **Cancel shutdown: future.cancel before close** — Master calls `future.cancel(io)`, worker exits. Then Master calls `pool.close` and `mailbox.close` to reclaim items. No race — worker already exited. `[Future.cancel, pool.close, mailbox.close after join]`
-8. **pool.put on closed pool** — Worker holds item when `pool.close` fires. `pool.put` returns item to caller (MayItem stays non-null). Worker disposes item via on_close hook. `[pool.put cancel-protected, closed pool rejection]`
+8. **pool.put on closed pool** — Worker holds item when `pool.close` fires. `pool.put` returns item to caller (Slot stays non-null). Worker disposes item via on_close hook. `[pool.put cancel-protected, closed pool rejection]`
 9. **mailbox.close returns remaining items** — Send 10 items, close after 3 consumed. Walk returned `std.DoublyLinkedList` via `popFirst()`, verify 7 items recovered. `[mailbox.close snapshot, batch cleanup]`
 10. **pool.close calls on_close with all items** — Put 5 items, `pool.close`. on_close receives `*std.DoublyLinkedList` with 5 items. Hook walks via `popFirst()` and frees. `[pool.close, on_close hook]`
 

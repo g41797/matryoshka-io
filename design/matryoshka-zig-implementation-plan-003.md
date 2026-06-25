@@ -216,7 +216,7 @@ matryoshka-zig/
 ├── README.md                 # library index, short usage per block
 ├── src/
 │   ├── matryoshka.zig        # root: re-exports polynode, mailbox, pool
-│   ├── polynode.zig          # Block 1 — PolyNode, MayItem, PolyTag, reset, is_linked
+│   ├── polynode.zig          # Block 1 — PolyNode, Slot, PolyTag, reset, is_linked
 │   ├── mailbox.zig              # Block 2 — _Mailbox, MailboxHandle, send/receive/...
 │   ├── pool.zig              # Block 3 — _Pool, PoolHandle, get/put/...
 │   └── internal/
@@ -332,7 +332,7 @@ After Stage 0 skeleton is built, before Stage 1 coding.
 **Purpose**: the ownership atom and its test types.
 
 **What to build** (guide Section 3, api-reference `polynode`)
-- `PolyTag`, `PolyNode` (embeds `std.DoublyLinkedList.Node`), `MayItem`.
+- `PolyTag`, `PolyNode` (embeds `std.DoublyLinkedList.Node`), `Slot`.
 - `reset`, `is_linked`.
 - `tests/helpers/types.zig`: `Event`, `Sensor`, tags, and the `NodeMixin`
   comptime helper (guide Section 10) — `TAG`, `isIt`, `cast`, `init`.
@@ -484,7 +484,7 @@ After Stage 0 skeleton is built, before Stage 1 coding.
 **What to build** (Proposal 26, api-reference event source helpers)
 - `mailbox.ReceiveResult`, `mailbox.receive_select`, `mailbox.receive_future`.
 - `pool.PoolResult`, `pool.get_wait_select`, `pool.get_wait_future`.
-- Result by value inside the union — no `*MayItem` crosses threads.
+- Result by value inside the union — no `*Slot` crosses threads.
 - Cancel returns `.canceled`; never closes. Master decides shutdown.
 - `error.ConcurrencyUnavailable` on single-threaded backends.
 

@@ -10,10 +10,10 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ---
 
-## Layer 1 — Ownership (PolyNode + MayItem + Tags)
+## Layer 1 — Ownership (PolyNode + Slot + Tags)
 
 21. **Define a PolyNode type** — show how to define a user struct with `poly: PolyNode` field, unique tag, and tag check/cast helpers
-22. **Ownership transfer via MayItem** — create item, wrap in MayItem, transfer to list, nil-out, pop, unwrap, verify, free
+22. **Ownership transfer via Slot** — create item, wrap in Slot, transfer to list, nil-out, pop, unwrap, verify, free
 23. **Tag-dispatch consume loop** — mixed-type list, pop each, check tag with `== EVENT_TAG`, cast with `@fieldParentPtr`, process, free
 24. **Builder pattern** — ctor/dtor factory that creates/destroys items by tag, demonstrating the Zig equivalent of Odin's builder
 25. **Produce-consume with defer cleanup** — push N items, consume with tag dispatch, defer a cleanup function for the list on any exit path

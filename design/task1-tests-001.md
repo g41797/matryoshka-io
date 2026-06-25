@@ -9,7 +9,7 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ---
 
-## Layer 1 — Ownership (PolyNode + MayItem + Tags)
+## Layer 1 — Ownership (PolyNode + Slot + Tags)
 
 ### Tests
 
@@ -21,21 +21,21 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 6. **Two-level @fieldParentPtr chain** — DoublyLinkedList.Node → PolyNode → UserType, verify field values survive the roundtrip
 7. **polynode.reset clears links** — after reset, `node.prev == null` and `node.next == null`
 8. **polynode.is_linked detection** — linked node returns true; reset node returns false
-9. **MayItem null semantics** — `null` means not owned; non-null means owned; assignment to null releases ownership handle
+9. **Slot null semantics** — `null` means not owned; non-null means owned; assignment to null releases ownership handle
 10. **Multiple types in one list** — push Event and Sensor into same `std.DoublyLinkedList`, pop and dispatch on tag, verify correct recovery via `@fieldParentPtr`. Demonstrates stdlib compatibility: PolyNode-based items participate in standard lists with no adapter
 
 ### Tests — Ownership State Transitions
 
-11. **FREE → IN_FLIGHT** — allocate item, set tag; MayItem is non-null; item is not linked; this is IN_FLIGHT
-12. **IN_FLIGHT → HELD (list)** — push item to intrusive list, nil-out MayItem; item is linked; this is HELD
-13. **HELD → IN_FLIGHT (list)** — pop from list; MayItem is non-null; item is unlinked after reset; this is IN_FLIGHT
-14. **IN_FLIGHT → FREE** — free item, set MayItem to null; ownership released
+11. **FREE → IN_FLIGHT** — allocate item, set tag; Slot is non-null; item is not linked; this is IN_FLIGHT
+12. **IN_FLIGHT → HELD (list)** — push item to intrusive list, nil-out Slot; item is linked; this is HELD
+13. **HELD → IN_FLIGHT (list)** — pop from list; Slot is non-null; item is unlinked after reset; this is IN_FLIGHT
+14. **IN_FLIGHT → FREE** — free item, set Slot to null; ownership released
 
 ### Tests — Ownership Violation Detection
 
 15. **Send linked item panics** — item is in a list (polynode_is_linked == true); attempt to push again; expect panic or assertion failure
 16. **Double list insertion** — push same item twice without popping; expect panic or assertion failure
-17. **Use after nil-out** — set MayItem to null (ownership released); verify the handle is null; attempting to use it is a bug (document this invariant)
+17. **Use after nil-out** — set Slot to null (ownership released); verify the handle is null; attempting to use it is a bug (document this invariant)
 
 ### Tests — Infrastructure as Items (Layer 1 level)
 
@@ -66,15 +66,15 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 40. **Batch receive (mailbox.receive_batch)** — send 5 items, `mailbox.receive_batch` gets all 5 as `std.DoublyLinkedList`, mailbox empty after
 41. **Batch receive on empty returns empty list** — no items, `mailbox.receive_batch` returns empty `std.DoublyLinkedList` (not error)
 42. **Batch items walkable via popFirst** — `mailbox.receive_batch` returns `std.DoublyLinkedList`; walk via `popFirst()` which auto-clears prev/next — no manual `polynode.reset` needed. Standard stdlib iteration, nothing Matryoshka-specific
-43. **Send transfers ownership** — after `mailbox.send`, caller's MayItem is null
-44. **Receive transfers ownership** — after `mailbox.receive`, caller's MayItem is non-null, mailbox no longer holds it
-45. **try_receive on empty returns false** — `mailbox.try_receive` on open empty mailbox returns false, MayItem stays null
-46. **try_receive gets item** — send item, `mailbox.try_receive` returns true, MayItem is non-null
+43. **Send transfers ownership** — after `mailbox.send`, caller's Slot is null
+44. **Receive transfers ownership** — after `mailbox.receive`, caller's Slot is non-null, mailbox no longer holds it
+45. **try_receive on empty returns false** — `mailbox.try_receive` on open empty mailbox returns false, Slot stays null
+46. **try_receive gets item** — send item, `mailbox.try_receive` returns true, Slot is non-null
 
 ### Tests — Ownership State Transitions (Mailbox)
 
-47. **IN_FLIGHT → HELD (mailbox.send)** — item owned by caller; `mailbox.send` transfers to mailbox; MayItem is null; item is HELD
-48. **HELD → IN_FLIGHT (mailbox.receive)** — item in mailbox; `mailbox.receive` transfers to caller; MayItem is non-null; item is IN_FLIGHT
+47. **IN_FLIGHT → HELD (mailbox.send)** — item owned by caller; `mailbox.send` transfers to mailbox; Slot is null; item is HELD
+48. **HELD → IN_FLIGHT (mailbox.receive)** — item in mailbox; `mailbox.receive` transfers to caller; Slot is non-null; item is IN_FLIGHT
 49. **Send linked item panics** — item already in a list; `mailbox.send` should detect `polynode.is_linked` and panic
 
 ---
@@ -97,7 +97,7 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 68. **pool.close calls on_close with all items** — put 5 items, `pool.close`, on_close receives `*std.DoublyLinkedList` with 5 items
 69. **pool.close is idempotent** — second close is no-op
 70. **pool.get on closed pool returns error.Closed** — close first, then get, verify error
-71. **pool.put on closed pool returns item to caller** — put after close, MayItem stays non-null (caller still owns it)
+71. **pool.put on closed pool returns item to caller** — put after close, Slot stays non-null (caller still owns it)
 72. **Backpressure policy** — on_put drops items when count exceeds threshold
 73. **Pool seeding** — pre-allocate N items with `.new_only` + `pool.put`, verify N available with `.available_only`
 74. **in_pool_count accuracy** — track count across get/put cycles, verify on_get and on_put receive correct counts
@@ -108,9 +108,9 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ### Tests — Ownership State Transitions (Pool)
 
-79. **HELD → IN_FLIGHT (pool.get)** — item in pool free-list; `pool.get` transfers to caller; MayItem non-null; item is IN_FLIGHT
-80. **IN_FLIGHT → HELD (pool.put, keep)** — item owned by caller; `pool.put` with on_put that keeps; item back in pool; MayItem null
-81. **IN_FLIGHT → FREE (pool.put, destroy)** — item owned by caller; `pool.put` with on_put that destroys; item freed; MayItem null
+79. **HELD → IN_FLIGHT (pool.get)** — item in pool free-list; `pool.get` transfers to caller; Slot non-null; item is IN_FLIGHT
+80. **IN_FLIGHT → HELD (pool.put, keep)** — item owned by caller; `pool.put` with on_put that keeps; item back in pool; Slot null
+81. **IN_FLIGHT → FREE (pool.put, destroy)** — item owned by caller; `pool.put` with on_put that destroys; item freed; Slot null
 82. **Double pool.put** — put same item twice without getting in between; expect panic or assertion failure
 
 ---
