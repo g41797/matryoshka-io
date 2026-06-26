@@ -1,8 +1,3 @@
-pub const ShutdownCommand = struct {
-    poly: polynode.PolyNode = .{},
-};
-pub const ShutdownCommandPolyHelper = polynode.PolyHelper(ShutdownCommand);
-
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,
@@ -14,7 +9,7 @@ fn workerFn(ctx: *WorkerCtx) void {
         var out: Slot = null;
         mailbox.receive(ctx.mbh, &out, null) catch return;
         const poly: *PolyNode = out.?;
-        if (ShutdownCommandPolyHelper.cast(poly)) |cmd| {
+        if (types.ShutdownCommandPolyHelper.cast(poly)) |cmd| {
             std.log.info("worker: ShutdownCommand received, exiting cleanly", .{});
             ctx.alloc.destroy(cmd);
             return;
@@ -52,9 +47,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     }
 
     // Send shutdown signal — mailbox stays open.
-    const cmd: *ShutdownCommand = try allocator.create(ShutdownCommand);
+    const cmd: *types.ShutdownCommand = try allocator.create(types.ShutdownCommand);
     cmd.* = .{};
-    ShutdownCommandPolyHelper.init(cmd);
+    types.ShutdownCommandPolyHelper.init(cmd);
     var cmd_slot: Slot = &cmd.poly;
     try mailbox.send(mbh, &cmd_slot);
 

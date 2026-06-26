@@ -899,6 +899,8 @@ pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
 ```
 - Returns batch of handles to pool.
 - Pops from caller's list.
+- Transfer is not atomic with respect to `close()`. If the pool closes mid-batch, items already transferred are passed to `on_close`; items not yet transferred remain in the caller's list.
+- Restoration order when closed mid-batch may differ from original order.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
   - Each node's tag registered in pool's tag set.
@@ -985,8 +987,11 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
 - The pool updates its own state first, then releases the lock, then calls your hook.
 - Your hook code does not block other pool operations.
 - `on_get`:
-  - Must either leave `m.* == null` (creation failed) OR set `m.*` to a valid node (created or reinitialized).
-  - No other state is permitted.
+  - Called for every `get` and `get_wait` call regardless of mode or whether an item was found in the free-list.
+  - If `m.*` is non-null on entry: the item was recycled from the free-list — reinitialize it.
+  - If `m.*` is null on entry: no item was available — create a new one or leave null (creation failed).
+  - Must either leave `m.* == null` (creation failed) OR set `m.*` to a valid node with the same tag that was requested.
+  - Returning an item with a different tag is a programming error (assert in Debug/ReleaseSafe).
 - `on_put`:
   - Set `m.*` to null = destroy.
   - Leave non-null = keep in pool.

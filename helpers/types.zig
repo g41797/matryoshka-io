@@ -8,7 +8,12 @@ pub const Sensor = struct {
     value: f64 = 0.0,
 };
 
+pub const ShutdownCommand = struct {
+    poly: polynode.PolyNode = .{},
+};
+
 pub const EventPolyHelper = polynode.PolyHelper(Event);
 pub const SensorPolyHelper = polynode.PolyHelper(Sensor);
+pub const ShutdownCommandPolyHelper = polynode.PolyHelper(ShutdownCommand);
 
 const polynode = @import("matryoshka").polynode;

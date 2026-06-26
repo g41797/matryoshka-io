@@ -11,6 +11,7 @@ test {
     _ = @import("layer2_mailbox.zig");
     _ = @import("layer2_examples.zig");
     _ = @import("layer3_pool.zig");
+    _ = @import("layer3_examples.zig");
 }
 
 const std = @import("std");

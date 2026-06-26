@@ -89,10 +89,67 @@ Stage 1.b — PolyNode examples. DONE.
 Stage 2.a — Mailbox (impl + tests). DONE.
 Stage 2.b — Mailbox examples. DONE.
 Stage 2.5 — Pre-Stage-3 fixes. DONE.
-Current: Stage 3 — Pool (impl + tests + examples).
-Next: Show intent for Stage 3.a.
+Stage 3 — Pool (impl + tests + examples). DONE.
+Current: Stage 4 — Infra as items.
+Next: Show intent for Stage 4.
 
 ## Session Log
+
+### 2026-06-26 — Session 8
+**Participants**: human + Claude
+
+**Summary**
+Stage 3 (Pool) completed across three sub-stages.
+
+Stage 3.a — Pool impl + tests:
+- `src/pool.zig`: full Pool implementation. Key design points: per-tag `AutoHashMapUnmanaged` free-lists + counts, CAS for idempotent `close()`, hooks run outside the lock (unlock → hook → relock), `lockUncancelable` for put/put_all/close, `lock(io) catch |err|` for get_wait, `ensureTotalCapacity` before init loop for atomic OOM behavior, O(1) `_concat` for close collection.
+- `tests/layer3_pool.zig`: 26 tests (scenarios 63-88). Thread test (scenario 84) uses `Io.Timeout.sleep`.
+- `tests/matryoshka_tests.zig`: added layer3_pool import.
+
+Stage 3.a-cleanup (second AI review):
+- `src/pool.zig`: added `if (m.*) |h| std.debug.assert(h.*.tag == tag)` after on_get in `_get_available_or_new` and `_get_new_only`. Catches hooks that return wrong-tag items before silent propagation.
+- `design/matryoshka-api-reference-008.md`: added on_get always-called semantics note (prepare role, not just create); documented put_all partial-transfer contract on concurrent close.
+
+Stage 3.b — Pool examples:
+- `helpers/helpers.zig`: added `createByTag` (tag-dispatch allocator), `AlwaysCreateCtx` (create-or-reuse hooks), `CappedPoolCtx` (capped-size hooks).
+- `examples/layer3/basic_recycler.zig` — scenario 89: get/put/get roundtrip, verifies recycled item retains data.
+- `examples/layer3/capped_pool.zig` — scenario 90: 3 items seeded into cap-2 pool, on_put destroys excess.
+- `examples/layer3/pool_seeding.zig` — scenario 91: seed with new_only, consume all with available_only.
+- `examples/layer3/pool_teardown.zig` — scenario 92: close with items held; on_close frees all.
+- `examples/layer3/layer3.zig`: re-exports all 4.
+- `examples/examples.zig`: added layer3.
+- `tests/layer3_examples.zig`: 4 test wrappers (89-92).
+- `tests/matryoshka_tests.zig`: added layer3_examples import.
+
+CI fix:
+- `examples/layer2/batch_processing.zig`: race condition — main closed the mailbox before the worker thread ran. Fix: added `first_done: std.atomic.Value(bool)` to WorkerCtx; worker sets it after first `receive`; main spins with `Thread.yield()` until true, then calls close.
+
+**Changes**
+- `src/pool.zig` — full Pool implementation
+- `tests/layer3_pool.zig` — 26 tests (scenarios 63-88)
+- `tests/layer3_examples.zig` — 4 test wrappers (scenarios 89-92)
+- `tests/matryoshka_tests.zig` — layer3_pool + layer3_examples imports
+- `helpers/helpers.zig` — createByTag, AlwaysCreateCtx, CappedPoolCtx
+- `examples/layer3/basic_recycler.zig` — scenario 89
+- `examples/layer3/capped_pool.zig` — scenario 90
+- `examples/layer3/pool_seeding.zig` — scenario 91
+- `examples/layer3/pool_teardown.zig` — scenario 92
+- `examples/layer3/layer3.zig` — re-exports
+- `examples/examples.zig` — added layer3
+- `examples/layer2/batch_processing.zig` — atomic flag for CI race fix
+- `design/matryoshka-api-reference-008.md` — on_get semantics + put_all partial-transfer
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | pass (90/90 tests) |
+| `kitchen/build_and_test_all.sh` | pass (90/90 tests, all 4 modes) |
+| `kitchen/build_cross_debug.sh` | not yet run — owner handles git/CI |
+| Post-stage cleanup | batch_processing.zig CI race fixed (atomic flag); tag assertion added after on_get |
+| AI-sh + banned words scan | not yet run |
+
+**Next**: Stage 4 — Infra as items. Show intent first.
 
 ### 2026-06-26 — Session 7
 **Participants**: human + Claude

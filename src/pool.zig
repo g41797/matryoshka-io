@@ -273,6 +273,7 @@ fn _get_available_or_new(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) Ge
     p.*.mutex.unlock(io);
 
     hooks.on_get(hooks.ctx, tag, count, m);
+    if (m.*) |h| std.debug.assert(h.*.tag == tag);
 
     return if (m.* != null) {} else error.NotCreated;
 }
@@ -293,6 +294,7 @@ fn _get_new_only(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetError!v
     p.*.mutex.unlock(io);
 
     hooks.on_get(hooks.ctx, tag, count, m);
+    if (m.*) |h| std.debug.assert(h.*.tag == tag);
 
     return if (m.* != null) {} else error.NotCreated;
 }

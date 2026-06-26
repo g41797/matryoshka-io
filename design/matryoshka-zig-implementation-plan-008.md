@@ -308,38 +308,7 @@ Stage 9     Docs + README + autodocs
 
 ### Stage 2.5 — Pre-Stage-3 fixes. DONE. See Session 7 (2026-06-26).
 
----
-
-### Stage 3 — Layer 3: Pool
-
-**Purpose**: lifecycle by tag, hooks decide fate.
-
-**What to build** (api-reference-008.md pool section; guide Section 5 for Zig patterns — verify all details against API reference)
-- `_Pool` with `std.AutoHashMapUnmanaged` per-tag lists + counts.
-- `PoolHooks` (on_get / on_put / on_close), `GetMode`, `GetError`.
-- `new`, `init`, `destroy`, `get`, `get_wait`, `put`, `put_all`, `close`, `is_it_you`.
-- `lockUncancelable` in `put`, `put_all`, `close`. `cond_timeout` in `get_wait`.
-- Hooks run outside the mutex. Closed-pool-on-put returns item to caller.
-- Do NOT add `get_wait_future` yet (Stage 7).
-
-**Implementation checklist** (from architectural review, must verify for each path):
-- `put_all`: entire batch under one lock — no partial transfer.
-- `on_get` returns null: pool state unchanged, caller gets `error.NotCreated`.
-- `is_linked` check in ALL insertion paths: `put()`, `put_all()`, `close()` merge path.
-- `close()` while hook executing: hook runs outside lock — `close()` may run concurrently; define ordering.
-- `close()` merges ALL per-tag free-lists: no nodes left behind.
-- `destroy()` without `init()`: must be safe — hooks undefined, no crash.
-
-**Scenarios to verify**: task1-scenarios-001.md Layer 3 Tests (63-88).
-
-**Checkpoint**
-- All Stage 3 test scenarios pass.
-- Stage 3 examples pass via test wrappers.
-- All task1 tests and examples green. Layers 1-3 done.
-
-**Risks / dependencies**
-- `concatByMoving` for `close` collecting all per-tag lists.
-- `on_close` called once with the full list, outside the lock.
+### Stage 3 — Layer 3: Pool. DONE. See Session 8 (2026-06-26).
 
 ---
 
