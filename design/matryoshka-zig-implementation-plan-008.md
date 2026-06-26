@@ -1,6 +1,3 @@
-// SPDX-FileCopyrightText: Copyright (c) 2026 g41797
-// SPDX-License-Identifier: MIT
-
 # Matryoshka Zig 0.16 — Staged Implementation Plan
 
 Plan document only. No code here.
@@ -198,7 +195,7 @@ Legacy Zig mailbox. Starting point for `_Mailbox`.
 - No AI-sh words. After any stage that changes `*.md` or `*.zig`, scan for:
   robust, seamlessly, comprehensive, leverage, efficient, powerful, facilitate,
   utilize, ensure, performant, ergonomic, idiomatic, streamline, orchestrate,
-  sophisticated, intuitive, scalable, unlock, empower, harness, deliver.
+  sophisticated, intuitive, scalable, unlock, empower, harness, deliver, drain, fed, arm, leg, idempotent.
 - Show the list to the owner. Do not fix without approval.
 - When appending to a doc, match the heading levels already in use.
 
