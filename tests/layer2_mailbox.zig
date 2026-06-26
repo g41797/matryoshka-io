@@ -864,6 +864,54 @@ test "52 - combined (3+2+main): fan-in + fan-out, close after 100ms" {
 }
 
 
+// --- OOB counter invariant: oob_last resets after last OOB is received ---
+// Scenario: send regular B, send_oob A, receive A, send_oob C.
+// After receiving A, oob_count must reach 0 and oob_last must clear.
+// If oob_last is not cleared, the next send_oob inserts after a dangling
+// node pointer and corrupts the queue.
+test "oob last resets after last oob received, next send_oob goes to front" {
+    const io: Io = testing.io;
+    const alloc: std.mem.Allocator = testing.allocator;
+
+    const mbh: MailboxHandle = try mailbox.new(io, alloc);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.clearList(&rem);
+        mailbox.destroy(mbh, alloc);
+    }
+
+    var ev_b: Event = .{ .code = 2 };
+    var ev_a: Event = .{ .code = 1 };
+    EventPolyHelper.init(&ev_b);
+    EventPolyHelper.init(&ev_a);
+    var sb: Slot = &ev_b.poly;
+    var sa: Slot = &ev_a.poly;
+    try mailbox.send(mbh, &sb);      // queue=[B], oob_count=0
+    try mailbox.send_oob(mbh, &sa); // queue=[A,B], oob_count=1, oob_last=&A
+
+    var out: Slot = null;
+    try mailbox.receive(mbh, &out, 1_000_000_000);
+    const a_ev: *Event = EventPolyHelper.cast(out.?) orelse return error.WrongTag;
+    try testing.expectEqual(@as(i32, 1), a_ev.*.code); // received A
+
+    // After receiving the only OOB item: oob_count==0, oob_last must be null.
+    // send_oob C must prepend (go before B), not insert after dangling A.
+    var ev_c: Event = .{ .code = 3 };
+    EventPolyHelper.init(&ev_c);
+    var sc: Slot = &ev_c.poly;
+    try mailbox.send_oob(mbh, &sc); // queue=[C,B], oob_count=1
+
+    var out2: Slot = null;
+    try mailbox.receive(mbh, &out2, 1_000_000_000);
+    const c_ev: *Event = EventPolyHelper.cast(out2.?) orelse return error.WrongTag;
+    try testing.expectEqual(@as(i32, 3), c_ev.*.code); // C must be first
+
+    var out3: Slot = null;
+    try mailbox.receive(mbh, &out3, 1_000_000_000);
+    const b_ev: *Event = EventPolyHelper.cast(out3.?) orelse return error.WrongTag;
+    try testing.expectEqual(@as(i32, 2), b_ev.*.code); // B must be second
+}
+
 const std = @import("std");
 const testing = std.testing;
 const Thread = std.Thread;

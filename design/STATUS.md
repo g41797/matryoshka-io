@@ -21,7 +21,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-007.md
+- API: matryoshka-api-reference-008.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -31,7 +31,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-007.md
+- Plan: matryoshka-zig-implementation-plan-008.md
 
 ## Participants
 - Owner: g41797 (human)
@@ -88,10 +88,58 @@ Stage 1.a — PolyNode (impl + tests). DONE.
 Stage 1.b — PolyNode examples. DONE.
 Stage 2.a — Mailbox (impl + tests). DONE.
 Stage 2.b — Mailbox examples. DONE.
+Stage 2.5 — Pre-Stage-3 fixes. DONE.
 Current: Stage 3 — Pool (impl + tests + examples).
-Next: Show intent for Stage 3.
+Next: Show intent for Stage 3.a.
 
 ## Session Log
+
+### 2026-06-26 — Session 7
+**Participants**: human + Claude
+
+**Summary**
+Stage 2.5 (Pre-Stage-3 fixes) completed. Based on architectural review by another AI (pass-1.md, pass-2.md, pass-3.md):
+- Rejected ~60% of findings as intentional architecture (NodeHandle aliases, C-style vtable hooks, intrusive-only types, close asymmetry).
+- Deferred future-adapter findings to Stage 7.
+- Acted on documentation gaps and one real implementation invariant gap.
+
+Stage 2.5a — API reference 008:
+- Added pool ownership flow diagram (FREE → IN_FLIGHT → HELD → close cycle).
+- Added Ownership invariants section (6 invariants including tag pointer-only comparison).
+- Added Cancellation ownership contract section (slot unchanged on error.Canceled).
+- Added Thread-safety contract table (per-function concurrency rules).
+- Added Complexity guarantees table (O(1) everywhere except close O(n), put_all O(k)).
+- Added zero timeout semantics to receive and get_wait descriptions.
+- Added multiple waiter fairness note to receive.
+- Strengthened hook reentrancy rules in pool Hook discipline.
+
+Stage 2.5b — Mailbox test:
+- Close idempotency: already covered by test 34. Nothing added.
+- OOB counter invariant: added new test "oob last resets after last oob received, next send_oob goes to front". Tests oob_last reset when oob_count reaches 0; exercises the path where send_oob is called after receiving the only OOB item.
+
+Plan and docs updated:
+- `design/matryoshka-api-reference-008.md` — new version.
+- `design/matryoshka-zig-implementation-plan-008.md` — new version; Stage 2.5 added; Stage 3 updated with implementation checklist from review.
+- `design/context.md` — points to plan-008 and api-reference-008.
+- `design/STATUS.md` — this entry.
+
+**Changes**
+- `design/matryoshka-api-reference-008.md` — new (based on 007, additions listed above)
+- `design/matryoshka-zig-implementation-plan-008.md` — new (Stage 2.5 + Stage 3 checklist)
+- `design/context.md` — api-reference and plan pointers updated to 008
+- `design/STATUS.md` — API and plan pointers updated; Stage 2.5 added; this entry
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | pass (60/60 tests) |
+| `kitchen/build_and_test_all.sh` | pass (60/60 tests, all 4 modes) |
+| `kitchen/build_cross_debug.sh` | pass (x86_64-macos, aarch64-macos, x86_64-windows) |
+| Post-stage cleanup | nothing to clean — no code refactoring done, doc-only additions |
+| AI-sh + banned words scan | clean |
+
+**Next**: Stage 3.a — Pool implementation + tests. Show intent first.
 
 ### 2026-06-26 — Session 6
 **Participants**: human + Claude

@@ -5,13 +5,13 @@
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 
-API reference: [matryoshka-api-reference-007.md](matryoshka-api-reference-007.md) — signatures, types, error sets, cancel contract, PolyHelper
+API reference: [matryoshka-api-reference-008.md](matryoshka-api-reference-008.md) — signatures, types, error sets, cancel contract, PolyHelper, invariants, thread-safety, complexity
 
 Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
 
 Latest context: [collected-context-002.md](collected-context-002.md)
 
-Rules and plan: [matryoshka-zig-implementation-plan-007.md](matryoshka-zig-implementation-plan-007.md) — Section 0 (Sources), Section 1 (Process Rules + Build Order Rules), stages
+Rules and plan: [matryoshka-zig-implementation-plan-008.md](matryoshka-zig-implementation-plan-008.md) — Section 0 (Sources), Section 1 (Process Rules + Build Order Rules), stages
 
 Tests (Layers 1-3): [task1-tests-001.md](task1-tests-001.md) — 62 scenarios, correctness/edge cases/contract violations
 
