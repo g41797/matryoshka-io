@@ -44,6 +44,17 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ---
 
+## Layer 4 — Infra as Items
+
+Infra handles (MailboxHandle, PoolHandle) are PolyNodes and can be transported as items.
+Tag dispatch confirms class. Pointer comparison identifies instance. Role is established by protocol.
+
+95. **Worker finish signal via mailbox return** — Master creates `worker_mbh`, spawns a real thread (`std.Thread.spawn`). Master sends work items + ShutdownCommand sentinel to `worker_mbh`. Worker processes items; on sentinel, sends `worker_mbh` back to master's inbox (unclosed) and exits. Master receives the PolyNode: `mailbox.is_it_you` confirms class; `received == worker_mbh` confirms instance. Master closes and destroys `worker_mbh`, then joins the thread (OS cleanup only — the mailbox return was the logical finish signal).
+
+96. **Pool holds pools at teardown** — Carrier pool whose hooks accept `PoolPolyHelper.TAG`. Two inner pools stored as items via `pool.put`. On `pool.close(carrier)`, `on_close` walks the returned list, calls `pool.close` + `pool.destroy` on each inner pool. Shows uniform cleanup of infra handles with no per-instance role discrimination needed.
+
+---
+
 ## Cross-Layer Notes
 
 - All examples are single-threaded or use `std.Thread.spawn` — no `io.concurrent()`

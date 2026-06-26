@@ -31,7 +31,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-008.md
+- Plan: matryoshka-zig-implementation-plan-009.md
 
 ## Participants
 - Owner: g41797 (human)
@@ -90,10 +90,53 @@ Stage 2.a — Mailbox (impl + tests). DONE.
 Stage 2.b — Mailbox examples. DONE.
 Stage 2.5 — Pre-Stage-3 fixes. DONE.
 Stage 3 — Pool (impl + tests + examples). DONE.
-Current: Stage 4 — Infra as items.
-Next: Show intent for Stage 4.
+Current: Stage 4 — DONE (97/97 tests).
+Next: Stage 5 — Master (composition). Show intent first.
 
 ## Session Log
+
+### 2026-06-26 — Session 9
+**Participants**: human + Claude
+
+**Summary**
+Stage 4.b (Infra as Items — examples) completed.
+
+Key insight identified and documented before examples: the `tag` field identifies class (type), not instance or role. Infra handles (`_Mailbox`, `_Pool` are private) have no user-visible fields. Instance identity uses pointer comparison; role uses protocol between sender and receiver.
+
+Doc updates:
+- `design/matryoshka-api-reference-009.md`: new version with `### Tag identity — class, not instance` subsection. Documents class-vs-instance distinction, infra handle limitation, worker-finish-signal pattern, wrapper pattern for role discrimination via custom tag.
+- `design/matryoshka-architecture-001.md`: Step 2 (Tag) updated with the same clarification, pointer to api-reference-009.
+- `design/task1-examples-001.md`: added Layer 4 section with scenarios 95 and 96.
+- `design/context.md`: api-reference pointer → 009, examples count → 21.
+
+Examples:
+- `examples/layer4/mailbox_as_item.zig` — scenario 95: master spawns real thread, worker processes 3 Events + ShutdownCommand, sends worker_mbh back to master's inbox (unclosed) as finish signal, master identifies by tag + pointer, closes+destroys, joins thread.
+- `examples/layer4/pool_as_item.zig` — scenario 96: carrier pool holds 2 inner pools as items, `pool.close` triggers `on_close` which walks list and closes+destroys each inner pool (2 collected).
+- `examples/layer4/layer4.zig`, `examples/examples.zig`, `tests/layer4_examples.zig`, `tests/matryoshka_tests.zig` updated.
+
+**Changes**
+- `design/matryoshka-api-reference-009.md` — new (api-ref-008 + tag identity section)
+- `design/matryoshka-architecture-001.md` — Step 2 tag clarification added
+- `design/task1-examples-001.md` — Layer 4 section added (scenarios 95-96)
+- `design/context.md` — api-ref → 009, examples → 21
+- `examples/layer4/mailbox_as_item.zig` — scenario 95
+- `examples/layer4/pool_as_item.zig` — scenario 96
+- `examples/layer4/layer4.zig` — re-exports
+- `examples/examples.zig` — added layer4
+- `tests/layer4_examples.zig` — 2 test wrappers (95-96)
+- `tests/matryoshka_tests.zig` — added layer4_examples import
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | pass (97/97 tests) |
+| `kitchen/build_and_test_all.sh` | pass (97/97 tests, all 4 modes) |
+| `kitchen/build_cross_debug.sh` | not yet run — owner handles git/CI |
+| Post-stage cleanup | no obsolete parts found |
+| AI-sh + banned words scan | clean |
+
+**Next**: Plan version 009. Stage 5 — show intent first.
 
 ### 2026-06-26 — Session 8
 **Participants**: human + Claude

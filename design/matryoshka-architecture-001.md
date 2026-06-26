@@ -276,11 +276,20 @@ And recover the concrete type:
 const event = @fieldParentPtr(Event, "poly", node);
 ```
 
+**Tag identifies class, not instance or role.**
+
+- Every instance of `Event` carries the same `EVENT_TAG` — it says "this is an Event", not "which Event" or "what kind of Event".
+- For user-defined types, the user adds a `kind` or `role` field to the struct for per-instance discrimination.
+- For infra handles (`MailboxHandle`, `PoolHandle`): the internal structs are private. No fields can be added. Tag identifies the class only.
+  - Instance identity is resolved by pointer comparison against known handles.
+  - Role is established by protocol: the channel an infra handle arrived on, message ordering, or prior agreement.
+- See `matryoshka-api-reference-009.md` § "Tag identity — class, not instance" for the worker-finish-signal and wrapper patterns.
+
 Summary so far:
 
 ```text
   Node     = list links
-  Tag      = runtime identity
+  Tag      = runtime identity (class, not instance)
   PolyNode = Node + Tag
 ```
 
@@ -609,3 +618,4 @@ Built on Layer 3:
 | Version | Date       | Description |
 |---------|------------|-------------|
 | 001     | 2026-06-24 | First draft — four chapters: prequel, concept progression, flows, layer map |
+| 001     | 2026-06-26 | Step 2 (Tag): added tag-identity clarification — class not instance, infra handles, pointer comparison, protocol for role |
