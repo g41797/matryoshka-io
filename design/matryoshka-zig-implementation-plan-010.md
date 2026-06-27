@@ -76,6 +76,14 @@ These rules are writen in blood. Follow them
 - Do not write real code before the build/test infrastructure is verified (Stage 0).
 - Iterative: build a stage, checkpoint, rethink, then plan the next stage.
 
+### Coding Style (MUST)
+- Little-endian imports: imports at the bottom of the file, after the code.
+- Explicit typing: `const x: T = ...` not `const x = ...` where type is known.
+- Explicit dereference: `ptr.*.field` for pointer access.
+- Standard library first: check stdlib before adding custom definitions.
+- `errdefer` after every `alloc.create` or `try` that acquires a resource.
+- `defer` for cleanup that must run on all exit paths.
+
 ### Build Order Rules (MUST)
 
 **Helper code is part of its stage**
@@ -170,14 +178,6 @@ These rules are writen in blood. Follow them
   issue codeberg/zig#31278).
 - Architectural changes need explicit owner approval before implementation.
 
-### Coding Style (MUST)
-- Little-endian imports: imports at the bottom of the file, after the code.
-- Explicit typing: `const x: T = ...` not `const x = ...` where type is known.
-- Explicit dereference: `ptr.*.field` for pointer access.
-- Standard library first: check stdlib before adding custom definitions.
-- `errdefer` after every `alloc.create` or `try` that acquires a resource.
-- `defer` for cleanup that must run on all exit paths.
-
 ### Verification (MUST)
 - Run verification via kitchen scripts, not manual zig commands.
   - `kitchen/build_and_test_debug.sh` — quick check: build + test Debug only.
@@ -196,6 +196,7 @@ These rules are writen in blood. Follow them
 
 ### Documents (MUST)
 - Simple English. Short sentences. Bullets over long sentences.
+- Staccato rhythm.
 - No AI-sh words. After any stage that changes `*.md` or `*.zig`, scan for:
   robust, seamlessly, comprehensive, leverage, efficient, powerful, facilitate,
   utilize, ensure, performant, ergonomic, idiomatic, streamline, orchestrate,
@@ -222,59 +223,6 @@ These rules are writen in blood. Follow them
 Pattern borrowed from the tofu and mailbox repos. Housekeeping idea borrowed
 from the Odin matryoshka `kitchen/` layout, but kept lighter.
 
-```text
-matryoshka-zig/
-├── build.zig                 # addModule("matryoshka", ...), test step, docs step
-├── build.zig.zon             # name = matryoshka, version, no deps at start
-├── README.md                 # library index, short usage per block
-├── src/
-│   ├── matryoshka.zig        # root: re-exports polynode, mailbox, pool
-│   ├── polynode.zig          # Layer 1 — PolyNode, Slot, PolyTag, reset, is_linked
-│   ├── mailbox.zig           # Layer 2 — _Mailbox, MailboxHandle, send/receive/...
-│   ├── pool.zig              # Layer 3 — _Pool, PoolHandle, get/put/...
-│   └── internal/
-│       └── cond_timeout.zig  # condition_waitTimeout helper (shared by mailbox + pool)
-├── tests/
-│   ├── matryoshka_tests.zig  # test root: imports all suites below
-│   ├── layer1_polynode.zig   # Layer 1 test scenarios
-│   ├── layer1_examples.zig   # Layer 1 example test wrappers
-│   ├── layer2_mailbox.zig    # Layer 2 test scenarios (26-52)
-│   ├── layer2_examples.zig   # Layer 2 example test wrappers (53-62)
-│   ├── layer3_pool.zig       # Layer 3 test scenarios
-│   ├── layer3_examples.zig   # Layer 3 example test wrappers
-│   ├── layer4_infra.zig      # Layer 4 infra-as-items test scenarios (18-20, 93-94)
-│   ├── layer4_master.zig     # Layer 4 master test scenarios (1-2)
-│   ├── layer4_examples.zig   # Layer 4 example test wrappers (17-24, 95-96)
-│   └── crosslayer.zig        # cross-layer test scenarios (future)
-├── helpers/
-│   ├── helpers.zig           # expect, clearList, freeItem, freeList, AlwaysCreateCtx, CappedPoolCtx
-│   └── types.zig             # Event, Sensor, ShutdownCommand, Timer + PolyHelper instances
-├── examples/                 # runnable usage stories, imported by test wrappers
-│   ├── examples.zig          # root: re-exports per-layer example modules
-│   ├── layer1/               # polynode usage stories (scenarios 21-25)
-│   ├── layer2/               # mailbox usage stories (scenarios 53-62)
-│   ├── layer3/               # pool usage stories (scenarios 89-92)
-│   └── layer4/               # composition, master, cross-layer stories (17-24, 95-96)
-├── kitchen/
-│   ├── build_and_test_debug.sh   # build + test Debug only
-│   ├── build_and_test_all.sh     # build + test all 4 optimization modes
-│   └── build_cross_debug.sh      # cross-compile Debug for mac + windows (build only)
-├── design/
-│   ├── STATUS.md             # status + session log
-│   └── *.md                  # spec docs
-└── docs/                     # generated autodocs output (gh-pages), later stage
-```
-
-Notes:
-- `src/internal/` holds shared private helpers. Not exported from the root.
-- `helpers/` at repo root holds shared test/example types.
-  Created via `createModule` (not `addModule`) — private, not exported to dependents.
-  Both `tmod` (tests) and `emod` (examples) get `addImport("helpers", helpers)`.
-- `tmod` (tests) also uses `createModule` — tests are not exported.
-- Only `matryoshka` itself uses `addModule` (public, exported to dependents).
-- Examples are a separate module so production builds exclude them.
-- Each example has a test wrapper that calls it and verifies it works.
-
 ---
 
 ## 3. Stages
@@ -288,7 +236,7 @@ Stage 1     Layer 1  PolyNode
 Stage 2     Layer 2  Mailbox        ┐ independent siblings
 Stage 3     Layer 3  Pool           ┘ (Pool may start after Stage 1)
 Stage 4     Layer 2+3  Infra as items
-Stage 5     Layer 4  Master (single-thread + concurrency)
+Stage 5     Layer 4  Master (concurrency)
 Stage 6     Cancellation + shutdown
 Stage 7     Event sources (Select / Future)
 Stage 8     Mailbox-less patterns + cross-layer

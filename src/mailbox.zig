@@ -3,19 +3,6 @@
 
 pub const MailboxHandle = polynode.NodeHandle;
 
-const _Mailbox = struct {
-    poly: polynode.PolyNode,
-    mutex: Io.Mutex,
-    cond: Io.Condition,
-    list: std.DoublyLinkedList,
-    len: usize,
-    closed: std.atomic.Value(bool),
-    oob_count: usize,
-    oob_last: ?*std.DoublyLinkedList.Node,
-    io: Io,
-    alloc: std.mem.Allocator,
-};
-
 pub const MailboxPolyHelper = polynode.PolyHelper(_Mailbox);
 
 pub fn new(io: Io, alloc: std.mem.Allocator) !MailboxHandle {
@@ -207,6 +194,21 @@ pub fn close(mbh: MailboxHandle) std.DoublyLinkedList {
 
     return result;
 }
+
+const _Mailbox = struct {
+    const no_create_destroy = void{};
+
+    poly: polynode.PolyNode,
+    mutex: Io.Mutex,
+    cond: Io.Condition,
+    list: std.DoublyLinkedList,
+    len: usize,
+    closed: std.atomic.Value(bool),
+    oob_count: usize,
+    oob_last: ?*std.DoublyLinkedList.Node,
+    io: Io,
+    alloc: std.mem.Allocator,
+};
 
 const polynode = @import("polynode.zig");
 const cond_timeout = @import("internal/cond_timeout.zig");

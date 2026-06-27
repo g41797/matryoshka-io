@@ -19,18 +19,6 @@ pub const PoolHooks = struct {
     on_close: *const fn (ctx: *anyopaque, list: *std.DoublyLinkedList) void,
 };
 
-const _Pool = struct {
-    poly: polynode.PolyNode,
-    mutex: Io.Mutex,
-    cond: Io.Condition,
-    lists: std.AutoHashMapUnmanaged(*const anyopaque, std.DoublyLinkedList),
-    counts: std.AutoHashMapUnmanaged(*const anyopaque, usize),
-    hooks: ?PoolHooks,
-    closed: std.atomic.Value(bool),
-    io: Io,
-    alloc: std.mem.Allocator,
-};
-
 pub const PoolPolyHelper = polynode.PolyHelper(_Pool);
 
 pub inline fn is_it_you(tag: *const anyopaque) bool {
@@ -141,8 +129,12 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *polynode.Slot, timeou
 }
 
 pub fn put(ph: PoolHandle, m: *polynode.Slot) void {
+    if(m.* == null){
+        return;
+    }
+
     const p: *_Pool = PoolPolyHelper.cast(ph).?;
-    std.debug.assert(m.* != null);
+
     std.debug.assert(!polynode.is_linked(m.*.?));
 
     const io: Io = p.*.io;
@@ -320,6 +312,20 @@ fn _get_available_only(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetE
 
     return error.NotAvailable;
 }
+
+const _Pool = struct {
+    const no_create_destroy = void{};
+
+    poly: polynode.PolyNode,
+    mutex: Io.Mutex,
+    cond: Io.Condition,
+    lists: std.AutoHashMapUnmanaged(*const anyopaque, std.DoublyLinkedList),
+    counts: std.AutoHashMapUnmanaged(*const anyopaque, usize),
+    hooks: ?PoolHooks,
+    closed: std.atomic.Value(bool),
+    io: Io,
+    alloc: std.mem.Allocator,
+};
 
 const polynode = @import("polynode.zig");
 const cond_timeout = @import("internal/cond_timeout.zig");

@@ -933,6 +933,7 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *Slot, timeout_ns: ?u6
 pub fn put(ph: PoolHandle, m: *Slot) void
 ```
 - Returns handle to pool.
+- m.* == null no-op          !!!ADDED!!!
 - **Open pool**:
   - Calls `on_put` hook.
   - Policy decides keep or destroy.
@@ -943,7 +944,7 @@ pub fn put(ph: PoolHandle, m: *Slot) void
   - `m.*` stays non-null — caller retains ownership.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
-  - `m.* != null`
+  - `m.* != null`               !!!REMOVE!!!
   - `!polynode.is_linked(m.*)`
 
 ```zig
@@ -1638,7 +1639,7 @@ Sections changed:
 | `pool.init` | `is_it_you(ph)`, hooks tags not empty, each tag not null, not closed |
 | `pool.get` | `is_it_you(ph)`, `m.* == null`, initialized, tag registered |
 | `pool.get_wait` | `is_it_you(ph)`, `m.* == null`, initialized, tag registered |
-| `pool.put` | `is_it_you(ph)`, `m.* != null`, `!is_linked(m.*)` |
+| `pool.put` | `is_it_you(ph)`, `!is_linked(m.*)` |
 | `pool.put_all` | `is_it_you(ph)`, each node tag registered |
 | `pool.close` | `is_it_you(ph)` |
 
