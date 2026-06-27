@@ -10,12 +10,11 @@ const SenderCtx = struct {
 fn eventSenderFn(ctx: *SenderCtx) void {
     var i: i32 = 0;
     while (i < 5) : (i += 1) {
-        const ev: *types.Event = ctx.alloc.create(types.Event) catch return;
-        ev.* = .{ .code = i };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+        types.EventPolyHelper.cast(slot.?).?.code = i;
         mailbox.send(ctx.mbh, &slot) catch {
-            ctx.alloc.destroy(ev);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         };
         ctx.sent += 1;
@@ -25,12 +24,11 @@ fn eventSenderFn(ctx: *SenderCtx) void {
 fn sensorSenderFn(ctx: *SenderCtx) void {
     var i: usize = 0;
     while (i < 5) : (i += 1) {
-        const sn: *types.Sensor = ctx.alloc.create(types.Sensor) catch return;
-        sn.* = .{ .value = @as(f64, @floatFromInt(i)) * 0.1 };
-        types.SensorPolyHelper.init(sn);
-        var slot: Slot = &sn.poly;
+        var slot: Slot = null;
+        types.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
+        types.SensorPolyHelper.cast(slot.?).?.value = @as(f64, @floatFromInt(i)) * 0.1;
         mailbox.send(ctx.mbh, &slot) catch {
-            ctx.alloc.destroy(sn);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         };
         ctx.sent += 1;
@@ -40,25 +38,18 @@ fn sensorSenderFn(ctx: *SenderCtx) void {
 fn altSenderFn(ctx: *SenderCtx) void {
     var i: i32 = 0;
     while (i < 4) : (i += 1) {
+        var slot: Slot = null;
         if (@rem(i, 2) == 0) {
-            const ev: *types.Event = ctx.alloc.create(types.Event) catch return;
-            ev.* = .{ .code = 100 + i };
-            types.EventPolyHelper.init(ev);
-            var slot: Slot = &ev.poly;
-            mailbox.send(ctx.mbh, &slot) catch {
-                ctx.alloc.destroy(ev);
-                return;
-            };
+            types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+            types.EventPolyHelper.cast(slot.?).?.code = 100 + i;
         } else {
-            const sn: *types.Sensor = ctx.alloc.create(types.Sensor) catch return;
-            sn.* = .{ .value = @as(f64, @floatFromInt(i)) };
-            types.SensorPolyHelper.init(sn);
-            var slot: Slot = &sn.poly;
-            mailbox.send(ctx.mbh, &slot) catch {
-                ctx.alloc.destroy(sn);
-                return;
-            };
+            types.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
+            types.SensorPolyHelper.cast(slot.?).?.value = @as(f64, @floatFromInt(i));
         }
+        mailbox.send(ctx.mbh, &slot) catch {
+            helpers.freeSlot(&slot, ctx.alloc);
+            return;
+        };
         ctx.sent += 1;
     }
 }
@@ -90,13 +81,12 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     while (batch.popFirst()) |node| {
         const poly: *PolyNode = @fieldParentPtr("node", node);
-        if (types.EventPolyHelper.cast(poly)) |ev| {
+        if (types.EventPolyHelper.cast(poly)) |_| {
             events_received += 1;
-            allocator.destroy(ev);
-        } else if (types.SensorPolyHelper.cast(poly)) |sn| {
+        } else if (types.SensorPolyHelper.cast(poly)) |_| {
             sensors_received += 1;
-            allocator.destroy(sn);
         }
+        helpers.freeItem(poly, allocator);
     }
 
     std.log.info("fan-in: sent={d} events={d} sensors={d}", .{ total_sent, events_received, sensors_received });

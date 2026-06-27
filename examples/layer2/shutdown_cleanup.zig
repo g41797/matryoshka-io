@@ -10,19 +10,19 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     var i: usize = 0;
     while (i < n_events) : (i += 1) {
-        const ev: *types.Event = try allocator.create(types.Event);
-        ev.* = .{ .code = @intCast(i) };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i);
         try mailbox.send(mbh, &slot);
     }
 
     i = 0;
     while (i < n_sensors) : (i += 1) {
-        const sn: *types.Sensor = try allocator.create(types.Sensor);
-        sn.* = .{ .value = @as(f64, @floatFromInt(i)) * 1.1 };
-        types.SensorPolyHelper.init(sn);
-        var slot: Slot = &sn.poly;
+        var slot: Slot = null;
+        defer types.SensorPolyHelper.destroy(allocator, &slot);
+        try types.SensorPolyHelper.create(allocator, &slot);
+        types.SensorPolyHelper.cast(slot.?).?.value = @as(f64, @floatFromInt(i)) * 1.1;
         try mailbox.send(mbh, &slot);
     }
 

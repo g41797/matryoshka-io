@@ -170,16 +170,13 @@ test "13 - HELD to IN_FLIGHT via list pop" {
 // --- Scenario 14: IN_FLIGHT → FREE ---
 test "14 - IN_FLIGHT to FREE" {
     const alloc: std.mem.Allocator = testing.allocator;
-    const ev: *Event = try alloc.create(Event);
-    EventPolyHelper.init(ev);
-
-    var slot: Slot = &ev.*.poly;
+    var slot: Slot = null;
+    try EventPolyHelper.create(alloc, &slot);
     try testing.expect(slot != null);
 
     const poly: *PolyNode = slot.?;
-    const recovered: *Event = EventPolyHelper.cast(poly) orelse unreachable;
-    alloc.destroy(recovered);
-    slot = null;
+    _ = EventPolyHelper.cast(poly) orelse unreachable;
+    EventPolyHelper.destroy(alloc, &slot);
 
     try testing.expectEqual(@as(Slot, null), slot);
 }

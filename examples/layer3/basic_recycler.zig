@@ -28,8 +28,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("recycled Event code={d}", .{ev2.code});
     try helpers.expect(error.BasicRecyclerFailed, ev2.code == 89, "recycled item lost its data");
 
-    allocator.destroy(ev2);
-    slot = null;
+    types.EventPolyHelper.destroy(allocator, &slot);
 }
 
 const helpers = @import("helpers");

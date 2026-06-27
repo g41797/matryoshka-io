@@ -11,21 +11,20 @@ const ProducerCtx = struct {
 fn producerFn(ctx: *ProducerCtx) void {
     var i: i32 = 0;
     while (i < 5) : (i += 1) {
-        const ev: *types.Event = ctx.alloc.create(types.Event) catch return;
-        ev.* = .{ .code = i };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+        types.EventPolyHelper.cast(slot.?).?.code = i;
         mailbox.send(ctx.outbox, &slot) catch {
-            ctx.alloc.destroy(ev);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
-    // Send terminator.
-    const term: *types.Event = ctx.alloc.create(types.Event) catch return;
-    term.* = .{ .code = -1 };
-    types.EventPolyHelper.init(term);
-    var slot: Slot = &term.poly;
-    mailbox.send(ctx.outbox, &slot) catch ctx.alloc.destroy(term);
+    {
+        var slot: Slot = null;
+        types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+        types.EventPolyHelper.cast(slot.?).?.code = -1;
+        mailbox.send(ctx.outbox, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
+    }
 }
 
 const StageCtx = struct {
@@ -36,21 +35,18 @@ const StageCtx = struct {
 
 fn transformerFn(ctx: *StageCtx) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.inbox, &out, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.cast(out.?) orelse {
-            helpers.freeItem(out.?, ctx.alloc);
+        var slot: Slot = null;
+        mailbox.receive(ctx.inbox, &slot, null) catch return;
+        const ev: *types.Event = types.EventPolyHelper.cast(slot.?) orelse {
+            helpers.freeSlot(&slot, ctx.alloc);
             continue;
         };
         if (ev.code == -1) {
-            // Propagate terminator downstream.
-            var slot: Slot = &ev.poly;
-            mailbox.send(ctx.outbox, &slot) catch ctx.alloc.destroy(ev);
+            mailbox.send(ctx.outbox, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
             return;
         }
         ev.code = ev.code * ev.code;
-        var slot: Slot = &ev.poly;
-        mailbox.send(ctx.outbox, &slot) catch ctx.alloc.destroy(ev);
+        mailbox.send(ctx.outbox, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
     }
 }
 
@@ -63,20 +59,20 @@ const ConsumerCtx = struct {
 
 fn consumerFn(ctx: *ConsumerCtx) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.mbh, &out, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.cast(out.?) orelse {
-            helpers.freeItem(out.?, ctx.alloc);
+        var slot: Slot = null;
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
+        const ev: *types.Event = types.EventPolyHelper.cast(slot.?) orelse {
+            helpers.freeSlot(&slot, ctx.alloc);
             continue;
         };
         if (ev.code == -1) {
-            ctx.alloc.destroy(ev);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         }
         std.log.info("pipeline: result={d}", .{ev.code});
         ctx.sum += ev.code;
         ctx.count += 1;
-        ctx.alloc.destroy(ev);
+        helpers.freeSlot(&slot, ctx.alloc);
     }
 }
 

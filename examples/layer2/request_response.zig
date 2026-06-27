@@ -29,18 +29,19 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: WorkerCtx = .{ .req_mbh = req_mbh, .resp_mbh = resp_mbh, .alloc = allocator };
     const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
 
-    const req: *types.Event = try allocator.create(types.Event);
-    errdefer allocator.destroy(req);
-    req.* = .{ .code = 42 };
-    types.EventPolyHelper.init(req);
-    var slot: Slot = &req.poly;
-    try mailbox.send(req_mbh, &slot);
+    {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, allocator);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = 42;
+        try mailbox.send(req_mbh, &slot);
+    }
 
     {
-        var resp_slot: Slot = null;
-        defer helpers.freeSlot(&resp_slot, allocator);
-        try mailbox.receive(resp_mbh, &resp_slot, 5_000_000_000);
-        const resp: *types.Event = types.EventPolyHelper.cast(resp_slot.?) orelse return error.WrongTag;
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, allocator);
+        try mailbox.receive(resp_mbh, &slot, 5_000_000_000);
+        const resp: *types.Event = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
         std.log.info("request_response: response code={d}", .{resp.*.code});
         try helpers.expect(error.RequestResponseFailed, resp.*.code == 1042, "wrong response code");
     }

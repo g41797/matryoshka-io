@@ -30,11 +30,10 @@ test "27 - send and receive single item" {
     try mailbox.send(mbh, &slot);
     try testing.expectEqual(@as(Slot, null), slot);
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, 1_000_000_000);
-    try testing.expect(out != null);
+    try mailbox.receive(mbh, &slot, 1_000_000_000);
+    try testing.expect(slot != null);
 
-    const poly: *PolyNode = out.?;
+    const poly: *PolyNode = slot.?;
     const recovered: *Event = EventPolyHelper.cast(poly) orelse return error.WrongTag;
     try testing.expectEqual(@as(i32, 27), recovered.*.code);
 }
@@ -66,9 +65,9 @@ test "28 - fifo ordering" {
     try mailbox.send(mbh, &s3);
 
     for ([_]i32{ 1, 2, 3 }) |expected| {
-        var out: Slot = null;
-        try mailbox.receive(mbh, &out, 1_000_000_000);
-        const poly: *PolyNode = out.?;
+        var slot: Slot = null;
+        try mailbox.receive(mbh, &slot, 1_000_000_000);
+        const poly: *PolyNode = slot.?;
         const ev: *Event = EventPolyHelper.cast(poly) orelse return error.WrongTag;
         try testing.expectEqual(expected, ev.*.code);
     }
@@ -101,8 +100,8 @@ test "30 - receive from closed mailbox" {
     helpers.clearList(&remaining);
     defer mailbox.destroy(mbh, alloc);
 
-    var out: Slot = null;
-    try testing.expectError(error.Closed, mailbox.receive(mbh, &out, 1_000_000_000));
+    var slot: Slot = null;
+    try testing.expectError(error.Closed, mailbox.receive(mbh, &slot, 1_000_000_000));
 }
 
 // --- Scenario 31: Receive timeout ---
@@ -117,8 +116,8 @@ test "31 - receive timeout" {
         mailbox.destroy(mbh, alloc);
     }
 
-    var out: Slot = null;
-    try testing.expectError(error.Timeout, mailbox.receive(mbh, &out, 1_000));
+    var slot: Slot = null;
+    try testing.expectError(error.Timeout, mailbox.receive(mbh, &slot, 1_000));
 }
 
 // --- Scenario 32: Receive wait forever (item sent from another thread) ---
@@ -153,11 +152,11 @@ test "32 - receive wait forever (null timeout), item from thread" {
     const t: Thread = try Thread.spawn(.{}, sender32, .{&ctx});
     defer t.join();
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, null);
-    try testing.expect(out != null);
+    var slot: Slot = null;
+    try mailbox.receive(mbh, &slot, null);
+    try testing.expect(slot != null);
 
-    const poly: *PolyNode = out.?;
+    const poly: *PolyNode = slot.?;
     const ev: *Event = EventPolyHelper.cast(poly) orelse return error.WrongTag;
     try testing.expectEqual(@as(i32, 32), ev.*.code);
 }
@@ -237,18 +236,14 @@ test "35 - send_oob delivers to front" {
     EventPolyHelper.init(&ev3);
     EventPolyHelper.init(&oob);
 
-    var s1: Slot = &ev1.poly;
-    var s2: Slot = &ev2.poly;
-    var s3: Slot = &ev3.poly;
-    var so: Slot = &oob.poly;
-    try mailbox.send(mbh, &s1);
-    try mailbox.send(mbh, &s2);
-    try mailbox.send(mbh, &s3);
-    try mailbox.send_oob(mbh, &so);
+    { var slot: Slot = &ev1.poly; try mailbox.send(mbh, &slot); }
+    { var slot: Slot = &ev2.poly; try mailbox.send(mbh, &slot); }
+    { var slot: Slot = &ev3.poly; try mailbox.send(mbh, &slot); }
+    { var slot: Slot = &oob.poly; try mailbox.send_oob(mbh, &slot); }
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, 1_000_000_000);
-    const poly: *PolyNode = out.?;
+    var slot: Slot = null;
+    try mailbox.receive(mbh, &slot, 1_000_000_000);
+    const poly: *PolyNode = slot.?;
     const first_ev: *Event = EventPolyHelper.cast(poly) orelse return error.WrongTag;
     try testing.expectEqual(@as(i32, 99), first_ev.*.code);
 }
@@ -285,11 +280,11 @@ test "36 - send_oob wakes blocked receiver" {
     const t: Thread = try Thread.spawn(.{}, oob_sender36, .{&ctx});
     defer t.join();
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, 5_000_000_000);
-    try testing.expect(out != null);
+    var slot: Slot = null;
+    try mailbox.receive(mbh, &slot, 5_000_000_000);
+    try testing.expect(slot != null);
 
-    const poly: *PolyNode = out.?;
+    const poly: *PolyNode = slot.?;
     const ev: *Event = EventPolyHelper.cast(poly) orelse return error.WrongTag;
     try testing.expectEqual(@as(i32, 36), ev.*.code);
 }
@@ -313,19 +308,16 @@ test "37 - multiple send_oob items are FIFO among OOBs" {
     EventPolyHelper.init(&oob_b);
     EventPolyHelper.init(&regular);
 
-    var sr: Slot = &regular.poly;
-    var sa: Slot = &oob_a.poly;
-    var sb: Slot = &oob_b.poly;
-    try mailbox.send(mbh, &sr);
-    try mailbox.send_oob(mbh, &sa);
-    try mailbox.send_oob(mbh, &sb);
+    { var slot: Slot = &regular.poly; try mailbox.send(mbh, &slot); }
+    { var slot: Slot = &oob_a.poly; try mailbox.send_oob(mbh, &slot); }
+    { var slot: Slot = &oob_b.poly; try mailbox.send_oob(mbh, &slot); }
 
     // Expected order: oob_a(10), oob_b(20), regular(99)
     const expected = [_]i32{ 10, 20, 99 };
     for (expected) |code| {
-        var out: Slot = null;
-        try mailbox.receive(mbh, &out, 1_000_000_000);
-        const poly: *PolyNode = out.?;
+        var slot: Slot = null;
+        try mailbox.receive(mbh, &slot, 1_000_000_000);
+        const poly: *PolyNode = slot.?;
         const ev: *Event = EventPolyHelper.cast(poly) orelse return error.WrongTag;
         try testing.expectEqual(code, ev.*.code);
     }
@@ -399,8 +391,8 @@ test "40 - receive_batch gets all items" {
     while (batch.popFirst()) |_| count += 1;
     try testing.expectEqual(@as(usize, 5), count);
 
-    var empty_check: Slot = null;
-    const got: bool = try mailbox.try_receive(mbh, &empty_check);
+    var slot: Slot = null;
+    const got: bool = try mailbox.try_receive(mbh, &slot);
     try testing.expect(!got);
 }
 
@@ -490,9 +482,8 @@ test "44 - receive transfers ownership (slot is non-null)" {
     var slot: Slot = &ev.poly;
     try mailbox.send(mbh, &slot);
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, 1_000_000_000);
-    try testing.expect(out != null);
+    try mailbox.receive(mbh, &slot, 1_000_000_000);
+    try testing.expect(slot != null);
 }
 
 // --- Scenario 45: try_receive on empty returns false ---
@@ -507,10 +498,10 @@ test "45 - try_receive on empty returns false" {
         mailbox.destroy(mbh, alloc);
     }
 
-    var out: Slot = null;
-    const got: bool = try mailbox.try_receive(mbh, &out);
+    var slot: Slot = null;
+    const got: bool = try mailbox.try_receive(mbh, &slot);
     try testing.expect(!got);
-    try testing.expectEqual(@as(Slot, null), out);
+    try testing.expectEqual(@as(Slot, null), slot);
 }
 
 // --- Scenario 46: try_receive gets item ---
@@ -530,10 +521,9 @@ test "46 - try_receive gets item" {
     var slot: Slot = &ev.poly;
     try mailbox.send(mbh, &slot);
 
-    var out: Slot = null;
-    const got: bool = try mailbox.try_receive(mbh, &out);
+    const got: bool = try mailbox.try_receive(mbh, &slot);
     try testing.expect(got);
-    try testing.expect(out != null);
+    try testing.expect(slot != null);
 }
 
 // --- Scenario 47: IN_FLIGHT → HELD (mailbox.send) ---
@@ -582,11 +572,10 @@ test "48 - receive: HELD to IN_FLIGHT, slot is non-null" {
     var slot: Slot = &ev.poly;
     try mailbox.send(mbh, &slot);
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, 1_000_000_000);
+    try mailbox.receive(mbh, &slot, 1_000_000_000);
 
-    try testing.expect(out != null);
-    const poly: *PolyNode = out.?;
+    try testing.expect(slot != null);
+    const poly: *PolyNode = slot.?;
     try testing.expect(!polynode.is_linked(poly));
 }
 
@@ -619,19 +608,15 @@ const Ctx50Sender = struct {
 };
 
 fn sender50_event(ctx: *Ctx50Sender) void {
-    const ev: *Event = ctx.*.alloc.create(Event) catch return;
-    ev.* = .{};
-    EventPolyHelper.init(ev);
-    var slot: Slot = &ev.*.poly;
-    mailbox.send(ctx.*.mbh, &slot) catch ctx.*.alloc.destroy(ev);
+    var slot: Slot = null;
+    EventPolyHelper.create(ctx.*.alloc, &slot) catch return;
+    mailbox.send(ctx.*.mbh, &slot) catch helpers.freeSlot(&slot, ctx.*.alloc);
 }
 
 fn sender50_sensor(ctx: *Ctx50Sender) void {
-    const sn: *Sensor = ctx.*.alloc.create(Sensor) catch return;
-    sn.* = .{};
-    SensorPolyHelper.init(sn);
-    var slot: Slot = &sn.*.poly;
-    mailbox.send(ctx.*.mbh, &slot) catch ctx.*.alloc.destroy(sn);
+    var slot: Slot = null;
+    SensorPolyHelper.create(ctx.*.alloc, &slot) catch return;
+    mailbox.send(ctx.*.mbh, &slot) catch helpers.freeSlot(&slot, ctx.*.alloc);
 }
 
 test "50 - fan-in (3+1): 3 sender threads, main receives all" {
@@ -650,9 +635,9 @@ test "50 - fan-in (3+1): 3 sender threads, main receives all" {
 
     var received: usize = 0;
     while (received < 3) {
-        var out: Slot = null;
-        mailbox.receive(mbh, &out, 5_000_000_000) catch break;
-        if (out) |poly| {
+        var slot: Slot = null;
+        mailbox.receive(mbh, &slot, 5_000_000_000) catch break;
+        if (slot) |poly| {
             freeItem(poly, alloc);
             received += 1;
         }
@@ -671,7 +656,7 @@ test "50 - fan-in (3+1): 3 sender threads, main receives all" {
     try testing.expectEqual(@as(usize, 3), received);
 }
 
-// --- Scenario 51: Fan-out (1+2) — main sends, 2 receiver threads ---
+// --- Scenario 51: Fan-slot (1+2) — main sends, 2 receiver threads ---
 
 const Ctx51Receiver = struct {
     mbh: MailboxHandle,
@@ -680,31 +665,31 @@ const Ctx51Receiver = struct {
 };
 
 fn receiver51(ctx: *Ctx51Receiver) void {
-    var out: Slot = null;
-    mailbox.receive(ctx.*.mbh, &out, null) catch return;
-    if (out) |poly| {
+    var slot: Slot = null;
+    mailbox.receive(ctx.*.mbh, &slot, null) catch return;
+    if (slot) |poly| {
         freeItem(poly, ctx.*.alloc);
         ctx.*.items_received += 1;
     }
 }
 
-test "51 - fan-out (1+2): main sends, 2 receiver threads" {
+test "51 - fan-slot (1+2): main sends, 2 receiver threads" {
     const io: Io = testing.io;
     const alloc: std.mem.Allocator = testing.allocator;
 
     const mbh: MailboxHandle = try mailbox.new(io, alloc);
 
-    const ev: *Event = try alloc.create(Event);
-    ev.* = .{};
-    EventPolyHelper.init(ev);
-    var slot_ev: Slot = &ev.*.poly;
-    try mailbox.send(mbh, &slot_ev);
+    {
+        var slot: Slot = null;
+        try EventPolyHelper.create(alloc, &slot);
+        try mailbox.send(mbh, &slot);
+    }
 
-    const sn: *Sensor = try alloc.create(Sensor);
-    sn.* = .{};
-    SensorPolyHelper.init(sn);
-    var slot_sn: Slot = &sn.*.poly;
-    try mailbox.send(mbh, &slot_sn);
+    {
+        var slot: Slot = null;
+        try SensorPolyHelper.create(alloc, &slot);
+        try mailbox.send(mbh, &slot);
+    }
 
     var ctx_a: Ctx51Receiver = .{ .mbh = mbh, .alloc = alloc };
     var ctx_b: Ctx51Receiver = .{ .mbh = mbh, .alloc = alloc };
@@ -728,7 +713,7 @@ test "51 - fan-out (1+2): main sends, 2 receiver threads" {
     try testing.expectEqual(@as(usize, 2), total);
 }
 
-// --- Scenario 52: Combined (3+2+main) — fan-in + fan-out, close after 100ms ---
+// --- Scenario 52: Combined (3+2+main) — fan-in + fan-slot, close after 100ms ---
 
 const Ctx52Sender = struct {
     mbh: MailboxHandle,
@@ -751,12 +736,10 @@ const Ctx52Receiver = struct {
 
 fn sender52_event(ctx: *Ctx52Sender) void {
     while (true) {
-        const item: *Event = ctx.*.alloc.create(Event) catch break;
-        item.* = .{};
-        EventPolyHelper.init(item);
-        var slot: Slot = &item.*.poly;
+        var slot: Slot = null;
+        EventPolyHelper.create(ctx.*.alloc, &slot) catch break;
         mailbox.send(ctx.*.mbh, &slot) catch {
-            ctx.*.alloc.destroy(item);
+            helpers.freeSlot(&slot, ctx.*.alloc);
             break;
         };
         ctx.*.items_sent += 1;
@@ -765,12 +748,10 @@ fn sender52_event(ctx: *Ctx52Sender) void {
 
 fn sender52_sensor(ctx: *Ctx52Sender) void {
     while (true) {
-        const item: *Sensor = ctx.*.alloc.create(Sensor) catch break;
-        item.* = .{};
-        SensorPolyHelper.init(item);
-        var slot: Slot = &item.*.poly;
+        var slot: Slot = null;
+        SensorPolyHelper.create(ctx.*.alloc, &slot) catch break;
         mailbox.send(ctx.*.mbh, &slot) catch {
-            ctx.*.alloc.destroy(item);
+            helpers.freeSlot(&slot, ctx.*.alloc);
             break;
         };
         ctx.*.items_sent += 1;
@@ -779,25 +760,16 @@ fn sender52_sensor(ctx: *Ctx52Sender) void {
 
 fn sender52_alt(ctx: *Ctx52AltSender) void {
     while (true) {
+        var slot: Slot = null;
         if (ctx.*.send_event) {
-            const item: *Event = ctx.*.alloc.create(Event) catch break;
-            item.* = .{};
-            EventPolyHelper.init(item);
-            var slot: Slot = &item.*.poly;
-            mailbox.send(ctx.*.mbh, &slot) catch {
-                ctx.*.alloc.destroy(item);
-                break;
-            };
+            EventPolyHelper.create(ctx.*.alloc, &slot) catch break;
         } else {
-            const item: *Sensor = ctx.*.alloc.create(Sensor) catch break;
-            item.* = .{};
-            SensorPolyHelper.init(item);
-            var slot: Slot = &item.*.poly;
-            mailbox.send(ctx.*.mbh, &slot) catch {
-                ctx.*.alloc.destroy(item);
-                break;
-            };
+            SensorPolyHelper.create(ctx.*.alloc, &slot) catch break;
         }
+        mailbox.send(ctx.*.mbh, &slot) catch {
+            helpers.freeSlot(&slot, ctx.*.alloc);
+            break;
+        };
         ctx.*.items_sent += 1;
         ctx.*.send_event = !ctx.*.send_event;
     }
@@ -805,16 +777,16 @@ fn sender52_alt(ctx: *Ctx52AltSender) void {
 
 fn receiver52(ctx: *Ctx52Receiver) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.*.mbh, &out, null) catch break;
-        if (out) |poly| {
+        var slot: Slot = null;
+        mailbox.receive(ctx.*.mbh, &slot, null) catch break;
+        if (slot) |poly| {
             freeItem(poly, ctx.*.alloc);
             ctx.*.items_received += 1;
         }
     }
 }
 
-test "52 - combined (3+2+main): fan-in + fan-out, close after 100ms" {
+test "52 - combined (3+2+main): fan-in + fan-slot, close after 100ms" {
     const io: Io = testing.io;
     const alloc: std.mem.Allocator = testing.allocator;
 
@@ -876,32 +848,35 @@ test "oob last resets after last oob received, next send_oob goes to front" {
     var ev_a: Event = .{ .code = 1 };
     EventPolyHelper.init(&ev_b);
     EventPolyHelper.init(&ev_a);
-    var sb: Slot = &ev_b.poly;
-    var sa: Slot = &ev_a.poly;
-    try mailbox.send(mbh, &sb); // queue=[B], oob_count=0
-    try mailbox.send_oob(mbh, &sa); // queue=[A,B], oob_count=1, oob_last=&A
+    { var slot: Slot = &ev_b.poly; try mailbox.send(mbh, &slot); } // queue=[B], oob_count=0
+    { var slot: Slot = &ev_a.poly; try mailbox.send_oob(mbh, &slot); } // queue=[A,B], oob_count=1, oob_last=&A
 
-    var out: Slot = null;
-    try mailbox.receive(mbh, &out, 1_000_000_000);
-    const a_ev: *Event = EventPolyHelper.cast(out.?) orelse return error.WrongTag;
-    try testing.expectEqual(@as(i32, 1), a_ev.*.code); // received A
+    {
+        var slot: Slot = null;
+        try mailbox.receive(mbh, &slot, 1_000_000_000);
+        const a_ev: *Event = EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+        try testing.expectEqual(@as(i32, 1), a_ev.*.code); // received A
+    }
 
     // After receiving the only OOB item: oob_count==0, oob_last must be null.
     // send_oob C must prepend (go before B), not insert after dangling A.
     var ev_c: Event = .{ .code = 3 };
     EventPolyHelper.init(&ev_c);
-    var sc: Slot = &ev_c.poly;
-    try mailbox.send_oob(mbh, &sc); // queue=[C,B], oob_count=1
+    { var slot: Slot = &ev_c.poly; try mailbox.send_oob(mbh, &slot); } // queue=[C,B], oob_count=1
 
-    var out2: Slot = null;
-    try mailbox.receive(mbh, &out2, 1_000_000_000);
-    const c_ev: *Event = EventPolyHelper.cast(out2.?) orelse return error.WrongTag;
-    try testing.expectEqual(@as(i32, 3), c_ev.*.code); // C must be first
+    {
+        var slot: Slot = null;
+        try mailbox.receive(mbh, &slot, 1_000_000_000);
+        const c_ev: *Event = EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+        try testing.expectEqual(@as(i32, 3), c_ev.*.code); // C must be first
+    }
 
-    var out3: Slot = null;
-    try mailbox.receive(mbh, &out3, 1_000_000_000);
-    const b_ev: *Event = EventPolyHelper.cast(out3.?) orelse return error.WrongTag;
-    try testing.expectEqual(@as(i32, 2), b_ev.*.code); // B must be second
+    {
+        var slot: Slot = null;
+        try mailbox.receive(mbh, &slot, 1_000_000_000);
+        const b_ev: *Event = EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+        try testing.expectEqual(@as(i32, 2), b_ev.*.code); // B must be second
+    }
 }
 
 const helpers = @import("helpers");

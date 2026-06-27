@@ -8,16 +8,11 @@ const WorkerCtx = struct {
 
 fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
     var slot: Slot = null;
+    defer helpers.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => return error.Canceled,
         error.Closed, error.Timeout => return,
     };
-    const poly: *PolyNode = slot.?;
-    if (EventPolyHelper.cast(poly)) |ev| {
-        ctx.alloc.destroy(ev);
-    } else {
-        helpers.freeItem(poly, ctx.alloc);
-    }
 }
 
 // --- Scenario 1: single worker spawn and join ---
@@ -37,11 +32,10 @@ test "1 - single worker spawn and join" {
     var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = testing.allocator };
     var fut = try io.concurrent(workerFn, .{&ctx});
 
-    const ev: *Event = try testing.allocator.create(Event);
-    errdefer testing.allocator.destroy(ev);
-    ev.* = .{ .code = 42 };
-    EventPolyHelper.init(ev);
-    var slot: Slot = &ev.poly;
+    var slot: Slot = null;
+    defer EventPolyHelper.destroy(testing.allocator, &slot);
+    try EventPolyHelper.create(testing.allocator, &slot);
+    EventPolyHelper.cast(slot.?).?.code = 42;
     try mailbox.send(mbh, &slot);
     try testing.expect(slot == null);
 
@@ -74,11 +68,10 @@ test "2 - worker group spawn and join" {
     try group.concurrent(io, workerFn, .{&ctx3});
 
     for (0..3) |i| {
-        const ev: *Event = try testing.allocator.create(Event);
-        errdefer testing.allocator.destroy(ev);
-        ev.* = .{ .code = @intCast(i) };
-        EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer EventPolyHelper.destroy(testing.allocator, &slot);
+        try EventPolyHelper.create(testing.allocator, &slot);
+        EventPolyHelper.cast(slot.?).?.code = @intCast(i);
         try mailbox.send(mbh, &slot);
     }
 

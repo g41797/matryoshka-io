@@ -21,7 +21,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-011.md
+- API: matryoshka-api-reference-012.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -31,7 +31,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-011.md
+- Plan: matryoshka-zig-implementation-plan-012.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -98,6 +98,33 @@ Current: INTR 1 complete. Slot-based programming retrofit applied.
 Next: Stage 6 — Cancellation + Shutdown. Show intent first.
 
 ## Session Log
+
+### 2026-06-27 — Session 15 (doc update: PolyHelper.create/destroy rule)
+**Participants**: human + Claude
+
+**Summary**
+Doc-only update. No code changes. No kitchen scripts.
+
+Added `### No raw allocator calls on PolyNode-based types` rule to `## Cooperative cleanup patterns` in api-reference-012.md. Same rule as one bullet in `### Implementation (MUST)` in plan-012.md. Collapsed INTR 1.d to one-line summary in plan-012.md.
+
+**Changes**
+- `design/matryoshka-api-reference-012.md` — new version; rule + violation/correct/exempt + change log + manifest
+- `design/matryoshka-zig-implementation-plan-012.md` — new version; Implementation MUST bullet added; INTR 1.d collapsed
+- `design/context.md` — api-ref → 012, plan → 012
+- `design/STATUS.md` — sources → 012; this entry
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only stage |
+| Post-stage cleanup | doc-only — no code to clean |
+| AI-sh + banned words scan | pending — see below |
+
+**AI-sh scan** (new .md content):
+- No hits found in added sections.
+
+**Next**: Audit all `.zig` files in `examples/` and `tests/` for violations of rules. List every file and line. No fixes.
 
 ### 2026-06-27 — Session 14 (post-INTR audit + fixes)
 **Participants**: human + Claude

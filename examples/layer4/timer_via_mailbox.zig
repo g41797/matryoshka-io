@@ -17,12 +17,10 @@ fn timerFn(ctx: *TimerCtx) anyerror!void {
     };
     for (0..N_TICKS) |_| {
         try std.Io.Timeout.sleep(sleep_t, ctx.io);
-        const tm: *types.Timer = try ctx.alloc.create(types.Timer);
-        tm.* = .{};
-        types.TimerPolyHelper.init(tm);
-        var slot: Slot = &tm.poly;
+        var slot: Slot = null;
+        try types.TimerPolyHelper.create(ctx.alloc, &slot);
         mailbox.send(ctx.mbh, &slot) catch {
-            ctx.alloc.destroy(tm);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
@@ -64,11 +62,10 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     // Send data Events before spawning the timer task.
     for (0..N_EVENTS) |i| {
-        const ev: *types.Event = try allocator.create(types.Event);
-        errdefer allocator.destroy(ev);
-        ev.* = .{ .code = @intCast(i + 1) };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 

@@ -8,21 +8,20 @@ const ProducerCtx = struct {
 
 fn producerFn(ctx: *ProducerCtx) anyerror!void {
     for (0..3) |i| {
-        const ev: *types.Event = try ctx.alloc.create(types.Event);
-        errdefer ctx.alloc.destroy(ev);
-        ev.* = .{ .code = @intCast(i + 1) };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        try types.EventPolyHelper.create(ctx.alloc, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
         try mailbox.send(ctx.out_mbh, &slot);
         std.log.info("producer: sent Event code={d}", .{i + 1});
     }
-    const cmd: *types.ShutdownCommand = try ctx.alloc.create(types.ShutdownCommand);
-    errdefer ctx.alloc.destroy(cmd);
-    cmd.* = .{};
-    types.ShutdownCommandPolyHelper.init(cmd);
-    var sentinel: Slot = &cmd.poly;
-    try mailbox.send(ctx.out_mbh, &sentinel);
-    std.log.info("producer: sent ShutdownCommand sentinel", .{});
+    {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        try types.ShutdownCommandPolyHelper.create(ctx.alloc, &slot);
+        try mailbox.send(ctx.out_mbh, &slot);
+        std.log.info("producer: sent ShutdownCommand sentinel", .{});
+    }
 }
 
 const TransformerCtx = struct {
@@ -41,12 +40,10 @@ fn transformerFn(ctx: *TransformerCtx) anyerror!void {
         if (types.EventPolyHelper.cast(poly)) |ev| {
             const value: f64 = @floatFromInt(ev.code);
             helpers.freeSlot(&slot, ctx.alloc);
-            const sn: *types.Sensor = ctx.alloc.create(types.Sensor) catch continue;
-            sn.* = .{ .value = value };
-            types.SensorPolyHelper.init(sn);
-            var out_slot: Slot = &sn.poly;
-            mailbox.send(ctx.out_mbh, &out_slot) catch {
-                ctx.alloc.destroy(sn);
+            types.SensorPolyHelper.create(ctx.alloc, &slot) catch continue;
+            types.SensorPolyHelper.cast(slot.?).?.value = value;
+            mailbox.send(ctx.out_mbh, &slot) catch {
+                helpers.freeSlot(&slot, ctx.alloc);
             };
             std.log.info("transformer: Event→Sensor value={d}", .{value});
         } else if (types.ShutdownCommandPolyHelper.cast(poly)) |_| {

@@ -8,13 +8,14 @@ const MasterACtx = struct {
 };
 
 fn masterAFn(ctx: *MasterACtx) anyerror!void {
-    const ev: *types.Event = try ctx.alloc.create(types.Event);
-    errdefer ctx.alloc.destroy(ev);
-    ev.* = .{ .code = 42 };
-    types.EventPolyHelper.init(ev);
-    var req_slot: Slot = &ev.poly;
-    try mailbox.send(ctx.b_inbox, &req_slot);
-    std.log.info("master A: sent Event code=42 request to B", .{});
+    {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        try types.EventPolyHelper.create(ctx.alloc, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = 42;
+        try mailbox.send(ctx.b_inbox, &slot);
+        std.log.info("master A: sent Event code=42 request to B", .{});
+    }
 
     var slot: Slot = null;
     defer helpers.freeSlot(&slot, ctx.alloc);
@@ -48,12 +49,9 @@ fn masterBFn(ctx: *MasterBCtx) anyerror!void {
         helpers.freeSlot(&slot, ctx.alloc);
     }
 
-    const sn: *types.Sensor = try ctx.alloc.create(types.Sensor);
-    errdefer ctx.alloc.destroy(sn);
-    sn.* = .{ .value = response_value };
-    types.SensorPolyHelper.init(sn);
-    var resp_slot: Slot = &sn.poly;
-    try mailbox.send(ctx.a_inbox, &resp_slot);
+    try types.SensorPolyHelper.create(ctx.alloc, &slot);
+    types.SensorPolyHelper.cast(slot.?).?.value = response_value;
+    try mailbox.send(ctx.a_inbox, &slot);
     std.log.info("master B: sent Sensor response value={d}", .{response_value});
 }
 

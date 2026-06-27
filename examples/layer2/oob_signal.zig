@@ -9,26 +9,23 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         mailbox.destroy(mbh, allocator);
     }
 
-    // Fill queue with 3 normal Events.
     const codes = [_]i32{ 1, 2, 3 };
     for (codes) |code| {
-        const ev: *types.Event = try allocator.create(types.Event);
-        ev.* = .{ .code = code };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = code;
         try mailbox.send(mbh, &slot);
     }
-    // Queue: [ev1, ev2, ev3]
 
-    // OOB Sensor jumps to front.
-    const sn: *types.Sensor = try allocator.create(types.Sensor);
-    sn.* = .{ .value = -1.0 };
-    types.SensorPolyHelper.init(sn);
-    var oob_slot: Slot = &sn.poly;
-    try mailbox.send_oob(mbh, &oob_slot);
-    // Queue: [sn, ev1, ev2, ev3]
+    {
+        var slot: Slot = null;
+        defer types.SensorPolyHelper.destroy(allocator, &slot);
+        try types.SensorPolyHelper.create(allocator, &slot);
+        types.SensorPolyHelper.cast(slot.?).?.value = -1.0;
+        try mailbox.send_oob(mbh, &slot);
+    }
 
-    // Receive all 4 — OOB Sensor arrives first.
     var received_oob: bool = false;
     var event_count: usize = 0;
     var i: usize = 0;

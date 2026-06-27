@@ -41,14 +41,14 @@ test "64 - pool.get creates new item via on_get" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    try testing.expect(m != null);
-    try testing.expect(EventPolyHelper.cast(m.?) != null);
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    try testing.expect(slot != null);
+    try testing.expect(EventPolyHelper.cast(slot.?) != null);
     try testing.expectEqual(@as(usize, 1), ctx.get_call_count);
 
     // Return item so on_close can free it.
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
 }
 
 // --- Scenario 65: pool.get reuses stored item ---
@@ -71,12 +71,12 @@ test "65 - pool.get reuses stored item" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    const first_ptr: *PolyNode = m.?;
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    const first_ptr: *PolyNode = slot.?;
 
-    pool.put(ph, &m);
-    try testing.expectEqual(@as(Slot, null), m);
+    pool.put(ph, &slot);
+    try testing.expectEqual(@as(Slot, null), slot);
 
     var m2: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m2);
@@ -105,11 +105,11 @@ test "66 - on_get reinitializes recycled item" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    const ev: *Event = EventPolyHelper.cast(m.?) orelse return error.WrongTag;
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    const ev: *Event = EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
     ev.*.code = 66; // mark with dirty data
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
 
     var m2: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m2);
@@ -140,11 +140,11 @@ test "67 - pool.put calls on_put" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
     try testing.expectEqual(@as(usize, 0), ctx.put_call_count);
 
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
     try testing.expectEqual(@as(usize, 1), ctx.put_call_count);
 }
 
@@ -168,13 +168,13 @@ test "68 - on_put can destroy item" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    try testing.expect(m != null);
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    try testing.expect(slot != null);
 
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
     // on_put destroyed the item; pool did not store it; slot is null.
-    try testing.expectEqual(@as(Slot, null), m);
+    try testing.expectEqual(@as(Slot, null), slot);
 
     // Pool is empty — available_only must fail.
     var m2: Slot = null;
@@ -201,10 +201,10 @@ test "69 - on_put can keep item" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    pool.put(ph, &m);
-    try testing.expectEqual(@as(Slot, null), m); // pool took it
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    pool.put(ph, &slot);
+    try testing.expectEqual(@as(Slot, null), slot); // pool took it
 
     // Pool has item — available_only must succeed.
     var m2: Slot = null;
@@ -234,17 +234,21 @@ test "70 - GetMode.new_only always creates, ignores available items" {
     }
 
     // Seed one item.
-    var seed: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &seed);
-    pool.put(ph, &seed);
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+        pool.put(ph, &slot);
+    }
     const gets_before: usize = ctx.get_call_count;
 
-    // new_only must call on_get with m.* == null, creating a fresh item.
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .new_only, &m);
-    try testing.expect(m != null);
-    try testing.expectEqual(gets_before + 1, ctx.get_call_count);
-    pool.put(ph, &m);
+    // new_only must call on_get with a null slot, creating a fresh item.
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
+        try testing.expect(slot != null);
+        try testing.expectEqual(gets_before + 1, ctx.get_call_count);
+        pool.put(ph, &slot);
+    }
     // Both the seeded item and the new item are now in the pool.
 }
 
@@ -268,9 +272,9 @@ test "71 - GetMode.available_only returns error.NotAvailable" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try testing.expectError(error.NotAvailable, pool.get(ph, EventPolyHelper.TAG, .available_only, &m));
-    try testing.expectEqual(@as(Slot, null), m);
+    var slot: Slot = null;
+    try testing.expectError(error.NotAvailable, pool.get(ph, EventPolyHelper.TAG, .available_only, &slot));
+    try testing.expectEqual(@as(Slot, null), slot);
 }
 
 // --- Scenario 72: GetMode.available_only returns stored item ---
@@ -293,15 +297,17 @@ test "72 - GetMode.available_only returns stored item" {
         pool.destroy(ph, alloc);
     }
 
-    var seed: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &seed);
-    pool.put(ph, &seed);
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+        pool.put(ph, &slot);
+    }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_only, &m);
-    try testing.expect(m != null);
-    try testing.expect(EventPolyHelper.cast(m.?) != null);
-    pool.put(ph, &m);
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_only, &slot);
+    try testing.expect(slot != null);
+    try testing.expect(EventPolyHelper.cast(slot.?) != null);
+    pool.put(ph, &slot);
 }
 
 // --- Scenario 73: Per-tag free lists ---
@@ -324,27 +330,34 @@ test "73 - per-tag free lists: Event and Sensor stored separately" {
         pool.destroy(ph, alloc);
     }
 
-    var ev_slot: Slot = null;
-    var sn_slot: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &ev_slot);
-    try pool.get(ph, SensorPolyHelper.TAG, .available_or_new, &sn_slot);
-    pool.put(ph, &ev_slot);
-    pool.put(ph, &sn_slot);
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+        pool.put(ph, &slot);
+    }
+    {
+        var slot: Slot = null;
+        try pool.get(ph, SensorPolyHelper.TAG, .available_or_new, &slot);
+        pool.put(ph, &slot);
+    }
 
     // get with EventPolyHelper.TAG must return an Event.
-    var m1: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_only, &m1);
-    try testing.expect(EventPolyHelper.cast(m1.?) != null);
-    try testing.expect(SensorPolyHelper.cast(m1.?) == null);
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_only, &slot);
+        try testing.expect(EventPolyHelper.cast(slot.?) != null);
+        try testing.expect(SensorPolyHelper.cast(slot.?) == null);
+        pool.put(ph, &slot);
+    }
 
     // get with SensorPolyHelper.TAG must return a Sensor.
-    var m2: Slot = null;
-    try pool.get(ph, SensorPolyHelper.TAG, .available_only, &m2);
-    try testing.expect(SensorPolyHelper.cast(m2.?) != null);
-    try testing.expect(EventPolyHelper.cast(m2.?) == null);
-
-    pool.put(ph, &m1);
-    pool.put(ph, &m2);
+    {
+        var slot: Slot = null;
+        try pool.get(ph, SensorPolyHelper.TAG, .available_only, &slot);
+        try testing.expect(SensorPolyHelper.cast(slot.?) != null);
+        try testing.expect(EventPolyHelper.cast(slot.?) == null);
+        pool.put(ph, &slot);
+    }
 }
 
 // --- Scenario 74: pool.close calls on_close with all items ---
@@ -365,9 +378,9 @@ test "74 - pool.close calls on_close with all stored items" {
 
     // Use new_only to accumulate 5 distinct heap items in the pool.
     for (0..5) |_| {
-        var m: Slot = null;
-        try pool.get(ph, EventPolyHelper.TAG, .new_only, &m);
-        pool.put(ph, &m);
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
+        pool.put(ph, &slot);
     }
 
     pool.close(ph);
@@ -416,8 +429,8 @@ test "76 - pool.get on closed pool returns error.Closed" {
 
     pool.close(ph);
 
-    var m: Slot = null;
-    try testing.expectError(error.Closed, pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m));
+    var slot: Slot = null;
+    try testing.expectError(error.Closed, pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot));
 }
 
 // --- Scenario 77: pool.put on closed pool returns item to caller ---
@@ -436,20 +449,20 @@ test "77 - pool.put on closed pool: caller retains ownership" {
         .on_close = onCloseAdaptive,
     });
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    const raw: *PolyNode = m.?;
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    const raw: *PolyNode = slot.?;
 
     pool.close(ph);
 
     // put after close: caller retains ownership (slot stays non-null).
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
 
     // Caller must still own the item.
-    try testing.expectEqual(raw, m.?);
+    try testing.expectEqual(raw, slot.?);
 
     // Manually free item since pool rejected it, then destroy.
-    helpers.freeItem(m.?, alloc);
+    helpers.freeItem(slot.?, alloc);
     pool.destroy(ph, alloc);
 }
 
@@ -475,9 +488,9 @@ test "78 - backpressure: on_put drops items beyond cap" {
 
     // Create and put 4 items — only 2 should be kept (cap=2 means keep when count < 2).
     for (0..4) |_| {
-        var m: Slot = null;
-        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-        pool.put(ph, &m);
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+        pool.put(ph, &slot);
     }
 
     // capped at 2 — on_put destroyed 2 of 4; on_close sees at most 2 (close_item_count verified above)
@@ -505,18 +518,18 @@ test "79 - pool seeding: pre-allocate N items, then available_only consumes them
 
     // Seed 3 items using new_only + put.
     for (0..3) |_| {
-        var m: Slot = null;
-        try pool.get(ph, EventPolyHelper.TAG, .new_only, &m);
-        pool.put(ph, &m);
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
+        pool.put(ph, &slot);
     }
 
     // Must be able to retrieve all 3 with available_only (no allocation).
     var retrieved: usize = 0;
     while (true) {
-        var m: Slot = null;
-        pool.get(ph, EventPolyHelper.TAG, .available_only, &m) catch break;
+        var slot: Slot = null;
+        pool.get(ph, EventPolyHelper.TAG, .available_only, &slot) catch break;
         retrieved += 1;
-        helpers.freeItem(m.?, alloc);
+        helpers.freeItem(slot.?, alloc);
     }
     try testing.expectEqual(@as(usize, 3), retrieved);
 }
@@ -579,9 +592,9 @@ test "81 - hooks run outside lock: no deadlock on put+get cycle" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    pool.put(ph, &m);
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    pool.put(ph, &slot);
     try testing.expectEqual(@as(usize, 1), ctx.get_call_count);
     try testing.expectEqual(@as(usize, 1), ctx.put_call_count);
 }
@@ -609,10 +622,10 @@ test "82 - pool.put_all returns batch from std.DoublyLinkedList" {
     // Collect 3 items into a raw list.
     var batch: std.DoublyLinkedList = .{};
     for (0..3) |_| {
-        var m: Slot = null;
-        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-        batch.append(&m.?.*.node);
-        m = null; // ownership transferred to batch
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+        batch.append(&slot.?.*.node);
+        slot = null; // ownership transferred to batch
     }
 
     pool.put_all(ph, &batch);
@@ -641,9 +654,9 @@ test "83 - pool.get_wait timeout on empty pool" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try testing.expectError(error.Timeout, pool.get_wait(ph, EventPolyHelper.TAG, &m, 1_000));
-    try testing.expectEqual(@as(Slot, null), m);
+    var slot: Slot = null;
+    try testing.expectError(error.Timeout, pool.get_wait(ph, EventPolyHelper.TAG, &slot, 1_000));
+    try testing.expectEqual(@as(Slot, null), slot);
 }
 
 // --- Scenario 84: pool.get_wait forever (item put from another thread) ---
@@ -659,12 +672,10 @@ fn putter84(ctx: *Ctx84) void {
         .duration = .{ .raw = .{ .nanoseconds = @as(i96, 10_000_000) }, .clock = .real },
     };
     Io.Timeout.sleep(sleep_t, ctx.*.io) catch {};
-    const ev: *Event = ctx.*.alloc.create(Event) catch return;
-    ev.* = .{};
-    EventPolyHelper.init(ev);
-    var slot: Slot = &ev.*.poly;
+    var slot: Slot = null;
+    EventPolyHelper.create(ctx.*.alloc, &slot) catch return;
     pool.put(ctx.*.ph, &slot);
-    if (slot != null) ctx.*.alloc.destroy(ev);
+    if (slot != null) EventPolyHelper.destroy(ctx.*.alloc, &slot);
 }
 
 test "84 - pool.get_wait forever: item put from another thread" {
@@ -689,13 +700,13 @@ test "84 - pool.get_wait forever: item put from another thread" {
     var pctx: Ctx84 = .{ .ph = ph, .io = io, .alloc = alloc };
     const t: Thread = try Thread.spawn(.{}, putter84, .{&pctx});
 
-    var m: Slot = null;
-    try pool.get_wait(ph, EventPolyHelper.TAG, &m, null);
+    var slot: Slot = null;
+    try pool.get_wait(ph, EventPolyHelper.TAG, &slot, null);
     t.join();
 
-    try testing.expect(m != null);
-    try testing.expect(EventPolyHelper.cast(m.?) != null);
-    pool.put(ph, &m);
+    try testing.expect(slot != null);
+    try testing.expect(EventPolyHelper.cast(slot.?) != null);
+    pool.put(ph, &slot);
 }
 
 // --- Scenario 85: HELD → IN_FLIGHT (pool.get) ---
@@ -719,18 +730,20 @@ test "85 - ownership: HELD->IN_FLIGHT via pool.get" {
     }
 
     // Seed one item.
-    var seed: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &seed);
-    pool.put(ph, &seed);
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+        pool.put(ph, &slot);
+    }
 
     // Item is now HELD in pool (is_linked == true from pool's perspective).
     // pool.get transitions it to IN_FLIGHT (slot non-null, not linked after reset).
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_only, &m);
-    try testing.expect(m != null);
-    try testing.expect(!polynode.is_linked(m.?));
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_only, &slot);
+    try testing.expect(slot != null);
+    try testing.expect(!polynode.is_linked(slot.?));
 
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
 }
 
 // --- Scenario 86: IN_FLIGHT → HELD (pool.put, keep policy) ---
@@ -753,13 +766,13 @@ test "86 - ownership: IN_FLIGHT->HELD via pool.put with keep" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    try testing.expect(m != null);
-    try testing.expect(!polynode.is_linked(m.?)); // IN_FLIGHT: not linked
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    try testing.expect(slot != null);
+    try testing.expect(!polynode.is_linked(slot.?)); // IN_FLIGHT: not linked
 
-    pool.put(ph, &m);
-    try testing.expectEqual(@as(Slot, null), m); // slot cleared: pool holds it
+    pool.put(ph, &slot);
+    try testing.expectEqual(@as(Slot, null), slot); // slot cleared: pool holds it
 }
 
 // --- Scenario 87: IN_FLIGHT → FREE (pool.put, destroy policy) ---
@@ -782,13 +795,13 @@ test "87 - ownership: IN_FLIGHT->FREE via pool.put with destroy" {
         pool.destroy(ph, alloc);
     }
 
-    var m: Slot = null;
-    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m);
-    try testing.expect(m != null); // IN_FLIGHT
+    var slot: Slot = null;
+    try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
+    try testing.expect(slot != null); // IN_FLIGHT
 
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
     // on_put freed the item; pool did not store it; slot is null (FREE).
-    try testing.expectEqual(@as(Slot, null), m);
+    try testing.expectEqual(@as(Slot, null), slot);
 }
 
 // --- Scenario 88: is_linked detection; assert fires on double pool.put in Debug/ReleaseSafe ---
@@ -822,7 +835,7 @@ test "88 - double pool.put: is_linked detection (assert documented)" {
     pool.put(ph, &m2); // prepend → pool: [m2, m1], count=2; m1 now has prev set
 
     // m1 is now the tail of the pool list (has prev pointer → is_linked true).
-    // pool.put asserts !polynode.is_linked(m.*.?) before storing (Debug/ReleaseSafe).
+    // pool.put asserts !polynode.is_linked(slot.*.?) before storing (Debug/ReleaseSafe).
     try testing.expect(polynode.is_linked(raw));
 }
 
@@ -839,14 +852,14 @@ const TestCtx = struct {
     last_put_count: usize = 0,
 };
 
-fn onGetAlways(ctx_opaque: *anyopaque, tag: *const anyopaque, in_pool_count: usize, m: *Slot) void {
+fn onGetAlways(ctx_opaque: *anyopaque, tag: *const anyopaque, in_pool_count: usize, slot: *Slot) void {
     const ctx: *TestCtx = @ptrCast(@alignCast(ctx_opaque));
     ctx.get_call_count += 1;
     ctx.last_get_count = in_pool_count;
-    if (m.* != null) {
+    if (slot.* != null) {
         // Reinitialize recycled item.
-        if (EventPolyHelper.cast(m.*.?)) |ev| ev.*.code = 0;
-        if (SensorPolyHelper.cast(m.*.?)) |sn| sn.*.value = 0.0;
+        if (EventPolyHelper.cast(slot.*.?)) |ev| ev.*.code = 0;
+        if (SensorPolyHelper.cast(slot.*.?)) |sn| sn.*.value = 0.0;
         return;
     }
     // Create new item based on tag.
@@ -854,26 +867,26 @@ fn onGetAlways(ctx_opaque: *anyopaque, tag: *const anyopaque, in_pool_count: usi
         const ev: *Event = ctx.alloc.create(Event) catch return;
         ev.* = .{};
         EventPolyHelper.init(ev);
-        m.* = &ev.*.poly;
+        slot.* = &ev.*.poly;
     } else if (tag == SensorPolyHelper.TAG) {
         const sn: *Sensor = ctx.alloc.create(Sensor) catch return;
         sn.* = .{};
         SensorPolyHelper.init(sn);
-        m.* = &sn.*.poly;
+        slot.* = &sn.*.poly;
     }
 }
 
-fn onPutAdaptive(ctx_opaque: *anyopaque, in_pool_count: usize, m: *Slot) void {
+fn onPutAdaptive(ctx_opaque: *anyopaque, in_pool_count: usize, slot: *Slot) void {
     const ctx: *TestCtx = @ptrCast(@alignCast(ctx_opaque));
     ctx.put_call_count += 1;
     ctx.last_put_count = in_pool_count;
     if (ctx.destroy_on_put or in_pool_count >= ctx.cap) {
-        if (m.*) |poly| {
+        if (slot.*) |poly| {
             helpers.freeItem(poly, ctx.alloc);
-            m.* = null;
+            slot.* = null;
         }
     }
-    // else: keep — leave m.* unchanged
+    // else: keep — leave slot.* unchanged
 }
 
 fn onCloseAdaptive(ctx_opaque: *anyopaque, list: *std.DoublyLinkedList) void {

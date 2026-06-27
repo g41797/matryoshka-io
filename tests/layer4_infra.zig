@@ -47,16 +47,18 @@ test "93 - send mailbox through mailbox" {
 
     const inner: MailboxHandle = try mailbox.new(io, alloc);
 
-    var slot: Slot = inner;
-    try mailbox.send(carrier, &slot);
-    try testing.expect(slot == null);
+    {
+        var slot: Slot = inner;
+        try mailbox.send(carrier, &slot);
+        try testing.expect(slot == null);
+    }
 
-    var received: Slot = null;
-    try mailbox.receive(carrier, &received, null);
-    try testing.expect(received != null);
-    try testing.expect(mailbox.is_it_you(received.?.*.tag));
+    var slot: Slot = null;
+    try mailbox.receive(carrier, &slot, null);
+    try testing.expect(slot != null);
+    try testing.expect(mailbox.is_it_you(slot.?.*.tag));
 
-    const recovered: MailboxHandle = received.?;
+    const recovered: MailboxHandle = slot.?;
     _ = mailbox.close(recovered);
     mailbox.destroy(recovered, alloc);
 }
@@ -102,16 +104,18 @@ test "94 - hold pool as pool item" {
 
     const inner: PoolHandle = try pool.new(io, alloc);
 
-    var slot: Slot = inner;
-    pool.put(carrier, &slot);
-    try testing.expect(slot == null);
+    {
+        var slot: Slot = inner;
+        pool.put(carrier, &slot);
+        try testing.expect(slot == null);
+    }
 
-    var retrieved: Slot = null;
-    try pool.get(carrier, PoolPolyHelper.TAG, .available_only, &retrieved);
-    try testing.expect(retrieved != null);
-    try testing.expect(pool.is_it_you(retrieved.?.*.tag));
+    var slot: Slot = null;
+    try pool.get(carrier, PoolPolyHelper.TAG, .available_only, &slot);
+    try testing.expect(slot != null);
+    try testing.expect(pool.is_it_you(slot.?.*.tag));
 
-    const recovered: PoolHandle = retrieved.?;
+    const recovered: PoolHandle = slot.?;
     pool.close(recovered);
     pool.destroy(recovered, alloc);
 }

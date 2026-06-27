@@ -10,20 +10,18 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     }
 
     {
-        const ev: *types.Event = try allocator.create(types.Event);
-        errdefer allocator.destroy(ev);
-        ev.* = .{ .code = 53 };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, allocator);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = 53;
         try mailbox.send(mbh, &slot);
     }
 
     {
-        const sn: *types.Sensor = try allocator.create(types.Sensor);
-        errdefer allocator.destroy(sn);
-        sn.* = .{ .value = 5.3 };
-        types.SensorPolyHelper.init(sn);
-        var slot: Slot = &sn.poly;
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, allocator);
+        try types.SensorPolyHelper.create(allocator, &slot);
+        types.SensorPolyHelper.cast(slot.?).?.value = 5.3;
         try mailbox.send(mbh, &slot);
     }
 

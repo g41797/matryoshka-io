@@ -18,8 +18,9 @@ fn workerFn(ctx: *WorkerCtx) void {
         if (types.ShutdownCommandPolyHelper.cast(poly) != null) {
             helpers.freeSlot(&slot, ctx.alloc);
             // Send our mailbox back to master — this IS the finish signal.
-            var done: Slot = ctx.worker_mbh;
-            mailbox.send(ctx.master_inbox, &done) catch {};
+            slot = ctx.worker_mbh;
+            mailbox.send(ctx.master_inbox, &slot) catch {};
+            slot = null; // prevent defer from destroying the mailbox handle
             return;
         }
 
@@ -32,38 +33,32 @@ fn workerFn(ctx: *WorkerCtx) void {
 }
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    // Master's inbox — receives the finish signal (the worker's mailbox returned).
     const master_inbox: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         _ = mailbox.close(master_inbox);
         mailbox.destroy(master_inbox, allocator);
     }
 
-    // Worker's mailbox — worker receives work items through this.
-    // master_inbox will close+destroy it after receiving it back.
     const worker_mbh: MailboxHandle = try mailbox.new(io, allocator);
 
-    // Send 3 Event items to worker.
     var i: usize = 0;
     while (i < 3) : (i += 1) {
-        const ev: *types.Event = try allocator.create(types.Event);
-        ev.* = .{};
-        types.EventPolyHelper.init(ev);
-        ev.code = @as(i32, @intCast(i + 1));
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @as(i32, @intCast(i + 1));
         try mailbox.send(worker_mbh, &slot);
     }
 
-    // Send shutdown sentinel.
-    const cmd: *types.ShutdownCommand = try allocator.create(types.ShutdownCommand);
-    cmd.* = .{};
-    types.ShutdownCommandPolyHelper.init(cmd);
-    var sentinel: Slot = &cmd.poly;
-    try mailbox.send(worker_mbh, &sentinel);
+    {
+        var slot: Slot = null;
+        defer types.ShutdownCommandPolyHelper.destroy(allocator, &slot);
+        try types.ShutdownCommandPolyHelper.create(allocator, &slot);
+        try mailbox.send(worker_mbh, &slot);
+    }
 
     std.log.info("master: sent 3 Events + ShutdownCommand to worker", .{});
 
-    // Spawn worker thread.
     var ctx: WorkerCtx = .{
         .master_inbox = master_inbox,
         .worker_mbh = worker_mbh,
@@ -71,7 +66,6 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     };
     const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
 
-    // Wait for worker to return its mailbox — the finish signal.
     var slot: Slot = null;
     defer if (slot) |mh| {
         _ = mailbox.close(mh);
@@ -79,10 +73,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     };
     try mailbox.receive(master_inbox, &slot, null);
 
-    // Tag check: confirms it is a mailbox.
     try helpers.expect(error.WorkerFinishFailed, mailbox.is_it_you(slot.?.*.tag), "expected a MailboxHandle");
-
-    // Pointer check: confirms it is the worker's mailbox specifically.
     try helpers.expect(error.WorkerFinishFailed, slot.? == worker_mbh, "wrong mailbox returned");
 
     std.log.info("master: received worker_mbh back — worker finished (processed={d})", .{ctx.processed});

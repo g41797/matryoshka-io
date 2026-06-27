@@ -17,12 +17,10 @@ fn timerSenderFn(ctx: *SenderCtx) anyerror!void {
     };
     for (0..N_TICKS) |_| {
         try std.Io.Timeout.sleep(sleep_t, ctx.io);
-        const tm: *types.Timer = try ctx.alloc.create(types.Timer);
-        tm.* = .{};
-        types.TimerPolyHelper.init(tm);
-        var slot: Slot = &tm.poly;
+        var slot: Slot = null;
+        try types.TimerPolyHelper.create(ctx.alloc, &slot);
         mailbox.send(ctx.mbh, &slot) catch {
-            ctx.alloc.destroy(tm);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
@@ -30,25 +28,20 @@ fn timerSenderFn(ctx: *SenderCtx) anyerror!void {
 
 fn eventSenderFn(ctx: *SenderCtx) anyerror!void {
     for (0..N_EVENTS) |i| {
-        const ev: *types.Event = try ctx.alloc.create(types.Event);
-        ev.* = .{ .code = @intCast(i + 1) };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        try types.EventPolyHelper.create(ctx.alloc, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
         mailbox.send(ctx.mbh, &slot) catch {
-            ctx.alloc.destroy(ev);
+            helpers.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
 }
 
 fn signalSenderFn(ctx: *SenderCtx) anyerror!void {
-    const cmd: *types.ShutdownCommand = try ctx.alloc.create(types.ShutdownCommand);
-    cmd.* = .{};
-    types.ShutdownCommandPolyHelper.init(cmd);
-    var slot: Slot = &cmd.poly;
-    mailbox.send(ctx.mbh, &slot) catch {
-        ctx.alloc.destroy(cmd);
-    };
+    var slot: Slot = null;
+    try types.ShutdownCommandPolyHelper.create(ctx.alloc, &slot);
+    mailbox.send(ctx.mbh, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
 }
 
 const WorkerCtx = struct {
@@ -116,7 +109,6 @@ const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
-const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const types = helpers.types;

@@ -37,11 +37,10 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try group.concurrent(io, workerFn, .{&ctx3});
 
     for (0..3) |i| {
-        const ev: *types.Event = try allocator.create(types.Event);
-        errdefer allocator.destroy(ev);
-        ev.* = .{ .code = @intCast(i + 1) };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
         std.log.info("master: sent Event code={d}", .{i + 1});
     }

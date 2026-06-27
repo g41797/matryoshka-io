@@ -40,19 +40,20 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     const codes = [_]i32{ 10, 20, 30 };
     for (codes) |code| {
-        const ev: *types.Event = try allocator.create(types.Event);
-        ev.* = .{ .code = code };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = code;
         try mailbox.send(mbh, &slot);
     }
 
     // Send shutdown signal — mailbox stays open.
-    const cmd: *types.ShutdownCommand = try allocator.create(types.ShutdownCommand);
-    cmd.* = .{};
-    types.ShutdownCommandPolyHelper.init(cmd);
-    var cmd_slot: Slot = &cmd.poly;
-    try mailbox.send(mbh, &cmd_slot);
+    {
+        var slot: Slot = null;
+        defer types.ShutdownCommandPolyHelper.destroy(allocator, &slot);
+        try types.ShutdownCommandPolyHelper.create(allocator, &slot);
+        try mailbox.send(mbh, &slot);
+    }
 
     t.join();
 

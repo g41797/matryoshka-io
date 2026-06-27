@@ -40,21 +40,19 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     const codes = [_]i32{ 1, 2, 3 };
     for (codes) |code| {
-        const ev: *types.Event = try allocator.create(types.Event);
-        errdefer allocator.destroy(ev);
-        ev.* = .{ .code = code };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = code;
         try mailbox.send(mbh, &slot);
     }
 
     const values = [_]f64{ 1.5, 2.5 };
     for (values) |value| {
-        const sn: *types.Sensor = try allocator.create(types.Sensor);
-        errdefer allocator.destroy(sn);
-        sn.* = .{ .value = value };
-        types.SensorPolyHelper.init(sn);
-        var slot: Slot = &sn.poly;
+        var slot: Slot = null;
+        defer types.SensorPolyHelper.destroy(allocator, &slot);
+        try types.SensorPolyHelper.create(allocator, &slot);
+        types.SensorPolyHelper.cast(slot.?).?.value = value;
         try mailbox.send(mbh, &slot);
     }
 

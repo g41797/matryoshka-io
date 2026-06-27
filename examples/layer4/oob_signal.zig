@@ -11,21 +11,20 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     // Send 3 regular Event items.
     for (0..3) |i| {
-        const ev: *types.Event = try allocator.create(types.Event);
-        errdefer allocator.destroy(ev);
-        ev.* = .{ .code = @intCast(i + 1) };
-        types.EventPolyHelper.init(ev);
-        var slot: Slot = &ev.poly;
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+        try types.EventPolyHelper.create(allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 
     // Send 1 OOB item (ShutdownCommand) — goes to front of queue.
-    const cmd: *types.ShutdownCommand = try allocator.create(types.ShutdownCommand);
-    errdefer allocator.destroy(cmd);
-    cmd.* = .{};
-    types.ShutdownCommandPolyHelper.init(cmd);
-    var oob_slot: Slot = &cmd.poly;
-    try mailbox.send_oob(mbh, &oob_slot);
+    {
+        var slot: Slot = null;
+        defer types.ShutdownCommandPolyHelper.destroy(allocator, &slot);
+        try types.ShutdownCommandPolyHelper.create(allocator, &slot);
+        try mailbox.send_oob(mbh, &slot);
+    }
 
     std.log.info("sent 3 Events (regular) + 1 ShutdownCommand (OOB)", .{});
 
