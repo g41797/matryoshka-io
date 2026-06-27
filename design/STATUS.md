@@ -21,7 +21,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-010.md
+- API: matryoshka-api-reference-011.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -31,7 +31,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-010.md
+- Plan: matryoshka-zig-implementation-plan-011.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -39,7 +39,7 @@
 
 ## Project
 Ownership-transfer and lifecycle toolkit for Zig 0.16.
-Three blocks: polynode, mailbox, pool. Both mailbox and pool optional.
+Three layers: polynode, mailbox, pool. Both mailbox and pool optional.
 
 ## Folder Structure
 ```
@@ -93,10 +93,197 @@ Stage 3 — Pool (impl + tests + examples). DONE.
 Stage 4 — DONE (97/97 tests).
 Stage 5.a — DONE (99/99 tests).
 Stage 5.b — DONE (107/107 tests).
-Current: Stage 5 complete. Plan version 010 created.
+INTR 1 — DONE (107/107 tests). Plan version 011 created.
+Current: INTR 1 complete. Slot-based programming retrofit applied.
 Next: Stage 6 — Cancellation + Shutdown. Show intent first.
 
 ## Session Log
+
+### 2026-06-27 — Session 14 (post-INTR audit + fixes)
+**Participants**: human + Claude
+
+**Summary**
+Full source audit (`.zig` + `.md`) and comprehensive fix pass. All four findings applied.
+
+**Allocator audit + bug fixes**
+- `examples/layer2/worker_loop.zig` — `defer mailbox.destroy` → `defer { close + freeList + destroy }`; added `errdefer alloc.destroy(ev/sn)` in sender loops.
+- `examples/layer2/fan_in.zig` — same `defer { close + freeList + destroy }` fix; removed redundant explicit close+freeList.
+- `examples/layer2/oob_signal.zig` — `var out: Slot` → `var slot`; `defer helpers.freeSlot`; `helpers.freeSlot` per branch.
+- `examples/layer4/pipeline_masters.zig` — `errdefer ctx.alloc.destroy(ev/cmd)` in producer loops.
+- `examples/layer4/request_response.zig` — `errdefer ctx.alloc.destroy(ev)` in masterAFn; `errdefer ctx.alloc.destroy(sn)` in masterBFn.
+
+**Doc fixes (active docs only)**
+- `design/matryoshka-api-reference-011.md` — `DLL.Node` → `List.Node`; `dll_node_ptr` → `list_node_ptr` (6 occurrences).
+- `design/matryoshka-api-reference-010.md` — same DLL fixes.
+- `design/matryoshka-zig-implementation-plan-011.md` — LE import order rule clarified (std last); Naming and Terminology section added (banned: `drain`, `dll`/`DLL`).
+- `design/collected-context-003.md` — `"block deepdives"` → `"layer deepdives"`.
+- `design/STATUS.md` — `Three blocks` → `Three layers` in Project section.
+
+**Audit findings fixed**
+
+1. **Import order** (37 files) — moved `const std = @import("std")` to last among `@import` calls.
+   - All 5 layer1 examples.
+   - All 10 layer2 examples (including blank-line variants: batch_processing, shutdown_exit).
+   - All 4 layer3 examples.
+   - All 10 layer4 examples.
+   - `helpers/helpers.zig`.
+   - 8 test files (layer1_examples, layer2_examples, layer3_examples, layer4_examples, layer1_polynode, layer2_mailbox, layer3_pool, layer4_infra, layer4_master).
+
+2. **Multi-line file-header WHAT-comments** (2 files) — removed.
+   - `examples/layer4/pipeline_masters.zig` — 7-line pipeline description removed.
+   - `examples/layer4/request_response.zig` — 3-line master A/B description removed.
+
+3. **Inline WHAT-comments** (8 files) — removed.
+   - `examples/layer2/request_response.zig` — 3 defer-mechanism comments.
+   - `examples/layer4/master_with_pool.zig` — "Seed mailbox:" and "On send success:" comments.
+   - `examples/layer4/multi_source_mailbox.zig` — "defer fires:" comment.
+   - `examples/layer4/timer_via_mailbox.zig` — "defer fires:" comment.
+   - `examples/layer4/pipeline_masters.zig` — slot-state explanation comments in transformerFn.
+   - `examples/layer2/fan_in.zig` — "All senders done." comment.
+   - `examples/layer3/basic_recycler.zig` — "First get:", "Second get:", "Free item" comments.
+
+4. **Multi-line WHY comment blocks** (2 test files) — condensed to single lines.
+   - `tests/layer2_mailbox.zig` — Scenario 49 block; OOB counter invariant block.
+   - `tests/layer3_pool.zig` — capped pool block; hooks-outside-lock block; Scenario 88 block; 2-node list block.
+
+**AI-sh + banned word scan**
+- Found `drain` in `tests/layer3_pool.zig:519` comment — removed.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | pass (107/107 tests) |
+| Post-stage cleanup | import order + comment cleanup |
+| AI-sh + banned words scan | clean |
+
+**Next**: Stage 6 — Cancellation + Shutdown. Show intent first.
+
+### 2026-06-27 — Session 13 (INTR 1.d)
+**Participants**: human + Claude
+
+**Summary**
+INTR 1.d — slot-based cleanup patterns applied to all remaining layers (layer1, layer2, layer4).
+
+**Layer 1**
+- `examples/layer1/ownership_transfer.zig` — rewritten with `PolyHelper.create/destroy` + `freeSlot`. Removed errdefer/list dangling-node risk.
+
+**Layer 2 (all 5 files)**
+- `examples/layer2/simple_send_receive.zig` — scoped sender/receiver blocks; defer freeSlot.
+- `examples/layer2/worker_loop.zig` — `out` → `slot`; defer freeSlot; removed manual destroys.
+- `examples/layer2/request_response.zig` — rewritten; defer freeSlot; send via `&slot` directly.
+- `examples/layer2/fan_out.zig` — `out` → `slot`; defer freeSlot; removed freeItem call.
+- `examples/layer2/shutdown_exit.zig` — `out` → `slot`; defer freeSlot; removed per-type destroys; `|_|` for ShutdownCommand.
+
+**Layer 4 (9 files)**
+- `examples/layer4/minimal_master.zig` — defer freeSlot; removed manual freeItem call.
+- `examples/layer4/master_with_pool.zig` — workerFn: defer pool.put; seed loop: defer pool.put before pool.get (bug fix — item leaked on send failure).
+- `examples/layer4/multi_worker_master.zig` — defer freeSlot; removed manual freeItem.
+- `examples/layer4/pipeline_masters.zig` — transformerFn: defer freeSlot; explicit freeSlot in Event branch before creating sn; send via `&slot` for ShutdownCommand forward. consumerFn: defer freeSlot; freeSlot per branch.
+- `examples/layer4/timer_via_mailbox.zig` — workerFn: defer freeSlot; `|_|` for Timer; removed per-type destroys.
+- `examples/layer4/mailbox_as_item.zig` — workerFn: defer freeSlot; freeSlot before ShutdownCommand forward. main: `received` → `slot`; defer close+destroy guard; `slot = null` after manual cleanup.
+- `examples/layer4/oob_signal.zig` — for loop: defer freeSlot; `|_|` for ShutdownCommand; freeSlot per branch (bug fix — item leaked if helpers.expect returned error before destroy).
+- `examples/layer4/multi_source_mailbox.zig` — workerFn: defer freeSlot; `|_|` for Timer and ShutdownCommand; removed per-type destroys.
+- `examples/layer4/request_response.zig` — masterAFn: `resp_slot` → `slot`; defer freeSlot; freeSlot per branch. masterBFn: `req_slot` → `slot`; defer freeSlot; errdefer for sn allocation; freeSlot per branch.
+
+**helpers/helpers.zig**
+- Added `freeSlot(slot: *Slot, alloc: Allocator)` — null-safe: calls freeItem then sets slot.* = null. Replaces scattered `alloc.destroy + slot = null` sequences.
+
+**Changes**
+- `helpers/helpers.zig` — freeSlot added
+- `examples/layer1/ownership_transfer.zig` — PolyHelper.create/destroy + freeSlot
+- `examples/layer2/simple_send_receive.zig` — scoped blocks + defer freeSlot
+- `examples/layer2/worker_loop.zig` — defer freeSlot; removed destroys
+- `examples/layer2/request_response.zig` — defer freeSlot; &slot for send
+- `examples/layer2/fan_out.zig` — defer freeSlot; removed freeItem
+- `examples/layer2/shutdown_exit.zig` — defer freeSlot; |_| for ShutdownCommand
+- `examples/layer4/minimal_master.zig` — defer freeSlot
+- `examples/layer4/master_with_pool.zig` — defer pool.put (workerFn + seed loop bug fix)
+- `examples/layer4/multi_worker_master.zig` — defer freeSlot
+- `examples/layer4/pipeline_masters.zig` — defer freeSlot; explicit freeSlot in Event branch; &slot for ShutdownCommand forward
+- `examples/layer4/timer_via_mailbox.zig` — defer freeSlot; |_| for Timer
+- `examples/layer4/mailbox_as_item.zig` — defer freeSlot; slot rename; defer guard in main
+- `examples/layer4/oob_signal.zig` — defer freeSlot; freeSlot per branch; bug fix
+- `examples/layer4/multi_source_mailbox.zig` — defer freeSlot; removed per-type destroys
+- `examples/layer4/request_response.zig` — defer freeSlot; errdefer for sn; slot renames
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | pass (107/107 tests) |
+| `kitchen/build_and_test_all.sh` | pass (107/107 tests, all 4 modes) |
+| `kitchen/build_cross_debug.sh` | pass (mac x86_64, mac aarch64, windows x86_64) |
+| Post-stage cleanup | retrofit only — no obsolete parts found |
+| AI-sh + banned words scan | clean |
+
+**Next**: Stage 6 — Cancellation + Shutdown. Show intent first.
+
+### 2026-06-27 — Session 12 (INTR 1)
+**Participants**: human + Claude
+
+**Summary**
+INTR 1 — Slot-based programming retrofit (pre-Stage-6).
+
+Three sub-stages completed:
+
+**INTR 1.a** — `design/collected-context-003.md` written.
+- Full context for Opus: Stages 4-5 findings, owner API changes, Slot Rule, new idiom patterns, INTR 1 plan.
+- `design/context.md` updated to point to collected-context-003.
+
+**INTR 1.b** — `design/matryoshka-api-reference-011.md` written (Opus).
+- New section: `## Slot-based programming` — Slot Rule, 3 ASCII diagrams (lifecycle, transfer, defer-safety).
+- New section: `## Cooperative cleanup patterns` — 4 patterns with code snippets.
+- New subsection: `### PolyHelper — create and destroy` — signatures, old-vs-new, no_create_destroy diagram.
+- Updated: `pool.put` null no-op, `PoolHooks` and function signatures.
+
+**INTR 1.c** — Code retrofit + rename (`m` → `slot`) + verification.
+- `src/mailbox.zig` — `m` → `slot` in all public signatures and bodies.
+- `src/pool.zig` — `m` → `slot` throughout.
+- `helpers/helpers.zig` — `createByTag` Sensor branch completed. `destroyByTag` added. Hook ctx types updated.
+- `examples/layer3/basic_recycler.zig` — `m` → `slot`, defer-early.
+- `examples/layer3/capped_pool.zig` — verified (owner-applied defer-early confirmed).
+- `examples/layer3/pool_seeding.zig` — `m` → `slot`, defer-early in both loops.
+- `examples/layer3/pool_teardown.zig` — `m` → `slot`, defer-early.
+- `design/matryoshka-api-reference-011.md` — `m` → `slot` in all code snippets and signatures.
+- `design/matryoshka-zig-implementation-plan-011.md` — new plan version. INTR 1 added as completed. Slot Rule added to Process Rules.
+- `design/context.md` — plan reference → 011, api-reference → 011.
+- `design/STATUS.md` — Sources of Truth → 011; this entry.
+
+Owner applied before this session:
+- `src/polynode.zig` — `PolyHelper(T)` comptime branching on `no_create_destroy`. Added `create` and `destroy`.
+- `src/pool.zig` — `pool.put` null-safe: `if (slot.* == null) return`.
+- `_Mailbox` and `_Pool` — `const no_create_destroy = void{}` added.
+- `examples/layer3/capped_pool.zig` — defer-early patterns applied.
+
+**Changes**
+- `design/collected-context-003.md` — new (INTR 1.a)
+- `design/matryoshka-api-reference-011.md` — new (INTR 1.b + 1.c rename)
+- `design/matryoshka-zig-implementation-plan-011.md` — new plan version
+- `design/context.md` — api-ref and plan pointers → 011
+- `design/STATUS.md` — sources updated; this entry
+- `src/mailbox.zig` — m→slot in signatures and bodies
+- `src/pool.zig` — m→slot throughout
+- `helpers/helpers.zig` — createByTag completed; destroyByTag added; hook ctx m→slot
+- `examples/layer3/basic_recycler.zig` — m→slot, defer-early
+- `examples/layer3/pool_seeding.zig` — m→slot, defer-early
+- `examples/layer3/pool_teardown.zig` — m→slot, defer-early
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | pass (107/107 tests) |
+| `kitchen/build_and_test_all.sh` | pass (107/107 tests, all 4 modes) |
+| `kitchen/build_cross_debug.sh` | pass (mac x86_64, mac aarch64, windows x86_64) |
+| Post-stage cleanup | nothing to clean — retrofit only, no obsolete parts found |
+| AI-sh + banned words scan | clean (false positives only: `mutex.unlock(io)` code, pre-existing comment with "ensure") |
+| Plan version 011 | created `design/matryoshka-zig-implementation-plan-011.md` |
+| context.md | api-ref → 011, plan → 011 |
+| STATUS.md | sources → 011; stages line updated |
+| README.md | no sync needed (still WIP) |
+
+**Next**: Stage 6 — Cancellation + Shutdown. Show intent first.
 
 ### 2026-06-26 — Session 11
 **Participants**: human + Claude

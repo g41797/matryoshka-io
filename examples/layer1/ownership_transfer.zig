@@ -4,33 +4,34 @@
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
 
-    const ev: *types.Event = try allocator.create(types.Event);
-    errdefer allocator.destroy(ev);
-    ev.* = .{ .code = 42 };
-    types.EventPolyHelper.init(ev);
+    var slot: Slot = null;
+    defer types.EventPolyHelper.destroy(allocator, &slot);
+    try types.EventPolyHelper.create(allocator, &slot);
+    const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+    ev.*.code = 42;
+    try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after create");
 
-    var slot: polynode.Slot = &ev.*.poly;
-    try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after init");
-
+    // Transfer to list — clear slot to signal transfer.
     var list: std.DoublyLinkedList = .{};
-    list.append(&ev.*.poly.node);
+    list.append(&slot.?.node);
     slot = null;
     try helpers.expect(error.OwnershipTransferFailed, slot == null, "slot should be null after transfer");
 
+    // Recover from list — assign back to slot.
     const node: *std.DoublyLinkedList.Node = list.popFirst() orelse return error.EmptyList;
-    const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-    slot = poly;
+    slot = @fieldParentPtr("node", node);
     try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after recovery");
 
-    const recovered: *types.Event = types.EventPolyHelper.cast(poly) orelse return error.CastFailed;
+    const recovered: *types.Event = types.EventPolyHelper.cast(slot.?).?;
     try helpers.expect(error.OwnershipTransferFailed, recovered.*.code == 42, "wrong event code");
 
-    allocator.destroy(recovered);
-    slot = null;
+    helpers.freeSlot(&slot, allocator);
     try helpers.expect(error.OwnershipTransferFailed, slot == null, "slot should be null after destroy");
+    // defer fires as no-op
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const polynode = @import("matryoshka").polynode;
+const std = @import("std");
+const Slot = polynode.Slot;
 const types = helpers.types;

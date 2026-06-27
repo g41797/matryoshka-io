@@ -43,7 +43,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     b.destroyByTag(&ev.*.poly);
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const polynode = @import("matryoshka").polynode;
+const std = @import("std");
 const types = helpers.types;

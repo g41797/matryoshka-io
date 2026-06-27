@@ -11,11 +11,12 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) void {
     while (true) {
         var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.worker_mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
 
         if (types.ShutdownCommandPolyHelper.cast(poly) != null) {
-            ctx.alloc.destroy(types.ShutdownCommandPolyHelper.cast(poly).?);
+            helpers.freeSlot(&slot, ctx.alloc);
             // Send our mailbox back to master — this IS the finish signal.
             var done: Slot = ctx.worker_mbh;
             mailbox.send(ctx.master_inbox, &done) catch {};
@@ -25,7 +26,7 @@ fn workerFn(ctx: *WorkerCtx) void {
         if (types.EventPolyHelper.cast(poly)) |ev| {
             ctx.processed += 1;
             std.log.info("worker processed Event code={d}", .{ev.code});
-            ctx.alloc.destroy(ev);
+            helpers.freeSlot(&slot, ctx.alloc);
         }
     }
 }
@@ -71,29 +72,34 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
 
     // Wait for worker to return its mailbox — the finish signal.
-    var received: Slot = null;
-    try mailbox.receive(master_inbox, &received, null);
+    var slot: Slot = null;
+    defer if (slot) |mh| {
+        _ = mailbox.close(mh);
+        mailbox.destroy(mh, allocator);
+    };
+    try mailbox.receive(master_inbox, &slot, null);
 
     // Tag check: confirms it is a mailbox.
-    try helpers.expect(error.WorkerFinishFailed, mailbox.is_it_you(received.?.*.tag), "expected a MailboxHandle");
+    try helpers.expect(error.WorkerFinishFailed, mailbox.is_it_you(slot.?.*.tag), "expected a MailboxHandle");
 
     // Pointer check: confirms it is the worker's mailbox specifically.
-    try helpers.expect(error.WorkerFinishFailed, received.? == worker_mbh, "wrong mailbox returned");
+    try helpers.expect(error.WorkerFinishFailed, slot.? == worker_mbh, "wrong mailbox returned");
 
     std.log.info("master: received worker_mbh back — worker finished (processed={d})", .{ctx.processed});
 
     // Master owns cleanup of worker_mbh.
-    const returned: MailboxHandle = received.?;
+    const returned: MailboxHandle = slot.?;
     _ = mailbox.close(returned);
     mailbox.destroy(returned, allocator);
+    slot = null;
 
     // Join thread — OS resource cleanup only.
     t.join();
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

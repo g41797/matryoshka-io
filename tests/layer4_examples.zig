@@ -1,7 +1,7 @@
+const layer4 = @import("examples").layer4;
 const std = @import("std");
 const testing = std.testing;
 const Io = std.Io;
-const layer4 = @import("examples").layer4;
 
 const allocator = std.testing.allocator;
 const io = std.Io.Threaded.global_single_threaded.*.io();

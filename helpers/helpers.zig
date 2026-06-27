@@ -23,23 +23,36 @@ pub fn freeItem(poly: *polynode.PolyNode, alloc: std.mem.Allocator) void {
     }
 }
 
+pub fn freeSlot(slot: *polynode.Slot, alloc: std.mem.Allocator) void {
+    if (slot.*) |poly| {
+        freeItem(poly, alloc);
+        slot.* = null;
+    }
+}
+
 pub fn freeList(list: *std.DoublyLinkedList, alloc: std.mem.Allocator) void {
     while (list.popFirst()) |node| {
         freeItem(@fieldParentPtr("node", node), alloc);
     }
 }
 
-pub fn createByTag(tag: *const anyopaque, alloc: std.mem.Allocator, m: *polynode.Slot) void {
+pub fn createByTag(tag: *const anyopaque, alloc: std.mem.Allocator, slot: *polynode.Slot) void {
     if (types.EventPolyHelper.isIt(tag)) {
-        const ev = alloc.create(types.Event) catch return;
-        ev.* = .{};
-        types.EventPolyHelper.init(ev);
-        m.* = &ev.poly;
+        types.EventPolyHelper.create(alloc, slot) catch return;
     } else if (types.SensorPolyHelper.isIt(tag)) {
-        const sn = alloc.create(types.Sensor) catch return;
-        sn.* = .{};
-        types.SensorPolyHelper.init(sn);
-        m.* = &sn.poly;
+        types.SensorPolyHelper.create(alloc, slot) catch return;
+    }
+}
+
+pub fn destroyByTag(tag: *const anyopaque, alloc: std.mem.Allocator, slot: *polynode.Slot) void {
+    if (types.EventPolyHelper.isIt(tag)) {
+        types.EventPolyHelper.destroy(alloc, slot);
+    } else if (types.SensorPolyHelper.isIt(tag)) {
+        types.SensorPolyHelper.destroy(alloc, slot);
+    } else if (types.TimerPolyHelper.isIt(tag)) {
+        types.TimerPolyHelper.destroy(alloc, slot);
+    } else if (types.ShutdownCommandPolyHelper.isIt(tag)) {
+        types.ShutdownCommandPolyHelper.destroy(alloc, slot);
     }
 }
 
@@ -56,10 +69,10 @@ pub const AlwaysCreateCtx = struct {
         };
     }
 
-    fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, m: *polynode.Slot) void {
-        if (m.* != null) return;
+    fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.Slot) void {
+        if (slot.* != null) return;
         const self: *AlwaysCreateCtx = @ptrCast(@alignCast(ctx));
-        createByTag(tag, self.alloc, m);
+        createByTag(tag, self.alloc, slot);
     }
 
     fn onPut(_: *anyopaque, _: usize, _: *polynode.Slot) void {}
@@ -84,18 +97,18 @@ pub const CappedPoolCtx = struct {
         };
     }
 
-    fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, m: *polynode.Slot) void {
-        if (m.* != null) return;
+    fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.Slot) void {
+        if (slot.* != null) return;
         const self: *CappedPoolCtx = @ptrCast(@alignCast(ctx));
-        createByTag(tag, self.alloc, m);
+        createByTag(tag, self.alloc, slot);
     }
 
-    fn onPut(ctx: *anyopaque, in_pool_count: usize, m: *polynode.Slot) void {
-        if (m.* == null) return;
+    fn onPut(ctx: *anyopaque, in_pool_count: usize, slot: *polynode.Slot) void {
+        if (slot.* == null) return;
         const self: *CappedPoolCtx = @ptrCast(@alignCast(ctx));
         if (in_pool_count >= self.cap) {
-            freeItem(m.*.?, self.alloc);
-            m.* = null;
+            freeItem(slot.*.?, self.alloc);
+            slot.* = null;
         }
     }
 
@@ -105,7 +118,7 @@ pub const CappedPoolCtx = struct {
     }
 };
 
-const std = @import("std");
-const log = std.log;
 const polynode = @import("matryoshka").polynode;
 const pool_mod = @import("matryoshka").pool;
+const std = @import("std");
+const log = std.log;

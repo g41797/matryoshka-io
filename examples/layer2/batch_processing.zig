@@ -72,11 +72,10 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.BatchProcessingFailed, ctx.first_count > 0, "no items received as first");
 }
 
-const std = @import("std");
-
 const helpers = @import("helpers");
 const types = helpers.types;
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;

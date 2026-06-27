@@ -16,27 +16,28 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     // Seed 3 items. on_put destroys the 3rd (pool already at cap).
     var i: usize = 0;
     while (i < 3) : (i += 1) {
-        var m: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &m);
-        pool.put(ph, &m);
+        var slot: Slot = null;
+        defer pool.put(ph, &slot);
+        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
     }
     std.log.info("seeded 3 Events into capped pool (cap={d})", .{cap});
 
     // Consume all available items — exactly cap survive.
     var consumed: usize = 0;
     while (true) {
-        var m: Slot = null;
-        pool.get(ph, types.EventPolyHelper.TAG, .available_only, &m) catch break;
-        allocator.destroy(types.EventPolyHelper.cast(m.?).?);
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(allocator, &slot);
+
+        pool.get(ph, types.EventPolyHelper.TAG, .available_only, &slot) catch break;
         consumed += 1;
     }
     std.log.info("consumed {d} items (expected {d})", .{ consumed, cap });
     try helpers.expect(error.CappedPoolFailed, consumed == cap, "capped pool held wrong count");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;

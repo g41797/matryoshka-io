@@ -65,7 +65,11 @@ fn altSenderFn(ctx: *SenderCtx) void {
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer mailbox.destroy(mbh, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
 
     var ctx_ev: SenderCtx = .{ .mbh = mbh, .alloc = allocator };
     var ctx_sn: SenderCtx = .{ .mbh = mbh, .alloc = allocator };
@@ -79,7 +83,6 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     t2.join();
     t3.join();
 
-    // All senders done. Batch-receive everything at once.
     const total_sent: usize = ctx_ev.sent + ctx_sn.sent + ctx_alt.sent;
     var batch: std.DoublyLinkedList = try mailbox.receive_batch(mbh);
     var events_received: usize = 0;
@@ -96,16 +99,13 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         }
     }
 
-    var rem: std.DoublyLinkedList = mailbox.close(mbh);
-    helpers.freeList(&rem, allocator);
-
     std.log.info("fan-in: sent={d} events={d} sensors={d}", .{ total_sent, events_received, sensors_received });
     try helpers.expect(error.FanInFailed, events_received + sensors_received == total_sent, "wrong total");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;

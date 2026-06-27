@@ -194,9 +194,6 @@ test "17 - slot is null after nil-out" {
     try testing.expectEqual(@as(Slot, null), slot);
 }
 
-const std = @import("std");
-const testing = std.testing;
-
 const types = @import("helpers").types;
 const Event = types.Event;
 const Sensor = types.Sensor;
@@ -206,3 +203,5 @@ const SensorPolyHelper = types.SensorPolyHelper;
 const polynode = @import("matryoshka").polynode;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
+const std = @import("std");
+const testing = std.testing;

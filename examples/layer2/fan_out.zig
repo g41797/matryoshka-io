@@ -9,9 +9,9 @@ const WorkerCtx = struct {
 
 fn fanOutWorkerFn(ctx: *WorkerCtx) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.mbh, &out, null) catch return;
-        helpers.freeItem(out.?, ctx.alloc);
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
         ctx.received += 1;
     }
 }
@@ -65,9 +65,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.FanOutFailed, total + remaining == n_events + n_sensors, "wrong total");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const Slot = polynode.Slot;

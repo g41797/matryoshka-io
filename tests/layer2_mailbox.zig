@@ -590,10 +590,7 @@ test "48 - receive: HELD to IN_FLIGHT, slot is non-null" {
     try testing.expect(!polynode.is_linked(poly));
 }
 
-// --- Scenario 49: Send linked item assertion ---
-// mailbox.send asserts !polynode.is_linked(m.*.?) in Debug/ReleaseSafe.
-// No panic-catching available in std.testing (Open Item 11).
-// This test verifies the is_linked detection used by the assert.
+// --- Scenario 49: is_linked detection; assert fires in Debug/ReleaseSafe (no panic-catch in testing) ---
 test "49 - send linked item: is_linked detection (assert documented)" {
     var ev1: Event = .{ .code = 49 };
     var ev2: Event = .{ .code = 50 };
@@ -863,11 +860,7 @@ test "52 - combined (3+2+main): fan-in + fan-out, close after 100ms" {
     try testing.expectEqual(total_sent, total_received + remaining_count);
 }
 
-// --- OOB counter invariant: oob_last resets after last OOB is received ---
-// Scenario: send regular B, send_oob A, receive A, send_oob C.
-// After receiving A, oob_count must reach 0 and oob_last must clear.
-// If oob_last is not cleared, the next send_oob inserts after a dangling
-// node pointer and corrupts the queue.
+// --- OOB invariant: oob_last resets to null after last OOB received; stale pointer corrupts next send_oob ---
 test "oob last resets after last oob received, next send_oob goes to front" {
     const io: Io = testing.io;
     const alloc: std.mem.Allocator = testing.allocator;
@@ -911,11 +904,6 @@ test "oob last resets after last oob received, next send_oob goes to front" {
     try testing.expectEqual(@as(i32, 2), b_ev.*.code); // B must be second
 }
 
-const std = @import("std");
-const testing = std.testing;
-const Thread = std.Thread;
-const Io = std.Io;
-
 const helpers = @import("helpers");
 
 const matryoshka = @import("matryoshka");
@@ -930,4 +918,8 @@ const Event = types.Event;
 const Sensor = types.Sensor;
 const EventPolyHelper = types.EventPolyHelper;
 const SensorPolyHelper = types.SensorPolyHelper;
+const std = @import("std");
+const testing = std.testing;
+const Thread = std.Thread;
+const Io = std.Io;
 const freeItem = helpers.freeItem;

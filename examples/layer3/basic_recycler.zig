@@ -12,31 +12,29 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     }
     try pool.init(ph, ctx.poolHooks(&tags));
 
-    var m: Slot = null;
+    var slot: Slot = null;
+    defer pool.put(ph, &slot);
 
-    // First get: pool is empty, on_get creates a fresh Event.
-    try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &m);
-    const ev = types.EventPolyHelper.cast(m.?) orelse return error.WrongTag;
+    try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
+    const ev = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
     ev.code = 89;
     std.log.info("got fresh Event, set code={d}", .{ev.code});
 
-    pool.put(ph, &m);
+    pool.put(ph, &slot);
     std.log.info("returned Event to pool", .{});
 
-    // Second get: on_get is called with m.* already set (recycled item).
-    try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &m);
-    const ev2 = types.EventPolyHelper.cast(m.?) orelse return error.WrongTag;
+    try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
+    const ev2 = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
     std.log.info("recycled Event code={d}", .{ev2.code});
     try helpers.expect(error.BasicRecyclerFailed, ev2.code == 89, "recycled item lost its data");
 
-    // We hold the only item; free it before the defer closes the pool.
     allocator.destroy(ev2);
-    m = null;
+    slot = null;
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;

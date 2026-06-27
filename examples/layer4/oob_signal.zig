@@ -35,20 +35,21 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     for (0..4) |_| {
         var slot: Slot = null;
+        defer helpers.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, null);
         const poly: *PolyNode = slot.?;
 
-        if (types.ShutdownCommandPolyHelper.cast(poly)) |sc| {
+        if (types.ShutdownCommandPolyHelper.cast(poly)) |_| {
             try helpers.expect(error.OobOrderFailed, !shutdown_seen, "OOB ShutdownCommand must arrive before any Event");
             try helpers.expect(error.OobOrderFailed, event_count == 0, "OOB must be first item received");
             shutdown_seen = true;
             std.log.info("received OOB ShutdownCommand (first, as expected)", .{});
-            allocator.destroy(sc);
+            helpers.freeSlot(&slot, allocator);
         } else if (types.EventPolyHelper.cast(poly)) |ev| {
             try helpers.expect(error.OobOrderFailed, shutdown_seen, "Events must arrive after the OOB item");
             event_count += 1;
             std.log.info("received Event code={d} (event {d}/3)", .{ ev.code, event_count });
-            allocator.destroy(ev);
+            helpers.freeSlot(&slot, allocator);
         } else {
             return error.OobOrderFailed;
         }
@@ -60,9 +61,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("OOB ordering verified: shutdown came first, then {d} events", .{event_count});
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

@@ -1,10 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Master A sends an Event request to Master B's inbox.
-// Master B processes it, sends a Sensor response to Master A's inbox.
-// Ownership transfers: A→B (request), B→A (response). No shared mutable state.
-
 const MasterACtx = struct {
     a_inbox: MailboxHandle,
     b_inbox: MailboxHandle,
@@ -13,21 +9,22 @@ const MasterACtx = struct {
 
 fn masterAFn(ctx: *MasterACtx) anyerror!void {
     const ev: *types.Event = try ctx.alloc.create(types.Event);
+    errdefer ctx.alloc.destroy(ev);
     ev.* = .{ .code = 42 };
     types.EventPolyHelper.init(ev);
     var req_slot: Slot = &ev.poly;
     try mailbox.send(ctx.b_inbox, &req_slot);
     std.log.info("master A: sent Event code=42 request to B", .{});
 
-    var resp_slot: Slot = null;
-    try mailbox.receive(ctx.a_inbox, &resp_slot, null);
-    const poly: *PolyNode = resp_slot.?;
+    var slot: Slot = null;
+    defer helpers.freeSlot(&slot, ctx.alloc);
+    try mailbox.receive(ctx.a_inbox, &slot, null);
 
-    if (types.SensorPolyHelper.cast(poly)) |sn| {
+    if (types.SensorPolyHelper.cast(slot.?)) |sn| {
         std.log.info("master A: received Sensor response value={d}", .{sn.value});
-        ctx.alloc.destroy(sn);
+        helpers.freeSlot(&slot, ctx.alloc);
     } else {
-        helpers.freeItem(poly, ctx.alloc);
+        helpers.freeSlot(&slot, ctx.alloc);
     }
 }
 
@@ -38,20 +35,21 @@ const MasterBCtx = struct {
 };
 
 fn masterBFn(ctx: *MasterBCtx) anyerror!void {
-    var req_slot: Slot = null;
-    try mailbox.receive(ctx.b_inbox, &req_slot, null);
-    const poly: *PolyNode = req_slot.?;
+    var slot: Slot = null;
+    defer helpers.freeSlot(&slot, ctx.alloc);
+    try mailbox.receive(ctx.b_inbox, &slot, null);
 
     var response_value: f64 = 0.0;
-    if (types.EventPolyHelper.cast(poly)) |ev| {
+    if (types.EventPolyHelper.cast(slot.?)) |ev| {
         response_value = @floatFromInt(ev.code);
         std.log.info("master B: received Event code={d}, computing response", .{ev.code});
-        ctx.alloc.destroy(ev);
+        helpers.freeSlot(&slot, ctx.alloc);
     } else {
-        helpers.freeItem(poly, ctx.alloc);
+        helpers.freeSlot(&slot, ctx.alloc);
     }
 
     const sn: *types.Sensor = try ctx.alloc.create(types.Sensor);
+    errdefer ctx.alloc.destroy(sn);
     sn.* = .{ .value = response_value };
     types.SensorPolyHelper.init(sn);
     var resp_slot: Slot = &sn.poly;
@@ -86,9 +84,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("request-response done: both masters completed", .{});
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

@@ -9,9 +9,8 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) anyerror!void {
     while (true) {
         var slot: Slot = null;
+        defer pool.put(ctx.ph, &slot);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
-        // Return item to pool for recycling.
-        pool.put(ctx.ph, &slot);
     }
 }
 
@@ -32,9 +31,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         mailbox.destroy(mbh, allocator);
     }
 
-    // Seed mailbox: acquire Events from pool, send each to worker via mailbox.
     for (0..3) |i| {
         var slot: Slot = null;
+        defer pool.put(ph, &slot);
         try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
         const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
         ev.code = @intCast(i + 1);
@@ -51,9 +50,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("master: worker stopped", .{});
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;

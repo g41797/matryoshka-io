@@ -14,8 +14,8 @@ pub const GetError = error{ Closed, NotAvailable, NotCreated };
 pub const PoolHooks = struct {
     ctx: *anyopaque,
     tags: []const *const anyopaque,
-    on_get: *const fn (ctx: *anyopaque, tag: *const anyopaque, in_pool_count: usize, m: *polynode.Slot) void,
-    on_put: *const fn (ctx: *anyopaque, in_pool_count: usize, m: *polynode.Slot) void,
+    on_get: *const fn (ctx: *anyopaque, tag: *const anyopaque, in_pool_count: usize, slot: *polynode.Slot) void,
+    on_put: *const fn (ctx: *anyopaque, in_pool_count: usize, slot: *polynode.Slot) void,
     on_close: *const fn (ctx: *anyopaque, list: *std.DoublyLinkedList) void,
 };
 
@@ -76,22 +76,22 @@ pub fn init(ph: PoolHandle, hooks: PoolHooks) !void {
     p.*.hooks = hooks;
 }
 
-pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, m: *polynode.Slot) GetError!void {
+pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *polynode.Slot) GetError!void {
     const p: *_Pool = PoolPolyHelper.cast(ph).?;
-    std.debug.assert(m.* == null);
+    std.debug.assert(slot.* == null);
 
     if (p.*.closed.load(.acquire)) return error.Closed;
 
     return switch (mode) {
-        .available_or_new => _get_available_or_new(p, tag, m),
-        .new_only => _get_new_only(p, tag, m),
-        .available_only => _get_available_only(p, tag, m),
+        .available_or_new => _get_available_or_new(p, tag, slot),
+        .new_only => _get_new_only(p, tag, slot),
+        .available_only => _get_available_only(p, tag, slot),
     };
 }
 
-pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *polynode.Slot, timeout_ns: ?u64) (GetError || Io.Cancelable || error{Timeout})!void {
+pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *polynode.Slot, timeout_ns: ?u64) (GetError || Io.Cancelable || error{Timeout})!void {
     const p: *_Pool = PoolPolyHelper.cast(ph).?;
-    std.debug.assert(m.* == null);
+    std.debug.assert(slot.* == null);
 
     if (p.*.closed.load(.acquire)) return error.Closed;
     const io: Io = p.*.io;
@@ -116,7 +116,7 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *polynode.Slot, timeou
                 p.*.counts.getPtr(tag).?.* -= 1;
                 const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
                 polynode.reset(poly);
-                m.* = poly;
+                slot.* = poly;
                 return;
             }
         }
@@ -128,14 +128,12 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *polynode.Slot, timeou
     }
 }
 
-pub fn put(ph: PoolHandle, m: *polynode.Slot) void {
-    if(m.* == null){
-        return;
-    }
+pub fn put(ph: PoolHandle, slot: *polynode.Slot) void {
+    if (slot.* == null) return;
 
     const p: *_Pool = PoolPolyHelper.cast(ph).?;
 
-    std.debug.assert(!polynode.is_linked(m.*.?));
+    std.debug.assert(!polynode.is_linked(slot.*.?));
 
     const io: Io = p.*.io;
     p.*.mutex.lockUncancelable(io);
@@ -147,7 +145,7 @@ pub fn put(ph: PoolHandle, m: *polynode.Slot) void {
 
     std.debug.assert(p.*.hooks != null);
 
-    const handle: polynode.NodeHandle = m.*.?;
+    const handle: polynode.NodeHandle = slot.*.?;
     const tag: *const anyopaque = handle.*.tag;
     std.debug.assert(p.*.lists.contains(tag));
 
@@ -155,17 +153,17 @@ pub fn put(ph: PoolHandle, m: *polynode.Slot) void {
     const count: usize = p.*.counts.get(tag) orelse 0;
 
     p.*.mutex.unlock(io);
-    hooks.on_put(hooks.ctx, count, m);
+    hooks.on_put(hooks.ctx, count, slot);
     p.*.mutex.lockUncancelable(io);
 
-    if (!p.*.closed.load(.monotonic) and m.* != null) {
-        const kept: polynode.NodeHandle = m.*.?;
+    if (!p.*.closed.load(.monotonic) and slot.* != null) {
+        const kept: polynode.NodeHandle = slot.*.?;
         std.debug.assert(!polynode.is_linked(kept));
         const kept_tag: *const anyopaque = kept.*.tag;
         if (p.*.lists.getPtr(kept_tag)) |list| {
             list.prepend(&kept.*.node);
             p.*.counts.getPtr(kept_tag).?.* += 1;
-            m.* = null;
+            slot.* = null;
             p.*.cond.signal(io);
         }
     }
@@ -240,7 +238,7 @@ fn _concat(dst: *std.DoublyLinkedList, src: *std.DoublyLinkedList) void {
     src.* = .{};
 }
 
-fn _get_available_or_new(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetError!void {
+fn _get_available_or_new(p: *_Pool, tag: *const anyopaque, slot: *polynode.Slot) GetError!void {
     const io: Io = p.*.io;
     p.*.mutex.lockUncancelable(io);
 
@@ -256,7 +254,7 @@ fn _get_available_or_new(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) Ge
             p.*.counts.getPtr(tag).?.* -= 1;
             const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
             polynode.reset(poly);
-            m.* = poly;
+            slot.* = poly;
         }
     }
 
@@ -264,13 +262,13 @@ fn _get_available_or_new(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) Ge
     const count: usize = p.*.counts.get(tag) orelse 0;
     p.*.mutex.unlock(io);
 
-    hooks.on_get(hooks.ctx, tag, count, m);
-    if (m.*) |h| std.debug.assert(h.*.tag == tag);
+    hooks.on_get(hooks.ctx, tag, count, slot);
+    if (slot.*) |h| std.debug.assert(h.*.tag == tag);
 
-    return if (m.* != null) {} else error.NotCreated;
+    return if (slot.* != null) {} else error.NotCreated;
 }
 
-fn _get_new_only(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetError!void {
+fn _get_new_only(p: *_Pool, tag: *const anyopaque, slot: *polynode.Slot) GetError!void {
     const io: Io = p.*.io;
     p.*.mutex.lockUncancelable(io);
 
@@ -285,13 +283,13 @@ fn _get_new_only(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetError!v
     const count: usize = p.*.counts.get(tag) orelse 0;
     p.*.mutex.unlock(io);
 
-    hooks.on_get(hooks.ctx, tag, count, m);
-    if (m.*) |h| std.debug.assert(h.*.tag == tag);
+    hooks.on_get(hooks.ctx, tag, count, slot);
+    if (slot.*) |h| std.debug.assert(h.*.tag == tag);
 
-    return if (m.* != null) {} else error.NotCreated;
+    return if (slot.* != null) {} else error.NotCreated;
 }
 
-fn _get_available_only(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetError!void {
+fn _get_available_only(p: *_Pool, tag: *const anyopaque, slot: *polynode.Slot) GetError!void {
     const io: Io = p.*.io;
     p.*.mutex.lockUncancelable(io);
     defer p.*.mutex.unlock(io);
@@ -305,7 +303,7 @@ fn _get_available_only(p: *_Pool, tag: *const anyopaque, m: *polynode.Slot) GetE
             p.*.counts.getPtr(tag).?.* -= 1;
             const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
             polynode.reset(poly);
-            m.* = poly;
+            slot.* = poly;
             return;
         }
     }

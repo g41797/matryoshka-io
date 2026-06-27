@@ -9,18 +9,13 @@ const WorkerCtx = struct {
 
 fn workerFn(ctx: *WorkerCtx) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.req_mbh, &out, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.cast(out.?) orelse {
-            helpers.freeItem(out.?, ctx.alloc);
-            continue;
-        };
-        std.log.debug("worker: request code={d}", .{ev.code});
-        ev.code += 1000;
-        var slot: Slot = &ev.poly;
-        mailbox.send(ctx.resp_mbh, &slot) catch {
-            ctx.alloc.destroy(ev);
-        };
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.req_mbh, &slot, null) catch return;
+        const ev: *types.Event = types.EventPolyHelper.cast(slot.?) orelse continue;
+        std.log.debug("worker: request code={d}", .{ev.*.code});
+        ev.*.code += 1000;
+        mailbox.send(ctx.resp_mbh, &slot) catch {};
     }
 }
 
@@ -35,17 +30,20 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
 
     const req: *types.Event = try allocator.create(types.Event);
+    errdefer allocator.destroy(req);
     req.* = .{ .code = 42 };
     types.EventPolyHelper.init(req);
     var slot: Slot = &req.poly;
     try mailbox.send(req_mbh, &slot);
 
-    var out: Slot = null;
-    try mailbox.receive(resp_mbh, &out, 5_000_000_000);
-    const resp: *types.Event = types.EventPolyHelper.cast(out.?) orelse return error.WrongTag;
-    std.log.info("request_response: response code={d}", .{resp.code});
-    try helpers.expect(error.RequestResponseFailed, resp.code == 1042, "wrong response code");
-    allocator.destroy(resp);
+    {
+        var resp_slot: Slot = null;
+        defer helpers.freeSlot(&resp_slot, allocator);
+        try mailbox.receive(resp_mbh, &resp_slot, 5_000_000_000);
+        const resp: *types.Event = types.EventPolyHelper.cast(resp_slot.?) orelse return error.WrongTag;
+        std.log.info("request_response: response code={d}", .{resp.*.code});
+        try helpers.expect(error.RequestResponseFailed, resp.*.code == 1042, "wrong response code");
+    }
 
     var rem_req: std.DoublyLinkedList = mailbox.close(req_mbh);
     helpers.freeList(&rem_req, allocator);
@@ -55,9 +53,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     helpers.freeList(&rem_resp, allocator);
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const Slot = polynode.Slot;

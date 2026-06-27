@@ -57,9 +57,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     pool.destroy(carrier, allocator);
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

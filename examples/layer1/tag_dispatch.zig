@@ -51,7 +51,7 @@ fn freeRemaining(list: *std.DoublyLinkedList, alloc: std.mem.Allocator) void {
     }
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const polynode = @import("matryoshka").polynode;
+const std = @import("std");
 const types = helpers.types;

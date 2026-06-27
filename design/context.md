@@ -5,13 +5,13 @@
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 
-API reference: [matryoshka-api-reference-010.md](matryoshka-api-reference-010.md) — signatures, types, error sets, cancel contract, PolyHelper, tag identity (class vs instance), infra transport patterns, invariants, thread-safety, complexity, io.concurrent and Io.Group verified call syntax
+API reference: [matryoshka-api-reference-011.md](matryoshka-api-reference-011.md) — signatures, types, error sets, cancel contract, PolyHelper (+ create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity
 
 Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
 
-Latest context: [collected-context-002.md](collected-context-002.md)
+Latest context: [collected-context-003.md](collected-context-003.md)
 
-Rules and plan: [matryoshka-zig-implementation-plan-010.md](matryoshka-zig-implementation-plan-010.md) — Section 0 (Sources), Section 1 (Process Rules + Build Order Rules), stages
+Rules and plan: [matryoshka-zig-implementation-plan-011.md](matryoshka-zig-implementation-plan-011.md) — Section 0 (Sources), Section 1 (Process Rules + Build Order Rules), stages
 
 Tests (Layers 1-3): [task1-tests-001.md](task1-tests-001.md) — 62 scenarios, correctness/edge cases/contract violations
 

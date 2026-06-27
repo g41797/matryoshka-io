@@ -11,26 +11,29 @@ const WorkerCtx = struct {
 
 fn workerFn(ctx: *WorkerCtx) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.mbh, &out, null) catch return;
-        const poly: *PolyNode = out.?;
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
+        const poly: *PolyNode = slot.?;
         if (types.EventPolyHelper.cast(poly)) |ev| {
-            std.log.debug("worker: Event code={d}", .{ev.code});
-            ctx.event_sum += ev.code;
+            std.log.debug("worker: Event code={d}", .{ev.*.code});
+            ctx.event_sum += ev.*.code;
             ctx.count += 1;
-            ctx.alloc.destroy(ev);
         } else if (types.SensorPolyHelper.cast(poly)) |sn| {
-            std.log.debug("worker: Sensor value={d:.1}", .{sn.value});
-            ctx.sensor_sum += sn.value;
+            std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
+            ctx.sensor_sum += sn.*.value;
             ctx.count += 1;
-            ctx.alloc.destroy(sn);
         }
     }
 }
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer mailbox.destroy(mbh, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
 
     var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
     const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
@@ -38,6 +41,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const codes = [_]i32{ 1, 2, 3 };
     for (codes) |code| {
         const ev: *types.Event = try allocator.create(types.Event);
+        errdefer allocator.destroy(ev);
         ev.* = .{ .code = code };
         types.EventPolyHelper.init(ev);
         var slot: Slot = &ev.poly;
@@ -47,6 +51,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const values = [_]f64{ 1.5, 2.5 };
     for (values) |value| {
         const sn: *types.Sensor = try allocator.create(types.Sensor);
+        errdefer allocator.destroy(sn);
         sn.* = .{ .value = value };
         types.SensorPolyHelper.init(sn);
         var slot: Slot = &sn.poly;
@@ -67,9 +72,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.WorkerLoopFailed, ctx.count + remaining == 5, "wrong total");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;

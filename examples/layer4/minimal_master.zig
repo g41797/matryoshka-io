@@ -9,9 +9,8 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) anyerror!void {
     while (true) {
         var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
-        const poly: *PolyNode = slot.?;
-        helpers.freeItem(poly, ctx.alloc);
     }
 }
 
@@ -44,9 +43,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("master: worker done", .{});
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

@@ -40,20 +40,16 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     var received: usize = 0;
     while (received < ctx.expected) {
         var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
         try mailbox.receive(ctx.mbh, &slot, null);
         received += 1;
-        const poly: *PolyNode = slot.?;
 
-        if (types.TimerPolyHelper.cast(poly)) |tm| {
+        if (types.TimerPolyHelper.cast(slot.?)) |_| {
             ctx.timer_count += 1;
             std.log.info("worker: timer tick {d}", .{ctx.timer_count});
-            ctx.alloc.destroy(tm);
-        } else if (types.EventPolyHelper.cast(poly)) |ev| {
+        } else if (types.EventPolyHelper.cast(slot.?)) |ev| {
             ctx.event_count += 1;
             std.log.info("worker: Event code={d} (event {d})", .{ ev.code, ctx.event_count });
-            ctx.alloc.destroy(ev);
-        } else {
-            helpers.freeItem(poly, ctx.alloc);
         }
     }
 }
@@ -99,9 +95,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     });
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

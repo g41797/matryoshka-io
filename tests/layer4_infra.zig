@@ -116,16 +116,15 @@ test "94 - hold pool as pool item" {
     pool.destroy(recovered, alloc);
 }
 
-const std = @import("std");
-const testing = std.testing;
-const Io = std.Io;
-
 const matryoshka = @import("matryoshka");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const pool = matryoshka.pool;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
+const std = @import("std");
+const testing = std.testing;
+const Io = std.Io;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
 const PoolHooks = pool.PoolHooks;

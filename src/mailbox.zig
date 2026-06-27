@@ -35,9 +35,9 @@ pub fn destroy(mbh: MailboxHandle, alloc: std.mem.Allocator) void {
     alloc.destroy(mbx);
 }
 
-pub fn send(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!void {
-    std.debug.assert(m.* != null);
-    std.debug.assert(!polynode.is_linked(m.*.?));
+pub fn send(mbh: MailboxHandle, slot: *polynode.Slot) error{Closed}!void {
+    std.debug.assert(slot.* != null);
+    std.debug.assert(!polynode.is_linked(slot.*.?));
 
     const mbx: *_Mailbox = MailboxPolyHelper.cast(mbh).?;
 
@@ -49,17 +49,17 @@ pub fn send(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!void {
 
     if (mbx.*.closed.load(.monotonic)) return error.Closed;
 
-    const handle: polynode.NodeHandle = m.*.?;
+    const handle: polynode.NodeHandle = slot.*.?;
     mbx.*.list.append(&handle.*.node);
     mbx.*.len += 1;
-    m.* = null;
+    slot.* = null;
 
     mbx.*.cond.signal(io);
 }
 
-pub fn send_oob(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!void {
-    std.debug.assert(m.* != null);
-    std.debug.assert(!polynode.is_linked(m.*.?));
+pub fn send_oob(mbh: MailboxHandle, slot: *polynode.Slot) error{Closed}!void {
+    std.debug.assert(slot.* != null);
+    std.debug.assert(!polynode.is_linked(slot.*.?));
 
     const mbx: *_Mailbox = MailboxPolyHelper.cast(mbh).?;
 
@@ -71,7 +71,7 @@ pub fn send_oob(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!void {
 
     if (mbx.*.closed.load(.monotonic)) return error.Closed;
 
-    const handle: polynode.NodeHandle = m.*.?;
+    const handle: polynode.NodeHandle = slot.*.?;
 
     if (mbx.*.oob_last) |last| {
         mbx.*.list.insertAfter(last, &handle.*.node);
@@ -81,13 +81,13 @@ pub fn send_oob(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!void {
     mbx.*.oob_last = &handle.*.node;
     mbx.*.oob_count += 1;
     mbx.*.len += 1;
-    m.* = null;
+    slot.* = null;
 
     mbx.*.cond.signal(io);
 }
 
-pub fn receive(mbh: MailboxHandle, m: *polynode.Slot, timeout_ns: ?u64) (error{ Closed, Timeout } || Io.Cancelable)!void {
-    std.debug.assert(m.* == null);
+pub fn receive(mbh: MailboxHandle, slot: *polynode.Slot, timeout_ns: ?u64) (error{ Closed, Timeout } || Io.Cancelable)!void {
+    std.debug.assert(slot.* == null);
 
     const mbx: *_Mailbox = MailboxPolyHelper.cast(mbh).?;
 
@@ -123,11 +123,11 @@ pub fn receive(mbh: MailboxHandle, m: *polynode.Slot, timeout_ns: ?u64) (error{ 
 
     const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
     polynode.reset(poly);
-    m.* = poly;
+    slot.* = poly;
 }
 
-pub fn try_receive(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!bool {
-    std.debug.assert(m.* == null);
+pub fn try_receive(mbh: MailboxHandle, slot: *polynode.Slot) error{Closed}!bool {
+    std.debug.assert(slot.* == null);
 
     const mbx: *_Mailbox = MailboxPolyHelper.cast(mbh).?;
 
@@ -150,7 +150,7 @@ pub fn try_receive(mbh: MailboxHandle, m: *polynode.Slot) error{Closed}!bool {
 
     const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
     polynode.reset(poly);
-    m.* = poly;
+    slot.* = poly;
     return true;
 }
 

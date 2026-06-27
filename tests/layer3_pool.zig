@@ -480,9 +480,7 @@ test "78 - backpressure: on_put drops items beyond cap" {
         pool.put(ph, &m);
     }
 
-    // Pool was capped at 2 — on_put destroyed 2 of the 4 items.
-    // on_close will receive at most 2 items when pool.close runs.
-    // (Verified via close_item_count in defer above.)
+    // capped at 2 — on_put destroyed 2 of 4; on_close sees at most 2 (close_item_count verified above)
 }
 
 // --- Scenario 79: Pool seeding ---
@@ -518,7 +516,7 @@ test "79 - pool seeding: pre-allocate N items, then available_only consumes them
         var m: Slot = null;
         pool.get(ph, EventPolyHelper.TAG, .available_only, &m) catch break;
         retrieved += 1;
-        helpers.freeItem(m.?, alloc); // free directly — pool is empty after drain
+        helpers.freeItem(m.?, alloc);
     }
     try testing.expectEqual(@as(usize, 3), retrieved);
 }
@@ -562,10 +560,7 @@ test "80 - in_pool_count: on_put and on_get receive correct count" {
 
 // --- Scenario 81: Hooks run outside lock ---
 test "81 - hooks run outside lock: no deadlock on put+get cycle" {
-    // Hooks running outside the mutex is verified indirectly:
-    // if they ran inside the lock, a blocking call inside the hook would deadlock.
-    // This test exercises a full put+get cycle with on_put+on_get both running
-    // and verifies completion without deadlock.
+    // hooks run outside lock — a blocking hook inside the mutex would deadlock; full put+get cycle verifies no deadlock
     const io: Io = testing.io;
     const alloc: std.mem.Allocator = testing.allocator;
 
@@ -796,9 +791,7 @@ test "87 - ownership: IN_FLIGHT->FREE via pool.put with destroy" {
     try testing.expectEqual(@as(Slot, null), m);
 }
 
-// --- Scenario 88: Double pool.put — is_linked detection ---
-// pool.put asserts !polynode.is_linked(m.*.?) in Debug/ReleaseSafe.
-// This test verifies the condition that would trigger the assert.
+// --- Scenario 88: is_linked detection; assert fires on double pool.put in Debug/ReleaseSafe ---
 test "88 - double pool.put: is_linked detection (assert documented)" {
     const io: Io = testing.io;
     const alloc: std.mem.Allocator = testing.allocator;
@@ -818,9 +811,7 @@ test "88 - double pool.put: is_linked detection (assert documented)" {
         pool.destroy(ph, alloc);
     }
 
-    // Put 2 items so the pool list has 2 nodes.
-    // A single-node list has prev=null and next=null — is_linked returns false.
-    // With 2 nodes, the tail has prev != null, confirming it is linked.
+    // 2-node list: tail has prev != null so is_linked=true; single-node list has prev==next==null
     var m1: Slot = null;
     var m2: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .new_only, &m1);
@@ -894,11 +885,6 @@ fn onCloseAdaptive(ctx_opaque: *anyopaque, list: *std.DoublyLinkedList) void {
     }
 }
 
-const std = @import("std");
-const testing = std.testing;
-const Thread = std.Thread;
-const Io = std.Io;
-
 const helpers = @import("helpers");
 
 const matryoshka = @import("matryoshka");
@@ -914,3 +900,7 @@ const Event = types.Event;
 const Sensor = types.Sensor;
 const EventPolyHelper = types.EventPolyHelper;
 const SensorPolyHelper = types.SensorPolyHelper;
+const std = @import("std");
+const testing = std.testing;
+const Thread = std.Thread;
+const Io = std.Io;

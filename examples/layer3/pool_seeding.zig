@@ -17,30 +17,30 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     // Seed: new_only forces allocation for each item.
     var i: usize = 0;
     while (i < n) : (i += 1) {
-        var m: Slot = null;
-        try pool.get(ph, types.SensorPolyHelper.TAG, .new_only, &m);
-        const sn = types.SensorPolyHelper.cast(m.?).?;
+        var slot: Slot = null;
+        defer pool.put(ph, &slot);
+        try pool.get(ph, types.SensorPolyHelper.TAG, .new_only, &slot);
+        const sn = types.SensorPolyHelper.cast(slot.?).?;
         sn.value = @as(f64, @floatFromInt(i)) * 0.1;
-        pool.put(ph, &m);
     }
     std.log.info("seeded {d} Sensor items into pool", .{n});
 
     // Consume: available_only takes pre-existing items — no allocation.
     var consumed: usize = 0;
     while (true) {
-        var m: Slot = null;
-        pool.get(ph, types.SensorPolyHelper.TAG, .available_only, &m) catch break;
-        const sn = types.SensorPolyHelper.cast(m.?).?;
+        var slot: Slot = null;
+        defer types.SensorPolyHelper.destroy(allocator, &slot);
+        pool.get(ph, types.SensorPolyHelper.TAG, .available_only, &slot) catch break;
+        const sn = types.SensorPolyHelper.cast(slot.?).?;
         std.log.info("consumed Sensor value={d:.1}", .{sn.value});
-        allocator.destroy(sn);
         consumed += 1;
     }
     try helpers.expect(error.PoolSeedingFailed, consumed == n, "wrong consumed count");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;

@@ -12,9 +12,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const n: usize = 4;
     var i: usize = 0;
     while (i < n) : (i += 1) {
-        var m: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &m);
-        pool.put(ph, &m);
+        var slot: Slot = null;
+        defer pool.put(ph, &slot);
+        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
     }
     std.log.info("pool holds {d} Events before teardown", .{n});
 
@@ -23,9 +23,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("pool closed: on_close freed all {d} items", .{n});
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;

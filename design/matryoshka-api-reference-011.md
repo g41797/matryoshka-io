@@ -156,6 +156,163 @@ Slot = ?NodeHandle
 
 ---
 
+## Slot-based programming
+
+The slot rule governs every acquisition and transfer.
+
+The slot rule:
+- Never overwrite a non-null slot.
+- Always start with `var slot: Slot = null`.
+- All acquisition APIs assert `slot.* == null` on entry. Writing to a non-null slot panics.
+- Transfer clears the slot: sender sets `slot.* = null`. After transfer, slot is null.
+- Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
+
+### Why acquisition APIs assert null
+
+Every acquisition API has this check:
+
+```zig
+std.debug.assert(slot.* == null);
+```
+
+Overwriting a non-null slot would lose the previous item with no error signal.
+The assert catches this immediately.
+
+### Why cleanup operations accept null
+
+`pool.put` and `PolyHelper.destroy` check null and return early:
+
+```zig
+if (slot.* == null) return;
+```
+
+This makes defer-before-acquisition safe.
+
+### Slot lifecycle
+
+```text
+Slot lifecycle
+
+  null ──── acquire ────► non-null
+    ▲                        │
+    │                        │
+    ├──── transfer ──────────┘   (sender clears: slot.* = null)
+    │
+    └──── cleanup (no-op) ──────  (pool.put, PolyHelper.destroy: null → return)
+```
+
+### Ownership transfer clears the slot
+
+```text
+Before transfer                  After transfer
+
+  Slot (sender)                    Slot (sender)
+  ┌─────────────┐                  ┌─────────────┐
+  │ NodeHandle  │                  │    null     │
+  └─────────────┘                  └─────────────┘
+                                           │
+  mailbox.send(mbh, &slot)                    │ slot.* = null
+                                           │
+                     Mailbox ◄─────────────┘
+                     now owns NodeHandle
+```
+
+### Defer-before-acquisition is safe
+
+```text
+Code order:                      Execution when acquire fails:
+
+  var slot: Slot = null;              slot = null
+  defer pool.put(ph, &slot);          acquire fails
+  try pool.get(..., &slot);           defer fires: pool.put sees null → no-op
+  // work                          ✓ nothing lost
+
+                                 Execution when item is transferred:
+
+                                   slot = null (after acquire: slot is non-null)
+                                   mailbox.send(mbh, &slot)  → slot = null
+                                   defer fires: pool.put sees null → no-op
+                                   ✓ item transferred, not double-recycled
+```
+
+---
+
+## Cooperative cleanup patterns
+
+These patterns follow from the slot rule.
+Place cleanup before acquisition.
+The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.
+
+### Pattern 1 — defer-put-early (pool item)
+
+```zig
+var slot: Slot = null;
+defer pool.put(ph, &slot);              // no-op if slot == null
+try pool.get(ph, TAG, .new_only, &slot);
+// ... work ...
+// on transfer: slot = null → defer fires as no-op
+// on no transfer: defer recycles item
+```
+
+Put before get — safe because pool.put is a no-op on null.
+
+### Pattern 2 — defer-destroy-early (heap item via PolyHelper)
+
+```zig
+var slot: Slot = null;
+defer EventPolyHelper.destroy(allocator, &slot);   // no-op if slot == null
+try EventPolyHelper.create(allocator, &slot);
+// ... work ...
+// on transfer: slot = null → defer fires as no-op
+// on no transfer: defer frees item
+```
+
+Destroy before create — safe because PolyHelper.destroy is a no-op on null.
+
+### Pattern 3 — defer for received mailbox item
+
+```zig
+var slot: Slot = null;
+defer if (slot) |poly| helpers.freeItem(poly, allocator);
+try mailbox.receive(mbh, &slot, null);
+// dispatch on slot.?.*.tag, process item
+// item stays non-null until explicitly transferred or freed
+```
+
+Cleanup covers both the error path (receive failed) and the normal path (item processed and freed).
+
+### Pattern 4 — transfer clears the slot
+
+```zig
+var slot: Slot = null;
+defer pool.put(ph, &slot);
+try pool.get(ph, TAG, .new_only, &slot);
+// fill item ...
+try mailbox.send(mbh, &slot);   // send sets slot.* = null
+// defer fires: pool.put sees null → no-op
+// result: item is in mailbox, not recycled to pool
+```
+
+Transfer and cleanup are not in conflict — transfer pre-empts cleanup by clearing the slot.
+
+### Pattern summary
+
+```text
+Pattern 1 (pool item)            Pattern 2 (heap item)
+
+  null ──► get ──► non-null        null ──► create ──► non-null
+    ▲                │               ▲                   │
+    │    put (defer) │               │  destroy (defer)  │
+    └────────────────┘               └───────────────────┘
+         (recycle)                          (free)
+
+         transfer →                         transfer →
+         slot = null                           slot = null
+         defer: no-op                       defer: no-op
+```
+
+---
+
 ## polynode
 
 Types and functions for ownership identity.
@@ -540,6 +697,71 @@ Same operations. Same runtime cost. Less boilerplate. Compile-time validation.
 
 See `helpers/types.zig` for the pattern.
 
+### PolyHelper — create and destroy
+
+These two functions exist only when `T` does not declare `no_create_destroy`.
+They collapse the three-step alloc+init+slot pattern into one call.
+
+```zig
+pub fn create(allocator: std.mem.Allocator, slot: *Slot) !void
+```
+- Asserts `slot.* == null`.
+- Allocates `T`.
+- Zero-initializes.
+- Calls `init`.
+- Sets `slot.*` to point to the new node.
+
+```zig
+pub fn destroy(allocator: std.mem.Allocator, slot: *Slot) void
+```
+- If `slot.* == null`: returns immediately (no-op).
+- Asserts node is not linked.
+- Sets `slot.*` to null before freeing — prevents use-after-free.
+- Frees the memory.
+
+#### Old pattern vs new
+
+```text
+Old (manual):                        New (PolyHelper.create):
+
+  const ev = try alloc.create(T);     try EventPolyHelper.create(alloc, &slot);
+  ev.* = .{};
+  EventPolyHelper.init(ev);
+  slot.* = &ev.poly;
+```
+
+```text
+Old (manual):                        New (PolyHelper.destroy):
+
+  alloc.destroy(                       EventPolyHelper.destroy(alloc, &slot);
+    EventPolyHelper.cast(slot.?).?);      // null-safe, clears slot
+  slot.* = null;
+```
+
+#### comptime selection — no_create_destroy
+
+Some types must not expose `create`/`destroy`.
+
+```zig
+const no_create_destroy = void{};
+```
+
+If `T` declares this field, `PolyHelper(T)` generates only: `TAG`, `isIt`, `cast`, `mustCast`, `init`.
+
+Infrastructure types (`_Mailbox`, `_Pool`) declare `no_create_destroy`.
+They manage their own lifecycle.
+Generating `create`/`destroy` for them would be wrong.
+
+```text
+PolyHelper(T)
+  │
+  ├── @hasDecl(T, "no_create_destroy") == false
+  │     → TAG, isIt, cast, mustCast, init, create, destroy
+  │
+  └── @hasDecl(T, "no_create_destroy") == true
+        → TAG, isIt, cast, mustCast, init     (create/destroy absent)
+```
+
 ### stdlib compatibility
 
 PolyNode embeds `std.DoublyLinkedList.Node`.
@@ -644,36 +866,36 @@ pub fn new(io: Io, alloc: std.mem.Allocator) !MailboxHandle
 - Stores `io` internally.
 
 ```zig
-pub fn send(mbh: MailboxHandle, m: *Slot) error{Closed}!void
+pub fn send(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```
 - Appends handle to tail.
-- Transfers ownership — `m.*` set to null.
+- Transfers ownership — `slot.*` set to null.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
-  - `m.* != null`
-  - `!polynode.is_linked(m.*)`
+  - `slot.* != null`
+  - `!polynode.is_linked(slot.*)`
 
 ```zig
-pub fn receive(mbh: MailboxHandle, m: *Slot, timeout_ns: ?u64) (error{ Closed, Timeout } || Cancelable)!void
+pub fn receive(mbh: MailboxHandle, slot: *Slot, timeout_ns: ?u64) (error{ Closed, Timeout } || Cancelable)!void
 ```
 - Blocks until handle available.
 - `null` timeout = wait forever.
 - `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `try_receive`.
-- Transfers ownership — `m.*` set to non-null.
+- Transfers ownership — `slot.*` set to non-null.
 - OOB handles arrive first (front of queue).
 - Multiple concurrent receivers compete for each handle. One receiver gets it. Scheduling order among waiters depends on the Io runtime and is not guaranteed FIFO.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
-  - `m.* == null`
+  - `slot.* == null`
 
 ```zig
-pub fn try_receive(mbh: MailboxHandle, m: *Slot) error{Closed}!bool
+pub fn try_receive(mbh: MailboxHandle, slot: *Slot) error{Closed}!bool
 ```
 - Non-blocking.
 - Returns true if handle received, false if queue empty.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
-  - `m.* == null`
+  - `slot.* == null`
 
 ```zig
 pub fn receive_batch(mbh: MailboxHandle) error{Closed}!std.DoublyLinkedList
@@ -777,15 +999,15 @@ pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.F
 ### Advanced: OOB (out of the box)
 
 ```zig
-pub fn send_oob(mbh: MailboxHandle, m: *Slot) error{Closed}!void
+pub fn send_oob(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```
 - Inserts handle after last OOB handle.
 - FIFO among OOBs, all OOBs before regular handles.
-- Transfers ownership — `m.*` set to null.
+- Transfers ownership — `slot.*` set to null.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
-  - `m.* != null`
-  - `!polynode.is_linked(m.*)`
+  - `slot.* != null`
+  - `!polynode.is_linked(slot.*)`
 
 
 OOB ordering:
@@ -854,7 +1076,7 @@ Same rules as application objects.
 ```zig
 pub const GetMode = enum {
     available_or_new,    // use stored handle if available, otherwise call on_get to create
-    new_only,            // always call on_get with m.* == null to create fresh
+    new_only,            // always call on_get with slot.* == null to create fresh
     available_only,      // use stored handle only; if empty, return error.NotAvailable
 };
 
@@ -871,8 +1093,8 @@ pub const GetError = error{
 pub const PoolHooks = struct {
     ctx:      *anyopaque,
     tags:     []const *const anyopaque,
-    on_get:   *const fn (ctx: *anyopaque, tag: *const anyopaque, in_pool_count: usize, m: *Slot) void,
-    on_put:   *const fn (ctx: *anyopaque, in_pool_count: usize, m: *Slot) void,
+    on_get:   *const fn (ctx: *anyopaque, tag: *const anyopaque, in_pool_count: usize, slot: *Slot) void,
+    on_put:   *const fn (ctx: *anyopaque, in_pool_count: usize, slot: *Slot) void,
     on_close: *const fn (ctx: *anyopaque, list: *std.DoublyLinkedList) void,
 };
 ```
@@ -905,19 +1127,19 @@ pub fn init(ph: PoolHandle, hooks: PoolHooks) !void
   - Pool not already closed.
 
 ```zig
-pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, m: *Slot) GetError!void
+pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *Slot) GetError!void
 ```
 - Non-blocking acquisition.
 - Calls `on_get` hook.
-- Transfers ownership — `m.*` set to non-null on success.
+- Transfers ownership — `slot.*` set to non-null on success.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
-  - `m.* == null`
+  - `slot.* == null`
   - Pool initialized.
   - Tag registered.
 
 ```zig
-pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *Slot, timeout_ns: ?u64) (GetError || Cancelable || error{Timeout})!void
+pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *Slot, timeout_ns: ?u64) (GetError || Cancelable || error{Timeout})!void
 ```
 - Blocking acquisition.
 - `null` timeout = wait forever.
@@ -925,26 +1147,26 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, m: *Slot, timeout_ns: ?u6
 - Calls `on_get` hook.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
-  - `m.* == null`
+  - `slot.* == null`
   - Pool initialized.
   - Tag registered.
 
 ```zig
-pub fn put(ph: PoolHandle, m: *Slot) void
+pub fn put(ph: PoolHandle, slot: *Slot) void
 ```
 - Returns handle to pool.
-- m.* == null no-op
+- `slot.* == null` → returns immediately. No hook call. No assert on tag.
 - **Open pool**:
   - Calls `on_put` hook.
   - Policy decides keep or destroy.
-  - Keep: `m.*` stays non-null, pool owns it.
-  - Destroy: `m.*` set to null.
+  - Keep: `slot.*` stays non-null, pool owns it.
+  - Destroy: `slot.*` set to null.
 - **Closed pool**:
   - Returns immediately, no hook call.
-  - `m.*` stays non-null — caller retains ownership.
-- Assert:
+  - `slot.*` stays non-null — caller retains ownership.
+- Assert (when slot.* != null):
   - `pool.is_it_you(ph.*.tag)`
-  - `!polynode.is_linked(m.*)`
+  - `!polynode.is_linked(slot.*)`
 
 ```zig
 pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
@@ -1040,12 +1262,12 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
 - Your hook code does not block other pool operations.
 - `on_get`:
   - Called for every `get` and `get_wait` call regardless of mode or whether an item was found in the free-list.
-  - If `m.*` is non-null on entry: the item was recycled from the free-list — reinitialize it.
-  - If `m.*` is null on entry: no item was available — create a new one or leave null (creation failed).
-  - Must either leave `m.* == null` (creation failed) OR set `m.*` to a valid node with the same tag that was requested.
+  - If `slot.*` is non-null on entry: the item was recycled from the free-list — reinitialize it.
+  - If `slot.*` is null on entry: no item was available — create a new one or leave null (creation failed).
+  - Must either leave `slot.* == null` (creation failed) OR set `slot.*` to a valid node with the same tag that was requested.
   - Returning an item with a different tag is a programming error (assert in Debug/ReleaseSafe).
 - `on_put`:
-  - Set `m.*` to null = destroy.
+  - Set `slot.*` to null = destroy.
   - Leave non-null = keep in pool.
 - `on_close`:
   - Receives `*std.DoublyLinkedList`.
@@ -1318,8 +1540,8 @@ These hold at all times, for every node in the system:
 
 When a cancellable operation returns `error.Canceled`:
 
-- `mailbox.receive`: slot is unchanged — `m.*` was `null` on entry and remains `null`. The mailbox retains any queued items.
-- `pool.get_wait`: slot is unchanged — `m.*` was `null` on entry and remains `null`. The pool retains all free-list items.
+- `mailbox.receive`: slot is unchanged — `slot.*` was `null` on entry and remains `null`. The mailbox retains any queued items.
+- `pool.get_wait`: slot is unchanged — `slot.*` was `null` on entry and remains `null`. The pool retains all free-list items.
 
 Cancellation never closes the mailbox or pool. Closing is the caller's responsibility.
 
@@ -1420,6 +1642,7 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 011 | 2026-06-27 | New `## Slot-based programming` section: slot rule, lifecycle diagram, ownership-transfer diagram, defer-before-acquisition diagram. New `## Cooperative cleanup patterns` section: four patterns with code + diagrams. New `### PolyHelper — create and destroy` subsection: create/destroy functions, old-vs-new comparison, no_create_destroy comptime selection. Updated pool.put: null slot is now a no-op (no-op bullet added, assert clarified). |
 | 010 | 2026-06-26 | New `### io.concurrent and Io.Group — verified call syntax` subsection in Master section. Covers exact call patterns (verified from std/Io.zig + ICE agent), no-io-injection rule, worker return type constraint, Future resource rules, Io backend selection for Layer 4 tests and examples. |
 | 009 | 2026-06-26 | Tag identity section: class vs instance, infra handles have no user-visible fields, worker-finish-signal pattern, wrapper pattern for role discrimination. |
 | 008 | 2026-06-26 | Pool ownership flow diagram. Ownership invariants section. Cancellation ownership contract section. Thread-safety contract table. Complexity guarantees table. Zero timeout semantics in receive and get_wait. Multiple waiter fairness note. Strengthened hook reentrancy rules. |
@@ -1429,6 +1652,45 @@ Valid combinations:
 | 004 | 2026-06-23 | Proposal 29: `pool.put` open/closed behavior clarified. Proposal 30: `receive_select` and `get_wait_select` removed — `Future` composes directly with `Io.Select`, dedicated Select adapters are unnecessary API surface. |
 | 005 | 2026-06-24 | Proposal 31: Reformat for readability and `///` doc comment use. Cancel indicator rule. Cancel table corrected. Event source concept added to Master with diagrams. Mailbox Integration section merged into Event source helpers. Informal terms cleaned up. |
 | 006 | 2026-06-24 | Proposal 32: Staccato rhythm for all prose. Every non-function section reformatted: short intro then bullets. Comma-separated lists broken into bullet lists. |
+
+---
+
+## Change manifest (011) — for downstream propagation
+
+### Slot-based programming (new section)
+
+New `## Slot-based programming` section, placed after `## Ownership model`.
+
+- The slot rule: never overwrite non-null.
+- Why acquisition APIs assert null (would lose item silently).
+- Why cleanup operations accept null (enables defer-before-acquisition).
+- Three ASCII diagrams: slot lifecycle, ownership transfer, defer-before-acquisition safety.
+
+### Cooperative cleanup patterns (new section)
+
+New `## Cooperative cleanup patterns` section, placed after `## Slot-based programming`.
+
+- Pattern 1: defer-put-early (pool item) — pool.put before pool.get.
+- Pattern 2: defer-destroy-early (heap item) — PolyHelper.destroy before PolyHelper.create.
+- Pattern 3: defer for mailbox receive — cleanup on both error and normal paths.
+- Pattern 4: transfer clears slot — send/put sets slot.* = null, pre-empts defer.
+- Each pattern: code snippet + one-line explanation.
+- Pattern summary ASCII diagram.
+
+### PolyHelper create and destroy (new subsection)
+
+New `### PolyHelper — create and destroy` subsection in `## polynode`, placed after `### PolyHelper — all of the above, generated`.
+
+- create: alloc + zero-init + init + slot-assign in one call. Asserts slot null.
+- destroy: null-safe, clears slot before free, asserts not linked.
+- Old-vs-new code comparison for both.
+- no_create_destroy comptime selection: explained with ASCII diagram of the two branches.
+
+### pool.put — null slot is now a no-op
+
+Updated `pub fn put` in `## pool`:
+- Added: `slot.* == null` → returns immediately, no hook, no assert.
+- Assert block clarified: is_linked check applies only when slot.* is non-null.
 
 ---
 
@@ -1627,18 +1889,18 @@ Sections changed:
 
 | Function | Asserts |
 |----------|---------|
-| `mailbox.send` | `is_it_you(mbh)`, `m.* != null`, `!is_linked(m.*)` |
-| `mailbox.send_oob` | `is_it_you(mbh)`, `m.* != null`, `!is_linked(m.*)` |
-| `mailbox.receive` | `is_it_you(mbh)`, `m.* == null` |
-| `mailbox.try_receive` | `is_it_you(mbh)`, `m.* == null` |
+| `mailbox.send` | `is_it_you(mbh)`, `slot.* != null`, `!is_linked(slot.*)` |
+| `mailbox.send_oob` | `is_it_you(mbh)`, `slot.* != null`, `!is_linked(slot.*)` |
+| `mailbox.receive` | `is_it_you(mbh)`, `slot.* == null` |
+| `mailbox.try_receive` | `is_it_you(mbh)`, `slot.* == null` |
 | `mailbox.receive_batch` | `is_it_you(mbh)` |
 | `mailbox.close` | `is_it_you(mbh)` |
 | `mailbox.destroy` | `is_it_you(mbh)` |
 | `pool.destroy` | `is_it_you(ph)` |
 | `pool.init` | `is_it_you(ph)`, hooks tags not empty, each tag not null, not closed |
-| `pool.get` | `is_it_you(ph)`, `m.* == null`, initialized, tag registered |
-| `pool.get_wait` | `is_it_you(ph)`, `m.* == null`, initialized, tag registered |
-| `pool.put` | `is_it_you(ph)`, `!is_linked(m.*)` |
+| `pool.get` | `is_it_you(ph)`, `slot.* == null`, initialized, tag registered |
+| `pool.get_wait` | `is_it_you(ph)`, `slot.* == null`, initialized, tag registered |
+| `pool.put` | `is_it_you(ph)`, `!is_linked(slot.*)` |
 | `pool.put_all` | `is_it_you(ph)`, each node tag registered |
 | `pool.close` | `is_it_you(ph)` |
 

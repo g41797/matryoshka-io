@@ -62,23 +62,18 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) anyerror!void {
     while (true) {
         var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
-        const poly: *PolyNode = slot.?;
 
-        if (types.TimerPolyHelper.cast(poly)) |tm| {
+        if (types.TimerPolyHelper.cast(slot.?)) |_| {
             ctx.timer_count += 1;
             std.log.info("worker: timer tick {d}", .{ctx.timer_count});
-            ctx.alloc.destroy(tm);
-        } else if (types.EventPolyHelper.cast(poly)) |ev| {
+        } else if (types.EventPolyHelper.cast(slot.?)) |ev| {
             ctx.event_count += 1;
             std.log.info("worker: Event code={d}", .{ev.code});
-            ctx.alloc.destroy(ev);
-        } else if (types.ShutdownCommandPolyHelper.cast(poly)) |sc| {
+        } else if (types.ShutdownCommandPolyHelper.cast(slot.?)) |_| {
             ctx.signal_count += 1;
             std.log.info("worker: ShutdownCommand signal", .{});
-            ctx.alloc.destroy(sc);
-        } else {
-            helpers.freeItem(poly, ctx.alloc);
         }
     }
 }
@@ -116,9 +111,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     });
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;

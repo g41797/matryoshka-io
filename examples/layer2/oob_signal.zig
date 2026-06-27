@@ -33,19 +33,20 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var event_count: usize = 0;
     var i: usize = 0;
     while (i < 4) : (i += 1) {
-        var out: Slot = null;
-        try mailbox.receive(mbh, &out, 1_000_000_000);
-        const poly: *PolyNode = out.?;
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, allocator);
+        try mailbox.receive(mbh, &slot, 1_000_000_000);
+        const poly: *PolyNode = slot.?;
         if (types.SensorPolyHelper.cast(poly)) |oob_sn| {
             std.log.info("OOB signal value={d:.1}", .{oob_sn.value});
             try helpers.expect(error.OobSignalFailed, !received_oob, "duplicate OOB");
             try helpers.expect(error.OobSignalFailed, event_count == 0, "OOB did not arrive first");
             received_oob = true;
-            allocator.destroy(oob_sn);
+            helpers.freeSlot(&slot, allocator);
         } else if (types.EventPolyHelper.cast(poly)) |ev| {
             std.log.info("event code={d}", .{ev.code});
             event_count += 1;
-            allocator.destroy(ev);
+            helpers.freeSlot(&slot, allocator);
         }
     }
 
@@ -53,9 +54,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.OobSignalFailed, event_count == 3, "wrong event count");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;

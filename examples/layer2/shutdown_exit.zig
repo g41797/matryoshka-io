@@ -9,21 +9,19 @@ const WorkerCtx = struct {
 
 fn workerFn(ctx: *WorkerCtx) void {
     while (true) {
-        var out: Slot = null;
-        mailbox.receive(ctx.mbh, &out, null) catch return;
-        const poly: *PolyNode = out.?;
-        if (types.ShutdownCommandPolyHelper.cast(poly)) |cmd| {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
+        const poly: *PolyNode = slot.?;
+        if (types.ShutdownCommandPolyHelper.cast(poly)) |_| {
             std.log.info("worker: ShutdownCommand received, exiting cleanly", .{});
-            ctx.alloc.destroy(cmd);
             return;
         } else if (types.EventPolyHelper.cast(poly)) |ev| {
-            std.log.debug("worker: Event code={d}", .{ev.code});
+            std.log.debug("worker: Event code={d}", .{ev.*.code});
             ctx.processed += 1;
-            ctx.alloc.destroy(ev);
         } else if (types.SensorPolyHelper.cast(poly)) |sn| {
-            std.log.debug("worker: Sensor value={d:.1}", .{sn.value});
+            std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
             ctx.processed += 1;
-            ctx.alloc.destroy(sn);
         }
     }
 }
@@ -62,11 +60,10 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.ShutdownExitFailed, ctx.processed == 3, "wrong processed count");
 }
 
-const std = @import("std");
-
 const helpers = @import("helpers");
 const types = helpers.types;
 const matryoshka = @import("matryoshka");
+const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;

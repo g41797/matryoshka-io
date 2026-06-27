@@ -85,10 +85,6 @@ test "2 - worker group spawn and join" {
     try group.await(io);
 }
 
-const std = @import("std");
-const testing = std.testing;
-const Io = std.Io;
-
 const matryoshka = @import("matryoshka");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
@@ -100,3 +96,6 @@ const helpers = @import("helpers");
 const types = helpers.types;
 const Event = types.Event;
 const EventPolyHelper = types.EventPolyHelper;
+const std = @import("std");
+const testing = std.testing;
+const Io = std.Io;

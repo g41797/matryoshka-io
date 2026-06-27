@@ -24,7 +24,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.DefineTypeFailed, recovered.*.priority == 1, "wrong priority");
 }
 
-const std = @import("std");
 const helpers = @import("helpers");
 const polynode = @import("matryoshka").polynode;
+const std = @import("std");
 const types = helpers.types;
