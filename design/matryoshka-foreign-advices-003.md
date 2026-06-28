@@ -1,4 +1,4 @@
-# Matryoshka Foreign Advices 002
+# Matryoshka Foreign Advices 003
 
 ## 1. API Reference Analysis
 
@@ -47,15 +47,19 @@ Alternatively, change `pool.put` to automatically destroy the item if the pool i
 
 ### 3.1 `pool.get_wait` Condition Variable Bug (Lost Signal on Multiple Tags)
 **Problem**: The `_Pool` implementation uses a single `Io.Condition` variable (`cond`) for the entire pool. When `pool.put` is called for a specific tag, it calls `p.cond.signal(io)`, which wakes exactly *one* waiting thread. 
-
 If multiple threads are waiting on different tags:
-- Thread A calls `get_wait` for Tag A.
-- Thread B calls `get_wait` for Tag B.
 - `pool.put` is called for Tag B.
-- `cond.signal()` wakes Thread A (spurious wakeup).
+- `cond.signal()` wakes Thread A (which is waiting for Tag A).
 - Thread A checks Tag A, finds it empty, and goes back to sleep.
-- The signal is now lost. Thread B remains blocked indefinitely even though the item for Tag B is available in the pool.
-
+- The signal is lost. Thread B (waiting for Tag B) remains blocked indefinitely even though the item for Tag B is available.
 **Advice/Fix**: Change `p.*.cond.signal(io)` to `p.*.cond.broadcast(io)` inside `pool.put`. This will wake all waiting threads, allowing them to independently check their respective tags.
+> **Note**: The system architect explicitly prefers fixing this via `p.cond.broadcast(io)` rather than implementing per-tag condition variables. The reasoning is that high thread contention (many threads simultaneously blocked on `pool.get_wait`) is unrealistic for the intended architecture, making the minimal "thundering herd" overhead of a broadcast acceptable and structurally simpler.
 
-> **Note**: The system architect explicitly prefers fixing this via `p.cond.broadcast(io)` rather than implementing per-tag condition variables. The reasoning is that high thread contention (many threads simultaneously blocked on `pool.get_wait` at the same time) is unrealistic for the intended architecture, making the minimal "thundering herd" overhead of a broadcast perfectly acceptable and structurally simpler.
+### 3.2 Lost Signal on Cancel or Timeout
+**Problem**: In `mailbox.receive` and `pool.get_wait`, if a thread is woken up by `cond.signal()` but its timeout has expired (or it was explicitly canceled via `Io.Cancelable`), `condition_waitTimeout` throws an error. The thread hits the `catch` block and exits immediately without popping the item or re-signaling the condition variable. Because the thread consumed the signal but didn't process the item, any other sleeping threads will remain asleep forever (Deadlock).
+**Advice/Fix**: In the `catch` blocks for `error.Timeout` and `error.Canceled`, the implementation must check if the wait condition is now true (e.g., `mbx.len > 0` for a mailbox). If it is, it must call `cond.signal(io)` to "pass the baton" and wake up the next waiting thread before returning the error.
+
+### 3.3 Concurrent `close()` Use-After-Free Race Condition
+**Problem**: Both `pool.close` and `mailbox.close` use an atomic `cmpxchg` to exit early if multiple threads call `close()` simultaneously. This happens *before* the mutex is acquired. 
+If Thread A calls `close()`, sets `closed = true`, but is preempted before locking the mutex, and Thread B calls `close()`, Thread B will hit the `cmpxchg`, see it is already `true`, and return immediately. The caller (assuming the mailbox is fully torn down because `close()` returned) then calls `destroy()`, which frees the memory. Thread A then wakes up and calls `mutex.lockUncancelable(io)` on a freed pointer.
+**Advice/Fix**: The `closed` flag should be checked and set *inside* the mutex critical section. If Thread B calls `close`, it should be forced to wait on the mutex lock until Thread A is completely finished with the teardown and broadcasting. This ensures `close()` acts as a true synchronous barrier for all callers before `destroy()` is executed.

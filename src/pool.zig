@@ -122,8 +122,14 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *polynode.Slot, tim
         }
 
         cond_timeout.condition_waitTimeout(&p.*.cond, io, &p.*.mutex, deadline) catch |err| switch (err) {
-            error.Timeout => return error.Timeout,
-            error.Canceled => return err,
+            error.Timeout => {
+                if (p.*.lists.getPtr(tag)) |l| if (l.first != null) p.*.cond.broadcast(io);
+                return error.Timeout;
+            },
+            error.Canceled => {
+                if (p.*.lists.getPtr(tag)) |l| if (l.first != null) p.*.cond.broadcast(io);
+                return err;
+            },
         };
     }
 }
@@ -164,7 +170,7 @@ pub fn put(ph: PoolHandle, slot: *polynode.Slot) void {
             list.prepend(&kept.*.node);
             p.*.counts.getPtr(kept_tag).?.* += 1;
             slot.* = null;
-            p.*.cond.signal(io);
+            p.*.cond.broadcast(io);
         }
     }
 
@@ -202,12 +208,15 @@ pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void {
 
 pub fn close(ph: PoolHandle) void {
     const p: *_Pool = PoolPolyHelper.cast(ph).?;
-
-    // CAS: only one caller does the work; others return immediately.
-    if (p.*.closed.cmpxchgStrong(false, true, .acq_rel, .acquire) != null) return;
-
     const io: Io = p.*.io;
     p.*.mutex.lockUncancelable(io);
+
+    // Check+set closed inside the mutex — prevents destroy() racing a preempted close() caller.
+    if (p.*.closed.load(.monotonic)) {
+        p.*.mutex.unlock(io);
+        return;
+    }
+    p.*.closed.store(true, .release);
 
     var collected: std.DoublyLinkedList = .{};
     var it = p.*.lists.valueIterator();

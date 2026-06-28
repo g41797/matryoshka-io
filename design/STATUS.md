@@ -21,7 +21,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-014.md
+- API: matryoshka-api-reference-015.md
 - Zig details: matryoshka-zig-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -31,7 +31,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-016.md
+- Plan: matryoshka-zig-implementation-plan-017.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -99,9 +99,57 @@ INTR 2 — DONE (121/121 tests). Plan version 014 created.
 Stage 7.a — DONE (121/121 tests). receiveResult/receive_future/getWaitResult/get_wait_future added to src/.
 INTR 3 — DONE (121/121 tests). ASCII ownership diagrams added to all 29 existing examples. Plan version 015 created.
 Stage 7.b — DONE (143/143 tests). 22 new example files + test wrappers. Plan version 016 created.
-Current: Stage 7.b complete. Next: Stage 8 — Mailbox-less patterns + cross-layer. Show intent first.
+INTR 4 — DONE (145/145 tests). Bug fixes + doc corrections. api-reference-015 created.
+Current: INTR 4 complete. Next: Stage 8 — Mailbox-less patterns + cross-layer. Show intent first.
 
 ## Session Log
+
+### 2026-06-28 — INTR 4 (Bug fixes + doc corrections from foreign-advices-003)
+**Participants**: human + Claude
+
+**Summary**
+Three correctness bugs fixed in `src/pool.zig` and `src/mailbox.zig`. Six doc corrections applied to new API reference version 015.
+
+**Bug fixes**
+
+- Bug 3.1 (`src/pool.zig`): `pool.put` used `cond.signal` — deadlock when multiple threads wait on different tags. Fixed: `signal` → `broadcast`.
+- Bug 3.2 (`src/pool.zig`, `src/mailbox.zig`): on cancel/timeout in `get_wait`/`receive`, if an item was present in the queue, the exiting thread did not re-signal. Fixed: check len/list before returning error; re-signal if item present.
+- Bug 3.3 (`src/pool.zig`, `src/mailbox.zig`): `close()` set `closed = true` via CAS before acquiring mutex. Race: Thread A sets closed=true, gets preempted; Thread B sees closed=true, returns; caller calls destroy(); Thread A resumes on freed memory. Fixed: check+set closed inside the mutex.
+
+**Doc corrections (api-reference-015)**
+
+- 1.1: `pool.put_all` thread-safety table corrected — NOT atomic wrt close().
+- 1.2: Pattern 1 extended with double-defer fallback for closed-pool case.
+- 1.3: `get_wait` zero-timeout documents intentional error divergence from `available_only`.
+- 1.4: Slot rule exception note for `receiveResult`/`getWaitResult`.
+- 2.3: `polynode.reset` warning added to stdlib compatibility section.
+
+**New tests**
+
+- `tests/layer4_cancel.zig` — `INTR4-1`: multi-tag pool.get_wait; two tasks wait on different tags; both get items (verifies broadcast fix).
+- `tests/layer4_cancel.zig` — `INTR4-2`: cancel one pool waiter; second waiter gets the item seeded after cancel.
+
+**Changes**
+- `src/pool.zig` — Bug 3.1 (broadcast in put), Bug 3.2 (re-signal in get_wait), Bug 3.3 (close inside mutex)
+- `src/mailbox.zig` — Bug 3.2 (re-signal in receive), Bug 3.3 (close inside mutex)
+- `tests/layer4_cancel.zig` — 2 new tests (INTR4-1, INTR4-2); SensorPolyHelper import added; "ensures" × 2 → "forces"/"wakes all waiters"
+- `design/matryoshka-api-reference-015.md` — new version (6 doc corrections)
+- `design/context.md` — api-ref → 015
+- `design/STATUS.md` — api-ref → 015; stages + this entry
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `build_and_test_debug.sh` | 145/145 pass |
+| `build_and_test_all.sh` | 145/145 pass (all 4 modes) |
+| `build_cross_debug.sh` | 5/5 steps pass |
+| Post-stage cleanup | "ensures" × 2 found and replaced in new test comments |
+| AI-sh + banned words scan | clean after fixes |
+
+**Next**: Stage 8 — Mailbox-less patterns + cross-layer. Show intent first.
+
+---
 
 ### 2026-06-28 — Session 19 (Stage 7.b — Event source examples)
 **Participants**: human + Claude

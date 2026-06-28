@@ -174,6 +174,11 @@ The slot rule:
 - Transfer clears the slot: sender sets `slot.* = null`. After transfer, slot is null.
 - Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
 
+**Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`
+parameter. They transfer ownership via the returned union value (`ReceiveResult.item`,
+`PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union
+and owns it from that point. This is an intentional exception to the slot-pointer pattern.
+
 ### Why acquisition APIs assert null
 
 Every acquisition API has this check:
@@ -262,6 +267,16 @@ try pool.get(ph, TAG, .new_only, &slot);
 ```
 
 Put before get — safe because pool.put is a no-op on null.
+
+If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains
+ownership). Add a fallback destroy to avoid a leak:
+
+```zig
+var slot: Slot = null;
+defer EventPolyHelper.destroy(alloc, &slot); // fallback: frees if pool.put left slot non-null
+defer pool.put(ph, &slot);                   // primary: recycles to pool (clears slot on success)
+// defers run LIFO: pool.put first, then destroy (no-op if pool.put cleared slot)
+```
 
 ### Pattern 2 — defer-destroy-early (heap item via PolyHelper)
 
@@ -820,6 +835,11 @@ Batch operations use plain `std.DoublyLinkedList`:
 
 Walk results with `popFirst()` — standard Zig, nothing Matryoshka-specific.
 
+**Warning**: `std.DoublyLinkedList.popFirst()` does NOT clear the node's `prev`/`next` links.
+After popping a node, call `polynode.reset(poly)` before re-transferring the item or checking
+`polynode.is_linked`. Skipping reset causes false positives from `is_linked` and assert failures
+in pool/mailbox assert guards.
+
 ### Tag identity — class, not instance
 
 `PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.
@@ -1217,7 +1237,7 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *Slot, timeout_ns: 
 ```
 - Blocking acquisition.
 - `null` timeout = wait forever.
-- `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `get` with `available_only`.
+- `timeout_ns = 0` returns `error.Timeout` immediately — logically equivalent to `get(.available_only)`, but returns a different error (`error.Timeout` vs `error.NotAvailable`). This divergence is intentional: `get_wait` always uses the timeout error set regardless of the timeout value.
 - Calls `on_get` hook.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
@@ -1685,7 +1705,7 @@ Cancellation never closes the mailbox or pool. Closing is the caller's responsib
 | `pool.get` | yes | |
 | `pool.get_wait` | yes | One handle per waiter; scheduling order is runtime-dependent |
 | `pool.put` | yes | |
-| `pool.put_all` | yes | Batch is atomic |
+| `pool.put_all` | yes | Thread-safe per item; batch is NOT atomic wrt close() — items transferred before close go to on_close; items not yet transferred stay in caller's list |
 | `pool.close` | yes — once | Second call is a no-op |
 | `pool.destroy` | no | Must happen after all users have stopped |
 
@@ -1766,6 +1786,8 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 015 | 2026-06-28 | INTR 4 fixes. Bug 3.1: pool.put_all thread-safety table corrected (NOT atomic wrt close). Bug 1.2: Pattern 1 extended with double-defer for closed-pool fallback. Bug 1.3: get_wait zero-timeout documents intentional error divergence from available_only. Bug 1.4: Slot rule exception note for receiveResult/getWaitResult. Bug 2.3: stdlib compatibility section — polynode.reset warning after popFirst(). |
+| 014 | 2026-06-28 | INTR 2 thread-safe hooks + hook concurrency contract. CappedPoolCtx io/mutex/count fields. in_pool_count semantics. |
 | 013 | 2026-06-28 | `## Prolog: std.Io` — corrected `Io.Select` description (Queue(U)+Group, not Future container). Updated event source diagram and added direct push pattern. Added `receiveResult` and `getWaitResult` as primary blocking functions. Updated `receive_future` and `get_wait_future` as thin wrappers (no heap allocation). Updated cancel contract table. Updated Master event source diagram. Added `#### Io.Select — internals` subsection (verified fields, select.concurrent mechanics, direct push, ICE agent reference). Added args-copying note to `#### io.concurrent`. Fixed `fires` → `runs` ×5 in slot-based programming code comments. |
 | 012 | 2026-06-27 | New rule `### No raw allocator calls on PolyNode-based types` in `## Cooperative cleanup patterns`. Violation/correct/exempt code examples. |
 | 011 | 2026-06-27 | New `## Slot-based programming` section: slot rule, lifecycle diagram, ownership-transfer diagram, defer-before-acquisition diagram. New `## Cooperative cleanup patterns` section: four patterns with code + diagrams. New `### PolyHelper — create and destroy` subsection: create/destroy functions, old-vs-new comparison, no_create_destroy comptime selection. Updated pool.put: null slot is now a no-op (no-op bullet added, assert clarified). |
@@ -1778,6 +1800,34 @@ Valid combinations:
 | 004 | 2026-06-23 | Proposal 29: `pool.put` open/closed behavior clarified. Proposal 30: `receive_select` and `get_wait_select` removed — `Future` composes directly with `Io.Select`, dedicated Select adapters are unnecessary API surface. |
 | 005 | 2026-06-24 | Proposal 31: Reformat for readability and `///` doc comment use. Cancel indicator rule. Cancel table corrected. Event source concept added to Master with diagrams. Mailbox Integration section merged into Event source helpers. Informal terms cleaned up. |
 | 006 | 2026-06-24 | Proposal 32: Staccato rhythm for all prose. Every non-function section reformatted: short intro then bullets. Comma-separated lists broken into bullet lists. |
+
+---
+
+## Change manifest (015) — for downstream propagation
+
+### Thread-safety table — pool.put_all corrected
+
+- Old: `Batch is atomic`
+- New: thread-safe per item; batch NOT atomic wrt close(); items mid-transfer split across on_close and caller's list.
+
+### Cooperative cleanup patterns — Pattern 1 extended
+
+- Added double-defer snippet for closed-pool fallback: `defer PolyHelper.destroy` + `defer pool.put`.
+- Explains LIFO order: pool.put runs first, destroy is no-op if pool.put cleared slot.
+
+### pool.get_wait — zero-timeout error clarified
+
+- Documents intentional divergence: `timeout_ns = 0` returns `error.Timeout`; `get(.available_only)` returns `error.NotAvailable` for the same empty-pool condition.
+
+### Slot-based programming — event-source helper exception
+
+- Added **Exception** note after the slot rule bullets.
+- `receiveResult` / `getWaitResult` transfer ownership via union value, not `*Slot`. Intentional exception.
+
+### polynode stdlib compatibility — popFirst warning
+
+- Added **Warning** after "Walk results with popFirst()".
+- `popFirst()` does not clear prev/next links. Call `polynode.reset(poly)` before re-transfer or is_linked check.
 
 ---
 

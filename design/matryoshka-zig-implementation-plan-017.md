@@ -1,4 +1,4 @@
-# Matryoshka Zig 0.16 — Staged Implementation Plan (016)
+# Matryoshka Zig 0.16 — Staged Implementation Plan (017)
 
 Plan document only. No code here.
 The specs are already written. This document tells the implementer how to
@@ -52,10 +52,10 @@ Legacy Zig mailbox. Starting point for `_Mailbox`.
 
 ### Design docs — `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/`
 
-- `matryoshka-api-reference-014.md` — **primary source of truth**: signatures, types, error sets, cancel contract, ownership lifecycle, contract violations, PolyHelper (create/destroy/no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, io.concurrent and Io.Group verified call syntax, receiveResult/getWaitResult/receive_future/get_wait_future. Wins over all other sources on any conflict.
+- `matryoshka-api-reference-015.md` — **primary source of truth**: signatures, types, error sets, cancel contract, ownership lifecycle, contract violations, PolyHelper (create/destroy/no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, io.concurrent and Io.Group verified call syntax, receiveResult/getWaitResult/receive_future/get_wait_future. Wins over all other sources on any conflict.
 - `matryoshka-architecture-001.md` — why, concepts, flows
 - `matryoshka-architecture-foundation-4-001.md` — language-independent architecture
-- `matryoshka-zig-0.16-implementation-guide-001.md` — **OLD, do not trust directly**. Useful only as a hint for Zig-specific patterns (struct layout, condition_waitTimeout, cancel mechanics). Every signature, type, error set, and assert from this file must be verified against `matryoshka-api-reference-014.md` before use.
+- `matryoshka-zig-0.16-implementation-guide-001.md` — **OLD, do not trust directly**. Useful only as a hint for Zig-specific patterns (struct layout, condition_waitTimeout, cancel mechanics). Every signature, type, error set, and assert from this file must be verified against `matryoshka-api-reference-015.md` before use.
 - `collected-context-003.md` — master reference, proposals, decisions
 - `task1-scenarios-001.md` — 92 scenarios (Layers 1-3) — historical source
 - `task2-scenarios-001.md` — 61 scenarios (Layer 4+) — historical source
@@ -156,7 +156,7 @@ These rules are writen in blood. Follow them
 - `design/context.md` is the stable entry point — always points to the latest `collected-context-NNN.md`.
 
 ### Plan Versioning (MUST)
-- After each completed stage, create a new plan version (e.g., plan-015 → plan-016).
+- After each completed stage, create a new plan version (e.g., plan-016 → plan-017).
 - In the new version, collapse completed stages to a one-line summary: "Stage N — Name. DONE. See Session X."
 - Keep active + future stages in full detail.
 - Old plan versions stay as historical record. Do not delete them.
@@ -174,7 +174,7 @@ These rules are writen in blood. Follow them
 - Each fix in a multi-fix plan needs its own approval.
 
 ### Implementation (MUST)
-- Source of truth for signatures, types, errors: `matryoshka-api-reference-014.md`. Wins over all other sources.
+- Source of truth for signatures, types, errors: `matryoshka-api-reference-015.md`. Wins over all other sources.
 - Implementation guide (`matryoshka-zig-0.16-implementation-guide-001.md`) is OLD — verify every detail against the API reference before use.
 - Source of truth for architecture: `matryoshka-architecture-foundation-4-001.md`.
 - Architecture introduction (why, concepts, flows): `matryoshka-architecture-001.md`.
@@ -188,7 +188,7 @@ These rules are writen in blood. Follow them
   for both `_Mailbox` and `_Pool` (Zig has no native `Io.Condition.waitTimeout`,
   issue codeberg/zig#31278).
 - Architectural changes need explicit owner approval before implementation.
-- Never use `allocator.create` / `allocator.destroy` directly on PolyNode-based user types (Event, Sensor, Timer, ShutdownCommand) in examples or tests. Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot`. Exempt: infrastructure internals, hook bodies, non-PolyNode structs. See `matryoshka-api-reference-014.md § Cooperative cleanup patterns`.
+- Never use `allocator.create` / `allocator.destroy` directly on PolyNode-based user types (Event, Sensor, Timer, ShutdownCommand) in examples or tests. Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot`. Exempt: infrastructure internals, hook bodies, non-PolyNode structs. See `matryoshka-api-reference-015.md § Cooperative cleanup patterns`.
 
 ### Slot Rule (MUST)
 - Never overwrite a non-null slot.
@@ -243,7 +243,7 @@ Before start of every stage ask owner whether he wants audit.
 For 'yes' or similar answer:
 
 - read design/STATUS.md and design/context.md
-- read matryoshka-api-reference-014.md
+- read matryoshka-api-reference-015.md
 - then audit all .zig files in examples/ and tests/ for violations of rules
 - List every file and line, do not fix anything
 
@@ -300,6 +300,7 @@ Stage 9     Docs + README + autodocs
 ### Stage 7.a — Event sources: implementation. DONE. See Session 18 (2026-06-28). 121/121 tests.
 ### INTR 3 — ASCII ownership diagrams retrofit (all 29 existing examples). DONE. See Session 18 (2026-06-28). 121/121 tests.
 ### Stage 7.b — Event sources: examples (scenarios 25-31, 42-56). DONE. See Session 19 (2026-06-28). 143/143 tests.
+### INTR 4 — Bug fixes + doc corrections (foreign-advices-003). DONE. 145/145 tests. api-reference-015 created.
 
 ---
 
@@ -349,5 +350,5 @@ Totals: 94 task1 (Stages 1-4), 61 task2 (Stages 5-8).
 | Doc | Owns |
 |-----|------|
 | collected-context-003.md | Master reference. Paths, proposals, decisions, open items, Stages 0-5 + INTR 1 summary. |
-| matryoshka-api-reference-014.md | **Primary source of truth.** Signatures, types, error sets, cancel contract, ownership lifecycle, PolyHelper (create/destroy/no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, thread-safety, complexity, hook concurrency contract, receiveResult/getWaitResult/receive_future/get_wait_future. Wins over all other sources. |
+| matryoshka-api-reference-015.md | **Primary source of truth.** Signatures, types, error sets, cancel contract, ownership lifecycle, PolyHelper (create/destroy/no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, thread-safety, complexity, hook concurrency contract, receiveResult/getWaitResult/receive_future/get_wait_future. Wins over all other sources. |
 | matryoshka-zig-0.16-implementation-guide-001.md | **OLD — verify all details against API reference before use.** Zig how-to patterns: struct layout, condition_waitTimeout, cancel mechanics, Odin→Zig appendix. |

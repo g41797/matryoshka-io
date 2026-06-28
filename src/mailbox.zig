@@ -109,8 +109,14 @@ pub fn receive(mbh: MailboxHandle, slot: *polynode.Slot, timeout_ns: ?u64) (erro
     while (mbx.*.len == 0) {
         if (mbx.*.closed.load(.monotonic)) return error.Closed;
         cond_timeout.condition_waitTimeout(&mbx.*.cond, io, &mbx.*.mutex, deadline) catch |err| switch (err) {
-            error.Timeout => return error.Timeout,
-            error.Canceled => return err,
+            error.Timeout => {
+                if (mbx.*.len > 0) mbx.*.cond.signal(io);
+                return error.Timeout;
+            },
+            error.Canceled => {
+                if (mbx.*.len > 0) mbx.*.cond.signal(io);
+                return err;
+            },
         };
     }
 
@@ -175,14 +181,15 @@ pub fn receive_batch(mbh: MailboxHandle) error{Closed}!std.DoublyLinkedList {
 
 pub fn close(mbh: MailboxHandle) std.DoublyLinkedList {
     const mbx: *_Mailbox = MailboxPolyHelper.cast(mbh).?;
-
-    if (mbx.*.closed.cmpxchgStrong(false, true, .acq_rel, .acquire) != null) {
-        return .{};
-    }
-
     const io: Io = mbx.*.io;
     mbx.*.mutex.lockUncancelable(io);
-    defer mbx.*.mutex.unlock(io);
+
+    // Check+set closed inside the mutex — prevents destroy() racing a preempted close() caller.
+    if (mbx.*.closed.load(.monotonic)) {
+        mbx.*.mutex.unlock(io);
+        return .{};
+    }
+    mbx.*.closed.store(true, .release);
 
     const result: std.DoublyLinkedList = mbx.*.list;
     mbx.*.list = .{};
@@ -191,6 +198,7 @@ pub fn close(mbh: MailboxHandle) std.DoublyLinkedList {
     mbx.*.oob_last = null;
 
     mbx.*.cond.broadcast(io);
+    mbx.*.mutex.unlock(io);
 
     return result;
 }

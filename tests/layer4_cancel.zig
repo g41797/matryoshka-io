@@ -502,7 +502,7 @@ test "13 - pool.put is cancel-protected" {
 
 // --- Scenario 14: mailbox.close uses lockUncancelable ---
 //
-// Use two mailboxes: mbh_listen (empty) ensures the worker blocks before cancel
+// Use two mailboxes: mbh_listen (empty) forces the worker to block before cancel
 // takes effect. mbh_data (3 items pre-loaded) is closed by the worker when canceled,
 // exercising the lockUncancelable path with cancel active.
 
@@ -669,9 +669,146 @@ test "16 - checkCancel in CPU-bound work" {
     try testing.expect(ctx.check_canceled.load(.acquire));
 }
 
+// --- INTR 4 Bug 3.1: pool.put must broadcast for multi-tag pools ---
+//
+// With signal(), put(tag_B) might wake a thread waiting for tag_A.
+// That thread finds no item for tag_A and goes back to sleep.
+// The tag_B waiter remains blocked indefinitely.
+// Fix: use broadcast() in put() so all waiters check their own tag.
+
+const CtxGetter = struct {
+    ph: PoolHandle,
+    tag: *const anyopaque,
+    started: *std.atomic.Value(u32),
+    got_item: std.atomic.Value(bool) = std.atomic.Value(bool).init(false),
+};
+
+fn multiTagGetter(ctx: *CtxGetter) anyerror!void {
+    _ = ctx.started.fetchAdd(1, .monotonic);
+    var slot: Slot = null;
+    pool.get_wait(ctx.ph, ctx.tag, &slot, null) catch return;
+    ctx.got_item.store(slot != null, .release);
+    pool.put(ctx.ph, &slot);
+}
+
+test "INTR4-1 - pool.put broadcasts: multi-tag waiters each get correct item" {
+    std.testing.log_level = .debug;
+    var threaded: Io.Threaded = Io.Threaded.init(testing.allocator, .{});
+    defer threaded.deinit();
+    const io: Io = threaded.io();
+
+    const ph: PoolHandle = try pool.new(io, testing.allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    const tags = [_]*const anyopaque{ EventPolyHelper.TAG, SensorPolyHelper.TAG };
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, testing.allocator);
+    }
+
+    var started = std.atomic.Value(u32).init(0);
+    var ctx_ev: CtxGetter = .{ .ph = ph, .tag = EventPolyHelper.TAG, .started = &started };
+    var ctx_sn: CtxGetter = .{ .ph = ph, .tag = SensorPolyHelper.TAG, .started = &started };
+
+    var fut_ev = try io.concurrent(multiTagGetter, .{&ctx_ev});
+    var fut_sn = try io.concurrent(multiTagGetter, .{&ctx_sn});
+
+    // Wait for both tasks to enter get_wait and block.
+    while (started.load(.acquire) < 2) std.Thread.yield() catch {};
+    const sleep_t: Io.Timeout = .{
+        .duration = .{ .raw = .{ .nanoseconds = @as(i96, 10_000_000) }, .clock = .real },
+    };
+    Io.Timeout.sleep(sleep_t, io) catch {};
+
+    // Seed one item per tag. broadcast() in put() wakes all waiters; each checks its own tag.
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
+        pool.put(ph, &slot);
+    }
+    {
+        var slot: Slot = null;
+        try pool.get(ph, SensorPolyHelper.TAG, .new_only, &slot);
+        pool.put(ph, &slot);
+    }
+
+    try fut_ev.await(io);
+    try fut_sn.await(io);
+
+    try testing.expect(ctx_ev.got_item.load(.acquire));
+    try testing.expect(ctx_sn.got_item.load(.acquire));
+}
+
+// --- INTR 4 Bug 3.2: re-signal on cancel — item not stranded ---
+//
+// When a waiter exits due to cancel/timeout while an item is present,
+// it re-signals the condition so the next waiter can get the item.
+// Without the fix, canceling the only active waiter (even after item arrives)
+// could leave the item unclaimed if another waiter starts after the put signal was lost.
+
+const CtxCancel = struct {
+    ph: PoolHandle,
+    started: *std.atomic.Value(bool),
+    got_item: std.atomic.Value(bool) = std.atomic.Value(bool).init(false),
+};
+
+fn canceledGetter(ctx: *CtxCancel) anyerror!void {
+    ctx.started.store(true, .release);
+    var slot: Slot = null;
+    defer pool.put(ctx.ph, &slot);
+    pool.get_wait(ctx.ph, EventPolyHelper.TAG, &slot, null) catch return;
+    ctx.got_item.store(true, .release);
+}
+
+test "INTR4-2 - re-signal on cancel: second waiter gets item after first is canceled" {
+    std.testing.log_level = .debug;
+    var threaded: Io.Threaded = Io.Threaded.init(testing.allocator, .{});
+    defer threaded.deinit();
+    const io: Io = threaded.io();
+
+    const ph: PoolHandle = try pool.new(io, testing.allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    const tags = [_]*const anyopaque{EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, testing.allocator);
+    }
+
+    // Thread A: blocked in get_wait — will be canceled.
+    var started_a = std.atomic.Value(bool).init(false);
+    var ctx_a: CtxCancel = .{ .ph = ph, .started = &started_a };
+    var fut_a = try io.concurrent(canceledGetter, .{&ctx_a});
+    while (!started_a.load(.acquire)) std.Thread.yield() catch {};
+    const sleep_t: Io.Timeout = .{
+        .duration = .{ .raw = .{ .nanoseconds = @as(i96, 5_000_000) }, .clock = .real },
+    };
+    Io.Timeout.sleep(sleep_t, io) catch {};
+
+    fut_a.cancel(io) catch {};
+
+    // Thread B: gets the item seeded after A is canceled.
+    var started_b = std.atomic.Value(bool).init(false);
+    var ctx_b: CtxCancel = .{ .ph = ph, .started = &started_b };
+    var fut_b = try io.concurrent(canceledGetter, .{&ctx_b});
+    while (!started_b.load(.acquire)) std.Thread.yield() catch {};
+    Io.Timeout.sleep(sleep_t, io) catch {};
+
+    // Seed one item. B must get it (A is gone).
+    {
+        var slot: Slot = null;
+        try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
+        pool.put(ph, &slot);
+    }
+
+    try fut_b.await(io);
+    try testing.expect(ctx_b.got_item.load(.acquire));
+}
+
 const helpers = @import("helpers");
 const types = helpers.types;
 const EventPolyHelper = types.EventPolyHelper;
+const SensorPolyHelper = types.SensorPolyHelper;
 const matryoshka = @import("matryoshka");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
