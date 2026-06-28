@@ -49,9 +49,19 @@ pub fn build(b: *std.Build) void {
     emod.addImport("matryoshka", mod);
     emod.addImport("helpers", helpers);
 
+    const smod: *std.Build.Module = b.addModule("stories", .{
+        .root_source_file = b.path("stories/stories.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    smod.addImport("matryoshka", mod);
+    smod.addImport("helpers", helpers);
+
     tmod.addImport("matryoshka", mod);
     tmod.addImport("helpers", helpers);
     tmod.addImport("examples", emod);
+    tmod.addImport("stories", smod);
 
     const lib_unit_tests: *std.Build.Step.Compile = b.addTest(.{
         .root_module = tmod,

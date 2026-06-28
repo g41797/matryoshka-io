@@ -109,7 +109,7 @@ These rules are writen in blood. Follow them
 
 **Tests vs examples — different jobs**
 - Tests check implementation. Correctness, edge cases, error paths, state transitions, contract violations.
-- Examples show stories. Real usage patterns: "how to do fan-in", "how to seed a pool". They exercise the API in realistic, composed ways — this stress-tests the implementation harder than unit tests.
+- Examples show **stories**. Real usage **patterns**: starting from "how to do fan-in", "how to seed a pool" till whole **flows**. They exercise the API in realistic, composed ways — this stress-tests the implementation harder than unit tests.
 
 **Examples must show correct resource cleanup**
 - Every heap allocation needs `errdefer` for the error path.

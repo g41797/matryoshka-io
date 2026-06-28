@@ -9,7 +9,7 @@ API reference: [matryoshka-api-reference-015.md](matryoshka-api-reference-015.md
 
 Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
 
-Latest context: [collected-context-003.md](collected-context-003.md)
+Latest context: [collected-context-004.md](collected-context-004.md)
 
 Rules and plan: [matryoshka-zig-implementation-plan-017.md](matryoshka-zig-implementation-plan-017.md) — Section 0 (Sources), Section 1 (Process Rules + Build Order Rules), stages
 
