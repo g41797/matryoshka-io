@@ -1,6 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  main ──Event×10 + ShutdownCommand──► mailbox
+//       │
+//  worker: receive (first item) ──► freeSlot
+//          receive_batch (rest) ──► walk + freeItem
+//          (ShutdownCommand in batch → exit)
+
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,

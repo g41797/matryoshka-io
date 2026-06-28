@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  alloc.create × 5 ──► list (producer)
+//       │ list.popFirst × 5
+//       ▼
+//  freeItem per node (consumer)
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};

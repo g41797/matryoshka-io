@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  main ──Event×5 + Sensor×4──► mailbox ──► worker A
+//                                      ├──► worker B  (compete; each item goes to one)
+//                                      └──► worker C
+//  mailbox.close ──► remaining list ──► freeItem (main)
+
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,

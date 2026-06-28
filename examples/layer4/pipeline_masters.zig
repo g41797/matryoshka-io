@@ -1,6 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  producer ──Event──► transformer_mbh ──► transformer
+//                                              │ Event→Sensor conversion
+//                                              ▼
+//  consumer ◄──Sensor── consumer_mbh ◄── transformer
+//  (ShutdownCommand sentinel propagates: producer→transformer→consumer)
+//  fut_prod.await → fut_trans.await → fut_cons.await
+
 const ProducerCtx = struct {
     out_mbh: MailboxHandle,
     alloc: std.mem.Allocator,

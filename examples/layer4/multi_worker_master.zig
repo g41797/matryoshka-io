@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  master ──Event×3──► mailbox ──► worker A (Io.Group)
+//                             ├──► worker B  (compete; each freeSlot)
+//                             └──► worker C
+//  mailbox.close ──► remaining freeList ──► group.await
+
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,

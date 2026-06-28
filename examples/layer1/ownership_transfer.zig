@@ -1,6 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  alloc.create ──► slot (non-null)
+//       │ list.append + slot=null
+//       ▼
+//  list (owns item)
+//       │ list.popFirst + slot=item
+//       ▼
+//  slot (owns item again)
+//       │ freeSlot
+//       ▼
+//  freed
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
 

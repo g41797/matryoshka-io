@@ -1,6 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  pool.get (new_only) × 4 ──► pool.put × 4
+//  (pool holds 4 items)
+//       │ pool.close
+//       ▼
+//  on_close ──► AlwaysCreateCtx: destroys all 4 items
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

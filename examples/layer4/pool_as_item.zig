@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  pool.new × 2 ──► pool.put ──► carrier pool (holds inner pools as items)
+//       │ pool.close (carrier)
+//       ▼
+//  on_close ──► pool.close + pool.destroy per inner pool
+
 const CarrierCtx = struct {
     alloc: std.mem.Allocator,
     closed_count: usize = 0,

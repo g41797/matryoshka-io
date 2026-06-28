@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  timerSenderFn ──Timer×2──►
+//  eventSenderFn ──Event×3──► mailbox ──► workerFn (tag dispatch; close-based exit)
+//  signalSenderFn ──ShutdownCommand──►
+//  senders await → mailbox.close → workerFn exits → fut_worker.await
+
 const TICK_NS: i96 = 20_000_000; // 20 ms
 const N_EVENTS: usize = 3;
 const N_TICKS: usize = 2;

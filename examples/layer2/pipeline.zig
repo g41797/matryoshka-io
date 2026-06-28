@@ -1,6 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  producer ──Event──► stage1 mailbox ──► transformer
+//                                              │ Event→Event (code²)
+//                                              ▼
+//  consumer ◄──Event── stage2 mailbox ◄── transformer
+//  (sentinel: Event code=-1 terminates each stage; consumer frees)
+
 // Terminator sentinel: Event with code == -1 signals stage exit.
 
 const ProducerCtx = struct {

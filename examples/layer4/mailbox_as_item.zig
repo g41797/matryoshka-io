@@ -1,6 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
+//                                                           │ process
+//                                                           │ send worker_mbh ──► master_inbox
+//                                                           ▼ exit
+//  master ◄──worker_mbh (as NodeHandle)── master_inbox
+//  master: close + destroy worker_mbh (tag+pointer verified first)
+
 const WorkerCtx = struct {
     master_inbox: MailboxHandle,
     worker_mbh: MailboxHandle,

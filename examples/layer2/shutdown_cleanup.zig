@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  alloc.create × (n_events + n_sensors) ──► mailbox
+//       │ mailbox.close (no receive — all items returned)
+//       ▼
+//  DoublyLinkedList ──► freeItem × N
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(mbh, allocator);

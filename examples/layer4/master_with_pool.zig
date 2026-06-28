@@ -1,6 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  pool.get ──► slot ──mailbox.send──► mailbox
+//                                         │ worker (io.concurrent)
+//                                         │ mailbox.receive ──► slot
+//                                         │ pool.put (defer) ──► pool (recycled)
+//  fut.cancel ──► worker exits at next mailbox.receive
+
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     ph: PoolHandle,

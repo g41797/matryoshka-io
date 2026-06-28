@@ -1,6 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  main ──alloc.create──► slot ──mailbox.send──► mailbox
+//                                                    │
+//                                              worker thread
+//                                              mailbox.receive
+//                                                    │ freeSlot
+//  mailbox.close ──► remaining list ──► freeList (main)
+
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,

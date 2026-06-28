@@ -1,6 +1,14 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  alloc.create ──► slot (non-null)
+//       │
+//  Builder.cast ──► field access (no transfer)
+//       │
+//  Builder.destroyByTag ──► slot = null (freed)
+
 pub const Builder = struct {
     alloc: std.mem.Allocator,
 

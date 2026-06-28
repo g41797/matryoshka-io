@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  main ──Event×2──►
+//  timerFn ──Timer×2──► mailbox ──► workerFn (tag dispatch; fixed count)
+//  (workerFn exits after receiving N_EVENTS + N_TICKS items)
+//  fut_timer.await → fut_worker.await
+
 const TICK_NS: i96 = 50_000_000; // 50 ms
 const N_EVENTS: usize = 2;
 const N_TICKS: usize = 2;

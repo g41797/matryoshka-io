@@ -195,6 +195,30 @@ pub fn close(mbh: MailboxHandle) std.DoublyLinkedList {
     return result;
 }
 
+pub const ConcurrentError = error{ConcurrencyUnavailable};
+
+pub const ReceiveResult = union(enum) {
+    item: polynode.NodeHandle,
+    closed: void,
+    timeout: void,
+    canceled: void,
+};
+
+pub fn receiveResult(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
+    var slot: polynode.Slot = null;
+    receive(mbh, &slot, timeout_ns) catch |err| return switch (err) {
+        error.Closed => .closed,
+        error.Timeout => .timeout,
+        error.Canceled => .canceled,
+    };
+    return .{ .item = slot.? };
+}
+
+pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.Future(ReceiveResult) {
+    const mbx: *_Mailbox = MailboxPolyHelper.cast(mbh).?;
+    return mbx.*.io.concurrent(receiveResult, .{ mbh, timeout_ns });
+}
+
 const _Mailbox = struct {
     const no_create_destroy = void{};
 

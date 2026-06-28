@@ -1,6 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  master A ──Event(request)──► b_inbox ──► master B
+//  master A ◄──Sensor(response)── a_inbox ◄── master B
+//  (fut_a + fut_b run concurrently; fut_a.await → fut_b.await)
+
 const MasterACtx = struct {
     a_inbox: MailboxHandle,
     b_inbox: MailboxHandle,

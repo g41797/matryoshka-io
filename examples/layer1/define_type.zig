@@ -1,6 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  stack: var msg: Message
+//       │
+//  PolyHelper.init ──► msg.poly.tag set (no alloc)
+//       │
+//  MessagePolyHelper.cast ──► field access (no transfer)
+//  (stack-allocated — no free needed)
+
 pub const Message = struct {
     poly: polynode.PolyNode = .{},
     text: []const u8 = "",

@@ -225,6 +225,33 @@ pub fn close(ph: PoolHandle) void {
     }
 }
 
+pub const ConcurrentError = error{ConcurrencyUnavailable};
+
+pub const PoolResult = union(enum) {
+    item: polynode.NodeHandle,
+    closed: void,
+    timeout: void,
+    canceled: void,
+    not_created: void,
+};
+
+pub fn getWaitResult(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) PoolResult {
+    var slot: polynode.Slot = null;
+    get_wait(ph, tag, &slot, timeout_ns) catch |err| return switch (err) {
+        error.Closed => .closed,
+        error.Timeout => .timeout,
+        error.Canceled => .canceled,
+        error.NotAvailable => .not_created,
+        error.NotCreated => .not_created,
+    };
+    return .{ .item = slot.? };
+}
+
+pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) ConcurrentError!Io.Future(PoolResult) {
+    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    return p.*.io.concurrent(getWaitResult, .{ ph, tag, timeout_ns });
+}
+
 // O(1) splice: move all nodes from src to end of dst, clear src.
 fn _concat(dst: *std.DoublyLinkedList, src: *std.DoublyLinkedList) void {
     if (src.first == null) return;

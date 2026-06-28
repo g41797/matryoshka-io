@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  pool.get (available_or_new) ──► slot (new via on_get)
+//       │ pool.put ──► pool (recycled)
+//       │ pool.get (available_or_new) ──► slot (same item, data intact)
+//       │ EventPolyHelper.destroy ──► freed
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

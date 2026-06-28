@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  eventSenderFn ──Event×5──►
+//  sensorSenderFn ──Sensor×5──► mailbox ──receive_batch──► freeItem per node
+//  altSenderFn ──mixed×4──►
+//  (3 concurrent senders fan-in to one mailbox)
+
 const SenderCtx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,

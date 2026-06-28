@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  alloc.create ──► slot ──mailbox.send──► mailbox (owns)
+//                                              │ mailbox.receive
+//                                              ▼
+//                                         slot ──► freeSlot
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

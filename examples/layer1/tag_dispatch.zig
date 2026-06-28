@@ -1,6 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  alloc.create (Event) ──► list
+//  alloc.create (Sensor) ──► list
+//       │ list.popFirst
+//       ▼
+//  tag check ──► EventPolyHelper.cast or SensorPolyHelper.cast
+//       │ freeItem per node
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};

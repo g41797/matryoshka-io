@@ -1,6 +1,15 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
+// Ownership:
+//
+//  mailbox.send (Event×3) ──► queue tail
+//  mailbox.send_oob (ShutdownCommand) ──► queue front
+//       │ mailbox.receive ×4
+//       ▼
+//  OOB ShutdownCommand arrives first, then Events in send order
+//  freeSlot per item
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
