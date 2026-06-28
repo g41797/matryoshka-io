@@ -3,17 +3,20 @@
 
 // Ownership:
 //
-//  pool (seeded: Event×3)
-//  │
-//  worker1 ──pool.get──► process ──pool.put──► pool
-//  worker2 ──pool.get──► process ──pool.put──► pool
-//  worker3 ──pool.get──► process ──pool.put──► pool
+//  Seed: N_ITEMS items pre-created and placed in pool free list.
+//
+//  worker1 ──pool.get_wait──► process ──pool.put──► pool
+//  worker2 ──pool.get_wait──► process ──pool.put──► pool
+//  worker3 ──pool.get_wait──► process ──pool.put──► pool
 //  │
 //  master: Select(MasterEvent) ──getWaitResult──► .pool_ev .item
 //          re-spawn getWaitResult after each item
 //          stop after N_ITEMS returned
 //  │
-//  sel.cancelDiscard() ──► pool.close ──► on_close ──► freeList
+//  sel.cancelDiscard() ──► pool.close ──► broadcast ──► workers exit (Closed/Canceled)
+//                      ──► on_close ──► freeList
+//
+//  get_wait: workers block until an item is available; Closed/Canceled on pool.close = clean exit.
 
 const N_ITEMS: usize = 3;
 
@@ -23,15 +26,16 @@ const MasterEvent = union(enum) {
 
 const WorkerCtx = struct {
     ph: PoolHandle,
-    alloc: std.mem.Allocator,
 };
 
 fn workerFn(ctx: *WorkerCtx) anyerror!void {
     var slot: Slot = null;
-    try pool.get(ctx.ph, types.EventPolyHelper.TAG, .available_only, &slot);
+    pool.get_wait(ctx.ph, types.EventPolyHelper.TAG, &slot, null) catch |err| switch (err) {
+        error.Closed, error.Canceled => return,
+        else => return err,
+    };
     const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
     std.log.info("worker: processing Event code={d}", .{ev.code});
-    // Simulate work, then return to pool.
     pool.put(ctx.ph, &slot);
 }
 
@@ -45,26 +49,22 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         pool.destroy(ph, allocator);
     }
 
-    // Seed pool with N_ITEMS.
-    for (0..N_ITEMS) |i| {
+    // Seed pool with N_ITEMS items so workers have items to get_wait on.
+    for (0..N_ITEMS) |_| {
         var slot: Slot = null;
         try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 100);
         pool.put(ph, &slot);
     }
 
-    // Launch workers that each take one item, process, put back.
-    var ctx1: WorkerCtx = .{ .ph = ph, .alloc = allocator };
-    var ctx2: WorkerCtx = .{ .ph = ph, .alloc = allocator };
-    var ctx3: WorkerCtx = .{ .ph = ph, .alloc = allocator };
+    var ctx1: WorkerCtx = .{ .ph = ph };
+    var ctx2: WorkerCtx = .{ .ph = ph };
+    var ctx3: WorkerCtx = .{ .ph = ph };
     var w1 = try io.concurrent(workerFn, .{&ctx1});
     var w2 = try io.concurrent(workerFn, .{&ctx2});
     var w3 = try io.concurrent(workerFn, .{&ctx3});
 
-    // Master uses Select to watch the pool for returned items.
     var buf: [4]MasterEvent = undefined;
     var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-
     try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
 
     var returned: usize = 0;
