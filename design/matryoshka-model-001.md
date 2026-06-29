@@ -1,8 +1,8 @@
-# Matryoshka Thinking Model
+# Matryoshka Thinking Model (001)
 
-Permanent doc. Not versioned.
 The mental model behind every Matryoshka design decision.
-Companion: [rules.md](rules.md) — the coding and process rules.
+Companion: [rules-001.md](rules-001.md) — the coding and process rules.
+Companion: [patterns-001.md](patterns-001.md) — reusable coding patterns.
 
 ---
 
@@ -51,7 +51,7 @@ Ownership is visible at the call site.
 - It is a backpressure signal.
 - `pool.getWaitResult` inside `Io.Select` makes availability a first-class event source.
 - One loop handles data and buffer availability together.
-- When a worker returns an item, the pool fires and the waiter resumes.
+- When a worker returns an item, the pool wakes the waiter and the waiter resumes.
 - No sleep. No poll. No explicit backpressure code.
 
 ### Layers compose
@@ -164,6 +164,7 @@ Four parts.
 - Full implementation of the story.
 - All actors, all layers, graceful shutdown.
 - ASCII ownership circuit diagram at the top of the file.
+- Code is structured around Masters. See [patterns-001.md](patterns-001.md) for the coding patterns and the Master composition pattern.
 
 ### Test wrapper — `tests/stories_test.zig`
 

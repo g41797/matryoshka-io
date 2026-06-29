@@ -3,8 +3,9 @@
 v004 holds project state only: stages, test counts, slot rule, idiom patterns, Io primitives, bug fixes, open items, key decisions. Supersedes v003.
 
 Model and rules moved to permanent docs:
-- [matryoshka-model.md](matryoshka-model.md) — thinking model, three-category model, story structure.
-- [rules.md](rules.md) — coding, doc, and process rules.
+- [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model, three-category model, story structure.
+- [rules-001.md](rules-001.md) — coding, doc, and process rules.
+- [patterns-001.md](patterns-001.md) — reusable coding patterns.
 
 ---
 
@@ -131,8 +132,9 @@ matryoshka-zig/
 ## Model and Rules — Moved
 
 The thinking model, three-category model, and story structure moved to permanent docs.
-- [matryoshka-model.md](matryoshka-model.md) — thinking model, three-category model, story structure.
-- [rules.md](rules.md) — coding, doc, and process rules.
+- [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model, three-category model, story structure.
+- [rules-001.md](rules-001.md) — coding, doc, and process rules.
+- [patterns-001.md](patterns-001.md) — reusable coding patterns.
 
 This document keeps project state only.
 
@@ -235,7 +237,7 @@ try mailbox.receive(mbh, &slot, null);
 ### Pattern 4 — transfer clears the slot
 ```zig
 try mailbox.send(mbh, &slot);   // send sets slot.* = null
-// defer fires as no-op — item transferred
+// defer runs as no-op — item transferred
 ```
 
 ---

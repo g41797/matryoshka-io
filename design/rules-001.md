@@ -1,8 +1,27 @@
-# Matryoshka Zig — Rules
+# Matryoshka Zig — Rules (001)
 
-Permanent doc. Not versioned.
+Versioned doc. Replaces the non-versioned `rules.md`.
 All coding, doc, and process rules for the project.
-Companion: [matryoshka-model.md](matryoshka-model.md) — the thinking model.
+Companion: [matryoshka-model-001.md](matryoshka-model-001.md) — the thinking model.
+Companion: [patterns-001.md](patterns-001.md) — reusable coding patterns.
+
+---
+
+## Code quality — all categories
+
+Tests, examples, and stories follow one quality bar.
+
+- Same bar as production code: structured, reusable, well-named.
+- No throwaway code in any category.
+- Quality, modularity, and naming are identical to production code.
+
+They differ only in visibility and job.
+
+- Tests check correctness. Internal. Not in generated docs.
+- Examples show one pattern. Part of generated docs.
+- Stories show matryoshka thinking across multiple layers. Part of narrative docs.
+
+The difference is the job, never the quality.
 
 ---
 
@@ -64,6 +83,36 @@ Scope and shape.
 - Test wrapper in single `tests/stories_test.zig`, using `std.Io.Threaded.init`.
 - SPDX header required if placed under `src/`-style ownership; owner adds SPDX headers.
 
+### Story structure — Master composition rule
+
+A story composes Masters. This rule is derived from matryoshka's own Master concept.
+
+What a Master is.
+- A Master is a coordination boundary.
+- It owns its resources: mailboxes, pools, allocator, application state.
+- It coordinates startup order, shutdown order, and cancellation policy for those resources.
+- An `Io.Select` loop is a Master. An `Io.Group` of workers under one coordinator is a Master.
+- There is no required Master struct or interface. The responsibility defines it, not the type.
+
+How a story is structured around Masters.
+- A story composes more than one Master.
+- Each Master is its own structured unit: a context struct for its state plus a function for its loop.
+- A Master's state struct holds the handles it owns and the counters it tracks.
+- A Master's loop function does the coordination: receive, dispatch, re-spawn, shut down.
+- Do not inline a Master's coordination loop into `run`.
+
+What `pub fn run` does.
+- `run` is thin.
+- `run` initializes shared resources.
+- `run` starts the Masters.
+- `run` awaits the Masters' shutdown in the mandatory order.
+- `run` does not hold a Master's per-event coordination logic.
+
+Why this shape.
+- It mirrors how matryoshka separates the coordination boundary from the entry point.
+- The reader sees one Master at a time, each with its owned resources.
+- Shutdown order is visible in `run`, not buried inside a loop.
+
 ---
 
 ## Coding Standards
@@ -104,6 +153,7 @@ The Slot Rule.
 - Cleanup ops (`pool.put`, `PolyHelper.destroy`, `helpers.freeSlot`) are no-ops on null slots.
 - Use defer-before-acquisition — safe because cleanup is null-safe.
 - Never use `allocator.create` / `allocator.destroy` directly on PolyNode-based user types in examples or tests. Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot`.
+- Exception: `receiveResult` and `getWaitResult` transfer ownership via the returned union value, not a `*Slot`. The caller extracts the handle and owns it from that point.
 
 Banned words.
 - `drain` — use `clear`, `reset`, `empty`, or a domain verb. Example: `clearList` not `drainList`.
@@ -134,7 +184,7 @@ Banned words.
 - Story narrative uses the 4-part structure: arch dialogue → SRS → matryoshka translation → flow diagram.
 - Diagrams are ASCII, human-readable, not space-optimized.
 - Do not save space in files. Clarity over brevity.
-- Cross-reference instead of duplicating. Link to `matryoshka-model.md` and `rules.md`.
+- Cross-reference instead of duplicating. Link to `matryoshka-model-001.md`, `rules-001.md`, and `patterns-001.md`.
 - When appending to a doc, match the heading levels already in use.
 
 ---
@@ -151,9 +201,12 @@ Per-stage finish checklist.
 3. `kitchen/build_cross_debug.sh` — cross-compile Debug for mac + windows.
 4. Post-stage cleanup: revise code for obsolete parts, wrong comments, repeated code that can be extracted.
 5. Re-run all three kitchen scripts after cleanup.
-6. AI-sh + banned words scan over changed `*.md` and `*.zig`. Report to owner.
-7. Update `design/STATUS.md` Session Log. Include a "Post-stage cleanup" row. Absence of that row means the rule was skipped.
-8. Sync `README.md` and any touched per-module README.
+6. After kitchen scripts pass: scan changed `.zig` files for patterns not yet in `patterns-001.md`.
+   - Report candidate new patterns to owner. Owner decides.
+   - Do not auto-document or auto-extract. Report only.
+7. AI-sh + banned words scan over changed `*.md` and `*.zig`. Report to owner.
+8. Update `design/STATUS.md` Session Log. Include a "Post-stage cleanup" row. Absence of that row means the rule was skipped.
+9. Sync `README.md` and any touched per-module README.
 
 Kitchen script order.
 - `build_and_test_debug.sh` → `build_and_test_all.sh` → `build_cross_debug.sh`.
@@ -169,7 +222,8 @@ New plan version vs update.
 - Old plan versions stay as historical record. Do not delete them.
 
 Document versioning.
-- Never overwrite an important design doc. New file with incremented suffix.
+- Never overwrite any doc. Create a new file with incremented suffix.
+- All docs require a version suffix (-001, -002, ...). No exceptions.
 - Doc link rule: after creating any new doc version, update all cross-references to the old version in every other doc. No exception. Owner never does this manually.
 - `design/context.md` is the stable entry point.
 
@@ -192,9 +246,29 @@ Implementation invariants.
 - `error.Canceled` is never remapped to `error.Closed`.
 - `condition_waitTimeout` is a private helper copied from the legacy mailbox (codeberg/zig#31278).
 
+---
+
+## Implementation invariants
+
 `std.DoublyLinkedList` and `polynode.reset`.
 - `std.DoublyLinkedList` does nothing for node safety. Any removal (`remove`, `pop`, `popFirst`, or any variant) does NOT zero `prev`/`next` on the removed node.
 - After any list removal, the node's `prev`/`next` still point into the old list. `polynode.is_linked` returns true. `polynode.destroy` will assert-fail.
 - Rule: call `polynode.reset(poly)` immediately after any list removal, before any `PolyHelper.destroy` call.
 - This applies everywhere: `on_close` hooks, mailbox close walks, pool close walks, any custom list traversal.
 - The list provides no safety net. The developer is solely responsible.
+
+---
+
+## Matryoshka Coding Patterns
+
+The pattern catalog lives in [patterns-001.md](patterns-001.md).
+
+- Pool modes, seeding, backpressure, hooks.
+- Io.Select event loop and re-register.
+- Io.Group worker sets and shutdown.
+- Graceful shutdown ordering.
+- Polymorphic dispatch on tag.
+- Error handling on receive (Closed/Timeout vs Canceled).
+- Master composition.
+
+Rules constrain. Patterns reuse. Read the catalog for code shapes; read this doc for what is mandatory.

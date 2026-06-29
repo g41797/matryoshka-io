@@ -48,12 +48,13 @@ Examples to review.
 - Promote or merge micro-tests where a clearer single-pattern example helps.
 
 Doc review.
-- Check all existing narratives for human-readability per `rules.md`.
+- Check all existing narratives for human-readability per `rules-001.md`.
 - Confirm diagrams are ASCII, human-readable, not space-optimized.
 
 ---
 
 ## References
 
-- [matryoshka-model.md](matryoshka-model.md) — thinking model, three-category model, story structure.
-- [rules.md](rules.md) — coding, doc, and process rules.
+- [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model, three-category model, story structure.
+- [rules-001.md](rules-001.md) — coding, doc, and process rules.
+- [patterns-001.md](patterns-001.md) — reusable coding patterns.

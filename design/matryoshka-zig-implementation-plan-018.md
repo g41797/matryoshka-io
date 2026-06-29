@@ -1,7 +1,7 @@
 # Matryoshka Zig 0.16 — Staged Implementation Plan (018)
 
 Slim plan. State only.
-All process and coding rules live in [rules.md](rules.md). Not repeated here.
+All process and coding rules live in [rules-001.md](rules-001.md). Not repeated here.
 
 - Repo: `matryoshka-zig`. Module name: `matryoshka`.
 - Zig 0.16.0. Target backend: `Io.Threaded`.
@@ -12,15 +12,14 @@ All process and coding rules live in [rules.md](rules.md). Not repeated here.
 ## 1. Project State
 
 Test count.
-- 160/160 passing across 4 optimization modes and 3 cross-compile targets.
-- Story test (`tests/stories_test.zig`) compiles. Runtime not yet confirmed.
+- 161/161 passing across 4 optimization modes and 3 cross-compile targets.
 
 Stages.
 - Stages 0–8: complete.
 
 INTR.
 - INTR 1–4: complete.
-- INTR 5: pilot code complete (compiles, story test not yet verified green); doc infrastructure complete.
+- INTR 5: DONE. Story test green (161/161). Doc infrastructure complete. video_transcoder.zig refactored per Master composition rule.
 
 Build order (reference).
 
@@ -54,11 +53,13 @@ Pilot.
   - Narrative: `design/stories/video-transcoder-001.md` (4 parts present).
   - Code: `stories/video_transcoder/video_transcoder.zig` — `pub fn run(allocator, io) !void`.
   - Test wrapper: `tests/stories_test.zig`.
-- Pilot code compiles. Story test runtime not yet verified.
+- Story test runtime confirmed green: 161/161 across all 4 modes and 3 cross-compile targets.
+- Code refactored per Master composition rule: `NetworkMaster` struct extracted; `run` is thin orchestration.
 
 Doc infrastructure (this task).
-- `design/matryoshka-model.md` — thinking model, three-category model, story structure.
-- `design/rules.md` — all coding, doc, and process rules.
+- `design/matryoshka-model-001.md` — thinking model, three-category model, story structure.
+- `design/rules-001.md` — all coding, doc, and process rules.
+- `design/patterns-001.md` — reusable coding patterns.
 - `design/matryoshka-zig-docs-plan-001.md` — documentation work plan.
 - `design/matryoshka-zig-implementation-plan-018.md` — this slim plan.
 - `design/collected-context-004.md` — trimmed to project state; model/rules content moved out.
@@ -67,8 +68,7 @@ Doc infrastructure (this task).
 
 ## 3. Open Items / Next Up
 
-- Verify story test runs green across all kitchen scripts (160 + story).
-- Then Stage 9 — README rewrite + autodocs. See `matryoshka-zig-docs-plan-001.md`.
+- INTR 5 complete. Next: Stage 9 — README rewrite + autodocs. See `matryoshka-zig-docs-plan-001.md`.
 
 Carried open items.
 - 5 — `condition_waitTimeout` workaround (codeberg/zig#31278).
@@ -81,8 +81,9 @@ Carried open items.
 
 ## 4. References
 
-- [rules.md](rules.md) — all process and coding rules. Source of truth for process.
-- [matryoshka-model.md](matryoshka-model.md) — thinking model and story structure.
+- [rules-001.md](rules-001.md) — all process and coding rules. Source of truth for process.
+- [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model and story structure.
+- [patterns-001.md](patterns-001.md) — reusable coding patterns.
 - [matryoshka-zig-docs-plan-001.md](matryoshka-zig-docs-plan-001.md) — documentation work plan.
 - `matryoshka-api-reference-015.md` — primary source of truth for signatures, types, errors.
 - `collected-context-004.md` — project state, idiom patterns, Io primitives, bug fixes.

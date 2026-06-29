@@ -8,7 +8,7 @@
 - Show intent before code changes. Get owner approval.
 - Plan approval is NOT code change approval.
 - Architectural changes need explicit owner approval.
-- Never overwrite important docs. New version with incremented suffix (-001, -002, etc.). Update cross-references.
+- Never overwrite any doc. New version with incremented suffix (-001, -002, etc.). Update cross-references. Applies to all docs, no exceptions.
 - Post-stage cleanup: after all kitchen scripts pass, revise all code for obsolete parts, wrong comments, repeated code extractable to reusable sources. Fix, re-run all three scripts. Session log must have a "Post-stage cleanup" row — its absence means the rule was skipped.
 - Plan versioning: after each completed stage, create new plan version. Collapse done stages to one-line summaries. Update context.md and STATUS.md to point to new version.
 - Tests before examples: examples cannot start until all tests pass all kitchen scripts. Stage N.a = impl + tests, Stage N.b = examples. No mixing.
@@ -32,8 +32,9 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-zig-implementation-plan-018.md (slim, state-only)
-- Rules: rules.md (permanent, non-versioned)
-- Thinking model: matryoshka-model.md (permanent, non-versioned)
+- Rules: rules-001.md
+- Thinking model: matryoshka-model-001.md
+- Patterns: patterns-001.md
 - Docs plan: matryoshka-zig-docs-plan-001.md
 
 ## Participants
@@ -104,10 +105,57 @@ INTR 3 — DONE (121/121 tests). ASCII ownership diagrams added to all 29 existi
 Stage 7.b — DONE (143/143 tests). 22 new example files + test wrappers. Plan version 016 created.
 INTR 4 — DONE (145/145 tests). Bug fixes + doc corrections. api-reference-015 created.
 Stage 8 — DONE (160/160 tests). 15 new examples: cross-layer (32–41) + mailbox-less (57–61). layer4_cross.zig created.
-INTR 5 — Stories + doc infrastructure. Pilot code complete (compiles; story test runtime not yet confirmed). Doc infrastructure created. Plan version 018 created.
-Current: INTR 5 doc infrastructure complete. Next: verify story test green, then Stage 9.
+INTR 5 — DONE (161/161 tests). Stories infrastructure + doc quality overhaul complete. video_transcoder.zig refactored per Master composition rule. Plan version 018 created.
+Current: INTR 5 complete. Next: Stage 9 — README + autodocs.
 
 ## Session Log
+
+### 2026-06-28 — INTR 5 doc quality overhaul
+**Participants**: human + Claude
+
+**Summary**
+Doc quality overhaul. `rules-001.md`, `matryoshka-model-001.md`, `patterns-001.md` created as versioned replacements. Cross-references updated across all docs. `video_transcoder.zig` refactored per the Master composition rule.
+
+**New docs**
+- `design/rules-001.md` — versioned replacement for `rules.md`. Adds: code-quality-all-categories section; story structure Master composition rule; patterns-scan step in per-stage checklist; versioning fix ("any doc", no "important"); Matryoshka Coding Patterns pointer.
+- `design/matryoshka-model-001.md` — versioned copy of `matryoshka-model.md`. Companion links → `rules-001.md` + `patterns-001.md`. Story-structure code section references `patterns-001.md`. "Permanent doc. Not versioned." removed.
+- `design/patterns-001.md` — new pattern catalog. Pool modes/seeding/backpressure/hooks, Io.Select loop, Io.Group, graceful shutdown sequence, polymorphic dispatch, error handling on receive, Master composition. All patterns grounded in real examples.
+
+**Master composition rule (derived)**
+- A Master is a coordination boundary that owns its resources and coordinates startup/shutdown/cancellation.
+- A story composes multiple Masters. Each Master is a state struct plus a loop function, not inlined into `run`.
+- `pub fn run` is thin: init resources, start Masters, await shutdown in order.
+
+**Refactor — `stories/video_transcoder/video_transcoder.zig`**
+- Extracted `NetworkMaster` struct (state) + `produce`/`onBuffer`/`closeAndReclaim` methods from the inline `run` loop.
+- Extracted `seedBufferPool` and `freeSegmentList` helpers.
+- `run` is now thin: shared-resource init, start three Masters (storage task, worker group, network loop), shutdown in order.
+- No behavior change. SPDX header, LE import order, ASCII diagram kept. Added `NodeHandle` alias.
+
+**Cross-reference updates**
+- `design/context.md` — model/rules → -001; added patterns-001 entry.
+- `design/STATUS.md` — top rule ("any doc"); Sources of Truth → -001 + patterns-001; this entry.
+- `design/collected-context-004.md` — top + "Moved" links → -001 + patterns-001.
+- `design/matryoshka-zig-docs-plan-001.md` — References + Doc review → -001 + patterns-001.
+- `design/matryoshka-zig-implementation-plan-018.md` — header, doc-infra list, References → -001 + patterns-001.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `build_and_test_debug.sh` | 161/161 pass (story test now green) |
+| `build_and_test_all.sh` | 161/161 pass (all 4 modes) |
+| `build_cross_debug.sh` | 5/5 steps pass (x86_64-macos, aarch64-macos, x86_64-windows) |
+| Post-stage cleanup | refactor only; `fires` → `signals` in story diagram comment |
+| AI-sh + banned words scan | new docs clean; 1 pre-existing `fires` in collected-context-004.md:240 reported, not fixed |
+
+**Owner review**
+- Old `rules.md` and `matryoshka-model.md` left in place (no deletions). They are now superseded.
+- `collected-context-004.md:240` has pre-existing `fires` in a Pattern 4 code comment (body not touched by this task). Owner decides on fix.
+
+**Next**: Stage 9 — README + autodocs.
+
+---
 
 ### 2026-06-28 — INTR 5 (Stories + documentation infrastructure)
 **Participants**: human + Claude

@@ -11,9 +11,11 @@ Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) �
 
 Latest context: [collected-context-004.md](collected-context-004.md) — project state only
 
-Thinking model: [matryoshka-model.md](matryoshka-model.md) — ownership mantra, three-category model, story structure
+Thinking model: [matryoshka-model-001.md](matryoshka-model-001.md) — ownership mantra, three-category model, story structure
 
-Rules: [rules.md](rules.md) — coding, doc, and process rules (permanent, non-versioned)
+Rules: [rules-001.md](rules-001.md) — coding, doc, and process rules
+
+Patterns: [patterns-001.md](patterns-001.md) — reusable coding patterns (pool, Select, Group, shutdown, dispatch, Master composition)
 
 Plan: [matryoshka-zig-implementation-plan-018.md](matryoshka-zig-implementation-plan-018.md) — slim state-only plan; rules live in rules.md
 

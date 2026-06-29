@@ -9,7 +9,7 @@
 //  │                                                        │
 //  ▼                                                        ▼
 //  [ buf_pool ]◄── pool.put ◄── Worker (Io.Group) ◄── mailbox.receive
-//  (pool fires ──► Network Master wakes)   │
+//  (pool signals ──► Network Master wakes)   │
 //                                          └──► EncodedSegment ──► storage_mbh
 //                                                                        │
 //                                                                        ▼
@@ -147,13 +147,123 @@ fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
     }
 }
 
-// --- Network Master and main entry point ---
+// --- Network Master ---
+//
+// A Master is a coordination boundary: it owns its resources and coordinates
+// their flow. The Network Master owns the buffer pool (as a backpressure source)
+// and the ready queue. Its Io.Select loop fills buffers and routes StreamContext
+// objects to the workers.
 
 const NetworkEvent = union(enum) {
     buf_ev: pool.PoolResult,
 };
 
+const NetworkMaster = struct {
+    io: std.Io,
+    alloc: std.mem.Allocator,
+    buf_ph: PoolHandle,
+    ready_queue: MailboxHandle,
+    sent: usize = 0,
+    camera_frames: [N_CAMERAS]u32 = .{0} ** N_CAMERAS,
+    camera_idx: usize = 0,
+
+    const total: usize = N_CAMERAS * N_FRAMES_PER_CAMERA;
+
+    // Io.Select loop: wait for a free buffer (backpressure), fill it, route it.
+    fn produce(self: *NetworkMaster) !void {
+        var sel_buf: [4]NetworkEvent = undefined;
+        var sel: std.Io.Select(NetworkEvent) = std.Io.Select(NetworkEvent).init(self.io, &sel_buf);
+
+        try sel.concurrent(.buf_ev, pool.getWaitResult, .{ self.buf_ph, VideoBufferPolyHelper.TAG, null });
+
+        while (self.sent < total) {
+            const ev: NetworkEvent = try sel.await();
+            switch (ev) {
+                .buf_ev => |r| switch (r) {
+                    .item => |handle| try self.onBuffer(&sel, handle),
+                    .closed, .canceled, .timeout, .not_created => break,
+                },
+            }
+        }
+
+        sel.cancelDiscard();
+        std.log.info("network: all {d} frames sent", .{total});
+    }
+
+    // Per free-buffer step: fill, wrap in a StreamContext, send to the ready queue.
+    fn onBuffer(self: *NetworkMaster, sel: *std.Io.Select(NetworkEvent), handle: NodeHandle) !void {
+        var buf_slot: Slot = handle;
+
+        const vb: *VideoBuffer = VideoBufferPolyHelper.cast(buf_slot.?).?;
+        vb.camera_id = @intCast(self.camera_idx);
+        vb.frame_id = self.camera_frames[self.camera_idx];
+        self.camera_frames[self.camera_idx] += 1;
+        std.log.info("network: camera={d} frame={d} buffer filled", .{ vb.camera_id, vb.frame_id });
+
+        var ctx_slot: Slot = null;
+        defer StreamContextPolyHelper.destroy(self.alloc, &ctx_slot);
+        try StreamContextPolyHelper.create(self.alloc, &ctx_slot);
+        const sc: *StreamContext = StreamContextPolyHelper.cast(ctx_slot.?).?;
+        sc.camera_id = vb.camera_id;
+        sc.frame_id = vb.frame_id;
+        sc.buffer_slot = buf_slot;
+        buf_slot = null; // ownership transferred to StreamContext
+
+        errdefer pool.put(self.buf_ph, &sc.buffer_slot);
+        try mailbox.send(self.ready_queue, &ctx_slot);
+
+        self.sent += 1;
+        self.camera_idx = (self.camera_idx + 1) % N_CAMERAS;
+
+        if (self.sent < total) {
+            try sel.concurrent(.buf_ev, pool.getWaitResult, .{ self.buf_ph, VideoBufferPolyHelper.TAG, null });
+        }
+    }
+
+    // Shutdown: close the ready queue, reclaim buffers, free unsent contexts.
+    fn closeAndReclaim(self: *NetworkMaster) void {
+        var rem: std.DoublyLinkedList = mailbox.close(self.ready_queue);
+        while (rem.popFirst()) |node| {
+            const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
+            polynode.reset(poly);
+            const sc: *StreamContext = StreamContextPolyHelper.cast(poly).?;
+            pool.put(self.buf_ph, &sc.buffer_slot);
+            if (sc.buffer_slot != null) {
+                VideoBufferPolyHelper.destroy(self.alloc, &sc.buffer_slot);
+            }
+            var sc_slot: Slot = poly;
+            StreamContextPolyHelper.destroy(self.alloc, &sc_slot);
+        }
+    }
+};
+
+// --- Resource setup helpers ---
+
+// Seed the buffer pool with exactly N_BUFFERS buffers — fixes the backpressure limit.
+fn seedBufferPool(buf_ph: PoolHandle, alloc: std.mem.Allocator) !void {
+    for (0..N_BUFFERS) |_| {
+        var slot: Slot = null;
+        try VideoBufferPolyHelper.create(alloc, &slot);
+        pool.put(buf_ph, &slot);
+    }
+}
+
+// Free any EncodedSegments left in the storage close list.
+fn freeSegmentList(list: *std.DoublyLinkedList, alloc: std.mem.Allocator) void {
+    while (list.popFirst()) |node| {
+        const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
+        polynode.reset(poly);
+        var s: Slot = poly;
+        EncodedSegmentPolyHelper.destroy(alloc, &s);
+    }
+}
+
+// --- Main entry point ---
+//
+// Thin: initialize shared resources, start the Masters, await shutdown in order.
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    // Shared resources.
     // Buffer pool: fixed N_BUFFERS — acts as backpressure signal.
     const buf_ph: PoolHandle = try pool.new(io, allocator);
     var buf_ctx: VideoBufCtx = .{ .alloc = allocator };
@@ -164,114 +274,47 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         pool.destroy(buf_ph, allocator);
     }
 
-    // Seed pool with exactly N_BUFFERS buffers.
-    for (0..N_BUFFERS) |_| {
-        var slot: Slot = null;
-        try VideoBufferPolyHelper.create(allocator, &slot);
-        pool.put(buf_ph, &slot);
-    }
+    try seedBufferPool(buf_ph, allocator);
 
     // Ready queue: StreamContext objects route camera state to workers.
-    const ready_queue: MailboxHandle = try mailbox.new(io, allocator);
-    // (closed and destroyed explicitly during shutdown below)
-
     // Storage mailbox: encoded segments flow from workers to storage task.
-    // Closed explicitly before storage_fut.await — cannot use defer (would deadlock).
+    // Both are closed and destroyed explicitly during shutdown below.
+    const ready_queue: MailboxHandle = try mailbox.new(io, allocator);
     const storage_mbh: MailboxHandle = try mailbox.new(io, allocator);
 
-    // Start storage task.
+    // Start the storage task.
     var storage_ctx: StorageCtx = .{ .storage_mbh = storage_mbh, .alloc = allocator };
     var storage_fut = try io.concurrent(storageFn, .{&storage_ctx});
 
-    // Start encoding workers.
+    // Start the encoding workers (Io.Group).
     var wctx0: WorkerCtx = .{ .ready_queue = ready_queue, .buf_ph = buf_ph, .storage_mbh = storage_mbh, .alloc = allocator, .id = 0 };
     var wctx1: WorkerCtx = .{ .ready_queue = ready_queue, .buf_ph = buf_ph, .storage_mbh = storage_mbh, .alloc = allocator, .id = 1 };
     var group: Io.Group = .init;
     try group.concurrent(io, workerFn, .{&wctx0});
     try group.concurrent(io, workerFn, .{&wctx1});
 
-    // Network Master: Io.Select waits for VideoBuffer availability (backpressure).
-    var sel_buf: [4]NetworkEvent = undefined;
-    var sel: std.Io.Select(NetworkEvent) = std.Io.Select(NetworkEvent).init(io, &sel_buf);
+    // Start the Network Master loop.
+    var network: NetworkMaster = .{
+        .io = io,
+        .alloc = allocator,
+        .buf_ph = buf_ph,
+        .ready_queue = ready_queue,
+    };
+    try network.produce();
 
-    const total: usize = N_CAMERAS * N_FRAMES_PER_CAMERA;
-    var sent: usize = 0;
-    var camera_frames: [N_CAMERAS]u32 = .{0} ** N_CAMERAS;
-    var camera_idx: usize = 0;
+    // Shutdown, in order.
+    // 1. Network Master closes the ready queue; reclaim buffers, free unsent contexts.
+    network.closeAndReclaim();
 
-    try sel.concurrent(.buf_ev, pool.getWaitResult, .{ buf_ph, VideoBufferPolyHelper.TAG, null });
-
-    while (sent < total) {
-        const ev: NetworkEvent = try sel.await();
-        switch (ev) {
-            .buf_ev => |r| switch (r) {
-                .item => |handle| {
-                    var buf_slot: Slot = handle;
-
-                    // Fill buffer with camera and frame identifiers.
-                    const vb: *VideoBuffer = VideoBufferPolyHelper.cast(buf_slot.?).?;
-                    vb.camera_id = @intCast(camera_idx);
-                    vb.frame_id = camera_frames[camera_idx];
-                    camera_frames[camera_idx] += 1;
-                    std.log.info("network: camera={d} frame={d} buffer filled", .{ vb.camera_id, vb.frame_id });
-
-                    // Create StreamContext; attach buffer.
-                    var ctx_slot: Slot = null;
-                    defer StreamContextPolyHelper.destroy(allocator, &ctx_slot);
-                    try StreamContextPolyHelper.create(allocator, &ctx_slot);
-                    const sc: *StreamContext = StreamContextPolyHelper.cast(ctx_slot.?).?;
-                    sc.camera_id = vb.camera_id;
-                    sc.frame_id = vb.frame_id;
-                    sc.buffer_slot = buf_slot;
-                    buf_slot = null; // ownership transferred to StreamContext
-
-                    // Send StreamContext to ready queue. Worker gets exclusive ownership.
-                    errdefer pool.put(buf_ph, &sc.buffer_slot);
-                    try mailbox.send(ready_queue, &ctx_slot);
-
-                    sent += 1;
-                    camera_idx = (camera_idx + 1) % N_CAMERAS;
-
-                    if (sent < total) {
-                        try sel.concurrent(.buf_ev, pool.getWaitResult, .{ buf_ph, VideoBufferPolyHelper.TAG, null });
-                    }
-                },
-                .closed, .canceled, .timeout, .not_created => break,
-            },
-        }
-    }
-
-    sel.cancelDiscard();
-    std.log.info("network: all {d} frames sent", .{total});
-
-    // Close ready queue; walk and free any StreamContexts not yet received by workers.
-    var rem: std.DoublyLinkedList = mailbox.close(ready_queue);
-    while (rem.popFirst()) |node| {
-        const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-        polynode.reset(poly);
-        const sc: *StreamContext = StreamContextPolyHelper.cast(poly).?;
-        pool.put(buf_ph, &sc.buffer_slot);
-        if (sc.buffer_slot != null) {
-            VideoBufferPolyHelper.destroy(allocator, &sc.buffer_slot);
-        }
-        var sc_slot: Slot = poly;
-        StreamContextPolyHelper.destroy(allocator, &sc_slot);
-    }
-
-    // Wait for all workers to finish current frames.
+    // 2. Workers finish current frames, then exit on error.Closed.
     try group.await(io);
     mailbox.destroy(ready_queue, allocator);
     std.log.info("workers: all done", .{});
 
-    // Close storage mailbox — signals storage task to exit via error.Closed.
+    // 3. Storage task: close the mailbox (signals exit), free unsent segments, await.
     {
         var srem: std.DoublyLinkedList = mailbox.close(storage_mbh);
-        while (srem.popFirst()) |node| {
-            const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-            polynode.reset(poly);
-            var s: Slot = poly;
-            EncodedSegmentPolyHelper.destroy(allocator, &s);
-        }
+        freeSegmentList(&srem, allocator);
     }
     storage_fut.await(io) catch {};
     mailbox.destroy(storage_mbh, allocator);
@@ -279,7 +322,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     try helpers.expect(
         error.VideoTranscoderFailed,
-        sent == total,
+        network.sent == NetworkMaster.total,
         "not all frames were sent",
     );
 }
@@ -291,6 +334,7 @@ const mailbox = matryoshka.mailbox;
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
+const NodeHandle = polynode.NodeHandle;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
 const Io = std.Io;
