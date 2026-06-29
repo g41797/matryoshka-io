@@ -17,7 +17,9 @@ Rules: [rules-001.md](rules-001.md) — coding, doc, and process rules
 
 Patterns: [patterns-001.md](patterns-001.md) — reusable coding patterns (pool, Select, Group, shutdown, dispatch, Master composition)
 
-Plan: [matryoshka-zig-implementation-plan-018.md](matryoshka-zig-implementation-plan-018.md) — slim state-only plan; rules live in rules.md
+Plan: [matryoshka-zig-implementation-plan-021.md](matryoshka-zig-implementation-plan-021.md) — slim state-only plan; rules live in rules.md
+
+Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 
 Docs plan: [matryoshka-zig-docs-plan-001.md](matryoshka-zig-docs-plan-001.md) — documentation work plan (stories, examples-as-docs, README, autodocs)
 

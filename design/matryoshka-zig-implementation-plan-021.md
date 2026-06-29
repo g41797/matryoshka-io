@@ -1,4 +1,4 @@
-# Matryoshka Zig 0.16 — Staged Implementation Plan (018)
+# Matryoshka Zig 0.16 — Staged Implementation Plan (021)
 
 Slim plan. State only.
 All process and coding rules live in [rules-001.md](rules-001.md). Not repeated here.
@@ -18,8 +18,7 @@ Stages.
 - Stages 0–8: complete.
 
 INTR.
-- INTR 1–4: complete.
-- INTR 5: DONE. Story test green (161/161). Doc infrastructure complete. video_transcoder.zig refactored per Master composition rule.
+- INTR 1–5: complete.
 
 Build order (reference).
 
@@ -39,36 +38,50 @@ INTR 3      ASCII ownership diagrams retrofit               DONE
 Stage 7.b   Event sources — examples                        DONE
 INTR 4      Bug fixes + doc corrections                     DONE
 Stage 8     Mailbox-less patterns + cross-layer             DONE
-INTR 5      Stories + doc infrastructure                    IN PROGRESS
+INTR 5      Stories + doc infrastructure                    DONE
+STORY 2     Print Server narrative                          DONE
+STORY 1     Video Transcoder narrative rewrite              DONE
+Story Rhythm  Both stories SRS+Translation+Insight          DONE
 Stage 9     Docs + README + autodocs                        NEXT
 ```
 
 ---
 
-## 2. INTR 5 — Stories + Doc Infrastructure
+## 2. Story Rhythm Fixes
 
-Pilot.
-- Stories module wired into the build (`stories/stories.zig`).
-- Pilot story: video transcoder.
-  - Narrative: `design/stories/video-transcoder-001.md` (4 parts present).
-  - Code: `stories/video_transcoder/video_transcoder.zig` — `pub fn run(allocator, io) !void`.
-  - Test wrapper: `tests/stories_test.zig`.
-- Story test runtime confirmed green: 161/161 across all 4 modes and 3 cross-compile targets.
-- Code refactored per Master composition rule: `NetworkMaster` struct extracted; `run` is thin orchestration.
+Deliverables.
+- `design/stories/video-transcoder-003.md` — rewritten SRS + Translation + Central Insight.
+- `design/stories/print-server-002.md` — rewritten SRS + Translation + Central Insight.
+- `design/stories/video-transcoder-002.md` — preserved, untouched.
+- `design/stories/print-server-001.md` — preserved, untouched.
 
-Doc infrastructure (this task).
-- `design/matryoshka-model-001.md` — thinking model, three-category model, story structure.
-- `design/rules-001.md` — all coding, doc, and process rules.
-- `design/patterns-001.md` — reusable coding patterns.
-- `design/matryoshka-zig-docs-plan-001.md` — documentation work plan.
-- `design/matryoshka-zig-implementation-plan-018.md` — this slim plan.
-- `design/collected-context-004.md` — trimmed to project state; model/rules content moved out.
+What changed.
+- SRS: flat bullets, one observable fact per bullet. No numbered+bold+prose format.
+- Translation: table of mappings. Requirement label → short bullets of Matryoshka primitives. No P1/P2 dialogue.
+- Central Insight: state the insight, then illustrate with short bullets. No essay.
+
+What stayed.
+- Discussion (Part 1): unchanged in both stories.
+- Flow Diagram (Part 4): unchanged in both stories.
+- Implementation files: untouched.
+
+Why.
+- `kitchen/docs/matryoshka-storytelling-001.md` updated with `# Storytelling Rule` section.
+- The section adds explicit rhythm rules for SRS, Translation, Central Insight.
+- Both stories violated those rules — SRS was prose, Translation was dialogue, Insight was an essay.
+- The collection should have one voice and one rhythm throughout.
+
+Storytelling rule summary.
+- Discussion: short sentences, questions, negotiation, one idea at a time.
+- SRS: checklist of independently verifiable facts. No explanations.
+- Translation: table of mappings. One requirement → one block of short bullets.
+- Central Insight: state then illustrate. No paragraphs.
 
 ---
 
 ## 3. Open Items / Next Up
 
-- INTR 5 complete. Next: Stage 9 — README rewrite + autodocs. See `matryoshka-zig-docs-plan-001.md`.
+- Stage 9 (README + autodocs) is next. See `matryoshka-zig-docs-plan-001.md`.
 
 Carried open items.
 - 5 — `condition_waitTimeout` workaround (codeberg/zig#31278).
@@ -83,6 +96,7 @@ Carried open items.
 
 - [rules-001.md](rules-001.md) — all process and coding rules. Source of truth for process.
 - [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model and story structure.
+- [matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules.
 - [patterns-001.md](patterns-001.md) — reusable coding patterns.
 - [matryoshka-zig-docs-plan-001.md](matryoshka-zig-docs-plan-001.md) — documentation work plan.
 - `matryoshka-api-reference-015.md` — primary source of truth for signatures, types, errors.

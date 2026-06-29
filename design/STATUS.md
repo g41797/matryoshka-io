@@ -31,7 +31,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-018.md (slim, state-only)
+- Plan: matryoshka-zig-implementation-plan-021.md (slim, state-only)
 - Rules: rules-001.md
 - Thinking model: matryoshka-model-001.md
 - Patterns: patterns-001.md
@@ -106,9 +106,136 @@ Stage 7.b — DONE (143/143 tests). 22 new example files + test wrappers. Plan v
 INTR 4 — DONE (145/145 tests). Bug fixes + doc corrections. api-reference-015 created.
 Stage 8 — DONE (160/160 tests). 15 new examples: cross-layer (32–41) + mailbox-less (57–61). layer4_cross.zig created.
 INTR 5 — DONE (161/161 tests). Stories infrastructure + doc quality overhaul complete. video_transcoder.zig refactored per Master composition rule. Plan version 018 created.
-Current: INTR 5 complete. Next: Stage 9 — README + autodocs.
+STORY 2 — Print Server narrative. DONE.
+STORY 1 — Video Transcoder narrative rewrite. DONE.
+Story Rhythm — Both stories SRS+Translation+Insight rewritten. DONE.
+Stage 9 — Docs + README + autodocs. NEXT.
+Current: Stage 9 not started.
 
 ## Session Log
+
+### 2026-06-29 — Story Rhythm Fixes (Both stories)
+**Participants**: human + Claude
+
+**Summary**
+Both story narratives rewritten with SRS + Translation + Central Insight sections conforming to the `# Storytelling Rule` rhythm added to `kitchen/docs/matryoshka-storytelling-001.md`. No code changed. No architecture changed.
+
+**Why**
+The storytelling doc was updated with explicit rhythm rules. Discussion, SRS, Translation, and Central Insight must all feel like the same engineer wrote them on the same day. Both stories violated the SRS and Translation rules: numbered bold paragraphs instead of flat bullets, P1/P2 dialogue instead of a table of mappings.
+
+**What changed**
+- SRS: numbered+bold+prose → flat bullets, one independently verifiable fact each.
+- Translation: P1/P2 dialogue → table of mappings; requirement label then short bullets of Matryoshka primitives.
+- Central Insight: essay and prose comparison → state the insight, then illustrate with bullets.
+
+**What stayed**
+- Part 1 (Discussion): unchanged in both stories.
+- Part 4 (Flow Diagram): unchanged in both stories.
+- Architecture, central insights, and all content: preserved, only form changed.
+- Implementation files: untouched.
+- Previous versions preserved: `video-transcoder-002.md`, `print-server-001.md`.
+
+**Changes**
+- `design/stories/video-transcoder-003.md` — rewritten story (002 untouched)
+- `design/stories/print-server-002.md` — rewritten story (001 untouched)
+- `design/matryoshka-zig-implementation-plan-021.md` — new plan version
+- `design/matryoshka-zig-implementation-plan-020.md` — build table updated (Story Rhythm NEXT)
+- `design/context.md` — plan → 021; storytelling doc pointer added
+- `design/STATUS.md` — plan → 021; Story Rhythm stage line; this entry
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only task |
+| Post-stage cleanup | doc-only — no code to clean |
+| AI-sh + banned words scan | CLEAN |
+
+**Next**: Stage 9 — Docs + README + autodocs.
+
+---
+
+### 2026-06-29 — STORY 1 Rewrite (Video Transcoder narrative)
+**Participants**: human + Claude
+
+**Summary**
+STORY 1 narrative rewritten to match the storytelling model established by STORY 2. No code changed. Deliverable: `design/stories/video-transcoder-002.md`. Original `video-transcoder-001.md` preserved.
+
+**Why rewrite**
+Story 1 was written before the storytelling model matured. Story 2 established: start with people, developer negotiation before software, no Matryoshka terminology until Part 3, SRS as observable behavior only, translation feels inevitable. The collection should feel like one book.
+
+**What changed**
+- Part 1: human voices added first (operator, product, operations). Developer negotiation expanded — Decoder, Filter, Encoder each defend their own boundary. Backpressure discovered through dialogue, not announced.
+- Part 2 (SRS): rewritten as observable behavior only. Implementation hints ("Decoupled Architecture") removed.
+- Part 3 (Translation): inevitable tone — each requirement maps naturally to one primitive.
+- Part 5 removed: collapsed to one-line implementation pointer, same pattern as print-server-001.md.
+- Part 4 (flow diagram): kept, minor label cleanup.
+
+**What stayed**
+- Architecture: Pool + Io.Select + Io.Group + Mailbox.
+- Central insight: pool exhaustion is backpressure.
+- Implementation file `stories/video_transcoder/video_transcoder.zig`: untouched.
+
+**Changes**
+- `design/stories/video-transcoder-002.md` — rewritten narrative
+- `design/matryoshka-zig-implementation-plan-020.md` — new plan version; STORY 1 REWRITE added
+- `design/context.md` — plan → 020
+- `design/STATUS.md` — plan → 020; STORY 1 REWRITE stage line; this entry
+- `design/matryoshka-zig-implementation-plan-019.md` — build table: STORY 1 REWRITE added
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only task |
+| Post-stage cleanup | doc-only — no code to clean |
+| AI-sh + banned words scan | CLEAN |
+
+**Next**: Stage 9 — Docs + README + autodocs.
+
+---
+
+### 2026-06-29 — STORY 2 (Print Server narrative)
+**Participants**: human + Claude
+
+**Summary**
+STORY 2 narrative written. No code. Deliverable: `design/stories/print-server-001.md`.
+
+**Central insight**
+Job location IS status. No shared job table. No status flags. Ownership is the status.
+
+**Secondary pattern**
+OOB cancellation: `mailbox.send_oob` lets a cancel signal jump the queue and reach the Printer Master before the next job.
+
+**What this adds over Story 1**
+Story 1 hero: pool as backpressure signal + ownership routing.
+Story 2 hero: ownership transfer as synchronization + OOB for priority signals.
+
+**Changes**
+- `design/stories/print-server-001.md` — new story narrative; 5 quality fixes applied after second review
+- `design/stories/print-server-analysis-001.md` — analysis companion doc (separated from story per review feedback)
+- `design/matryoshka-zig-implementation-plan-019.md` — new plan version; STORY 2 added
+- `design/context.md` — plan → 019
+- `design/STATUS.md` — plan → 019; STORY 2 stage line; this entry
+
+**Quality fixes (second review)**
+- Cancellation dialogue: removed mechanism hint; replaced with operational consequence
+- Printer boundary defense: D now asserts autonomy (no progress reporting, result-only interface)
+- Translation: ownership concept leads the slot explanation, variable name follows
+- Central insight: "ownership IS status" (slogan) replaced with "the system never asks status, it asks who owns the job" (observation)
+- Addendum: separated to `print-server-analysis-001.md`; story ends cleanly after flow diagram
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only task |
+| Post-stage cleanup | doc-only — no code to clean |
+| AI-sh + banned words scan | CLEAN |
+
+**Next**: Stage 9 — Docs + README + autodocs.
+
+---
 
 ### 2026-06-28 — INTR 5 doc quality overhaul
 **Participants**: human + Claude
