@@ -217,7 +217,7 @@ Kitchen script order.
 
 New plan version vs update.
 - Create a new plan version after each completed stage or INTR.
-- Plans are new versions of `design/matryoshka-zig-implementation-plan-NNN.md`, not separate files.
+- Plans are new versions of `design/matryoshka-io-implementation-plan-NNN.md`, not separate files.
 - Collapse done stages to one-line summaries. Keep active and future stages in full detail.
 - Old plan versions stay as historical record. Do not delete them.
 

@@ -17,11 +17,11 @@ Rules: [rules-001.md](rules-001.md) — coding, doc, and process rules
 
 Patterns: [patterns-001.md](patterns-001.md) — reusable coding patterns (pool, Select, Group, shutdown, dispatch, Master composition)
 
-Plan: [matryoshka-zig-implementation-plan-021.md](matryoshka-zig-implementation-plan-021.md) — slim state-only plan; rules live in rules.md
+Plan: [matryoshka-io-implementation-plan-021.md](matryoshka-io-implementation-plan-021.md) — slim state-only plan; rules live in rules.md
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 
-Docs plan: [matryoshka-zig-docs-plan-001.md](matryoshka-zig-docs-plan-001.md) — documentation work plan (stories, examples-as-docs, README, autodocs)
+Docs plan: [matryoshka-io-docs-plan-001.md](matryoshka-io-docs-plan-001.md) — documentation work plan (stories, examples-as-docs, README, autodocs)
 
 Tests (Layers 1-3): [task1-tests-001.md](task1-tests-001.md) — 73 scenarios (Layer1: 1-20, Layer2: 26-52, Layer3: 63-88), correctness/edge cases/contract violations
 

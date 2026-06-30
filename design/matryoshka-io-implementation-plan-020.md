@@ -1,9 +1,9 @@
-# Matryoshka Zig 0.16 — Staged Implementation Plan (021)
+# Matryoshka Zig 0.16 — Staged Implementation Plan (020)
 
 Slim plan. State only.
 All process and coding rules live in [rules-001.md](rules-001.md). Not repeated here.
 
-- Repo: `matryoshka-zig`. Module name: `matryoshka`.
+- Repo: `matryoshka-io`. Module name: `matryoshka`.
 - Zig 0.16.0. Target backend: `Io.Threaded`.
 - Both Mailbox and Pool are optional.
 
@@ -41,47 +41,46 @@ Stage 8     Mailbox-less patterns + cross-layer             DONE
 INTR 5      Stories + doc infrastructure                    DONE
 STORY 2     Print Server narrative                          DONE
 STORY 1     Video Transcoder narrative rewrite              DONE
-Story Rhythm  Both stories SRS+Translation+Insight          DONE
-Stage 9     Docs + README + autodocs                        NEXT
+Story Rhythm  Both stories SRS+Translation+Insight          NEXT
+Stage 9     Docs + README + autodocs                        FUTURE
 ```
 
 ---
 
-## 2. Story Rhythm Fixes
+## 2. STORY 1 Rewrite — Video Transcoder Narrative
 
-Deliverables.
-- `design/stories/video-transcoder-003.md` — rewritten SRS + Translation + Central Insight.
-- `design/stories/print-server-002.md` — rewritten SRS + Translation + Central Insight.
-- `design/stories/video-transcoder-002.md` — preserved, untouched.
-- `design/stories/print-server-001.md` — preserved, untouched.
+Deliverable.
+- `design/stories/video-transcoder-002.md` — rewritten narrative only, no code.
+- `design/stories/video-transcoder-001.md` — preserved, untouched.
 
-What changed.
-- SRS: flat bullets, one observable fact per bullet. No numbered+bold+prose format.
-- Translation: table of mappings. Requirement label → short bullets of Matryoshka primitives. No P1/P2 dialogue.
-- Central Insight: state the insight, then illustrate with short bullets. No essay.
+What changes.
+- Part 1: rewritten with human voices first, then developer negotiation, no Matryoshka terminology.
+- Part 2 (SRS): observable behavior only, no implementation hints.
+- Part 3 (Translation): inevitable tone — each requirement maps to one primitive.
+- Part 5 removed: replaced with one-line implementation pointer.
 
-What stayed.
-- Discussion (Part 1): unchanged in both stories.
-- Flow Diagram (Part 4): unchanged in both stories.
-- Implementation files: untouched.
+What stays.
+- Architecture: Pool + Io.Select + Io.Group + Mailbox.
+- Implementation file: `stories/video_transcoder/video_transcoder.zig` — untouched.
+- Flow diagram (Part 4): kept, minor label cleanup only.
+- Central insight: pool exhaustion is backpressure.
 
-Why.
-- `kitchen/docs/matryoshka-storytelling-001.md` updated with `# Storytelling Rule` section.
-- The section adds explicit rhythm rules for SRS, Translation, Central Insight.
-- Both stories violated those rules — SRS was prose, Translation was dialogue, Insight was an essay.
-- The collection should have one voice and one rhythm throughout.
+Why rewrite.
+- Story 1 was written before the storytelling model matured.
+- Story 2 established a stronger model: start with people, conversations first, delay Matryoshka, SRS domain-only.
+- The collection should feel like one book.
 
-Storytelling rule summary.
-- Discussion: short sentences, questions, negotiation, one idea at a time.
-- SRS: checklist of independently verifiable facts. No explanations.
-- Translation: table of mappings. One requirement → one block of short bullets.
-- Central Insight: state then illustrate. No paragraphs.
+Story theme.
+- Theme: continuous flow.
+- Question: "How does work move through a pipeline?"
+- Contrast with Story 2 (ownership): "Who is responsible right now?"
 
 ---
 
 ## 3. Open Items / Next Up
 
-- Stage 9 (README + autodocs) is next. See `matryoshka-zig-docs-plan-001.md`.
+- STORY 1 rewrite in progress. Deliverable: `design/stories/video-transcoder-002.md`.
+- Stage 9 (README + autodocs) is next after STORY 1. See `matryoshka-io-docs-plan-001.md`.
 
 Carried open items.
 - 5 — `condition_waitTimeout` workaround (codeberg/zig#31278).
@@ -96,8 +95,7 @@ Carried open items.
 
 - [rules-001.md](rules-001.md) — all process and coding rules. Source of truth for process.
 - [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model and story structure.
-- [matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules.
 - [patterns-001.md](patterns-001.md) — reusable coding patterns.
-- [matryoshka-zig-docs-plan-001.md](matryoshka-zig-docs-plan-001.md) — documentation work plan.
+- [matryoshka-io-docs-plan-001.md](matryoshka-io-docs-plan-001.md) — documentation work plan.
 - `matryoshka-api-reference-015.md` — primary source of truth for signatures, types, errors.
 - `collected-context-004.md` — project state, idiom patterns, Io primitives, bug fixes.

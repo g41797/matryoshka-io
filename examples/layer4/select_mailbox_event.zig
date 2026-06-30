@@ -50,8 +50,8 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var buf: [4]MasterEvent = undefined;
     var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
 
-    try sel.concurrent(.inbox, mailbox.receiveResult, .{mbh, null});
-    try sel.concurrent(.timer, sleepFn, .{sleep_t, io});
+    try sel.concurrent(.inbox, mailbox.receiveResult, .{ mbh, null });
+    try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
 
     var received: usize = 0;
     var ticks: usize = 0;
@@ -67,7 +67,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
                     received += 1;
                     std.log.info("inbox: Event code={d} ({d}/{d})", .{ ev.code, received, N_ITEMS });
                     if (received < N_ITEMS) {
-                        try sel.concurrent(.inbox, mailbox.receiveResult, .{mbh, null});
+                        try sel.concurrent(.inbox, mailbox.receiveResult, .{ mbh, null });
                     }
                 },
                 .closed, .canceled, .timeout => break,
@@ -75,7 +75,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
             .timer => {
                 ticks += 1;
                 std.log.info("timer: tick {d}", .{ticks});
-                try sel.concurrent(.timer, sleepFn, .{sleep_t, io});
+                try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
             },
         }
     }

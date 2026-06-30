@@ -1,4 +1,4 @@
-# matryoshka-zig STATUS
+# matryoshka-io STATUS
 
 ## Rules
 - Read Session Log first. It says where we are and what is next.
@@ -22,7 +22,7 @@
 
 ## Sources of Truth
 - API: matryoshka-api-reference-015.md
-- Zig details: matryoshka-zig-0.16-implementation-guide-001.md
+- Zig details: matryoshka-io-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
 - Tests: task1-tests-001.md (73 scenarios, Layers 1-3), task2-tests-001.md (16 scenarios, Layer 4)
@@ -31,11 +31,11 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-zig-implementation-plan-021.md (slim, state-only)
+- Plan: matryoshka-io-implementation-plan-021.md (slim, state-only)
 - Rules: rules-001.md
 - Thinking model: matryoshka-model-001.md
 - Patterns: patterns-001.md
-- Docs plan: matryoshka-zig-docs-plan-001.md
+- Docs plan: matryoshka-io-docs-plan-001.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -47,7 +47,7 @@ Three layers: polynode, mailbox, pool. Both mailbox and pool optional.
 
 ## Folder Structure
 ```
-matryoshka-zig/
+matryoshka-io/
 ├── build.zig
 ├── build.zig.zon
 ├── README.md
@@ -138,8 +138,8 @@ The storytelling doc was updated with explicit rhythm rules. Discussion, SRS, Tr
 **Changes**
 - `design/stories/video-transcoder-003.md` — rewritten story (002 untouched)
 - `design/stories/print-server-002.md` — rewritten story (001 untouched)
-- `design/matryoshka-zig-implementation-plan-021.md` — new plan version
-- `design/matryoshka-zig-implementation-plan-020.md` — build table updated (Story Rhythm NEXT)
+- `design/matryoshka-io-implementation-plan-021.md` — new plan version
+- `design/matryoshka-io-implementation-plan-020.md` — build table updated (Story Rhythm NEXT)
 - `design/context.md` — plan → 021; storytelling doc pointer added
 - `design/STATUS.md` — plan → 021; Story Rhythm stage line; this entry
 
@@ -178,10 +178,10 @@ Story 1 was written before the storytelling model matured. Story 2 established: 
 
 **Changes**
 - `design/stories/video-transcoder-002.md` — rewritten narrative
-- `design/matryoshka-zig-implementation-plan-020.md` — new plan version; STORY 1 REWRITE added
+- `design/matryoshka-io-implementation-plan-020.md` — new plan version; STORY 1 REWRITE added
 - `design/context.md` — plan → 020
 - `design/STATUS.md` — plan → 020; STORY 1 REWRITE stage line; this entry
-- `design/matryoshka-zig-implementation-plan-019.md` — build table: STORY 1 REWRITE added
+- `design/matryoshka-io-implementation-plan-019.md` — build table: STORY 1 REWRITE added
 
 **Verification**
 
@@ -214,7 +214,7 @@ Story 2 hero: ownership transfer as synchronization + OOB for priority signals.
 **Changes**
 - `design/stories/print-server-001.md` — new story narrative; 5 quality fixes applied after second review
 - `design/stories/print-server-analysis-001.md` — analysis companion doc (separated from story per review feedback)
-- `design/matryoshka-zig-implementation-plan-019.md` — new plan version; STORY 2 added
+- `design/matryoshka-io-implementation-plan-019.md` — new plan version; STORY 2 added
 - `design/context.md` — plan → 019
 - `design/STATUS.md` — plan → 019; STORY 2 stage line; this entry
 
@@ -263,8 +263,8 @@ Doc quality overhaul. `rules-001.md`, `matryoshka-model-001.md`, `patterns-001.m
 - `design/context.md` — model/rules → -001; added patterns-001 entry.
 - `design/STATUS.md` — top rule ("any doc"); Sources of Truth → -001 + patterns-001; this entry.
 - `design/collected-context-004.md` — top + "Moved" links → -001 + patterns-001.
-- `design/matryoshka-zig-docs-plan-001.md` — References + Doc review → -001 + patterns-001.
-- `design/matryoshka-zig-implementation-plan-018.md` — header, doc-infra list, References → -001 + patterns-001.
+- `design/matryoshka-io-docs-plan-001.md` — References + Doc review → -001 + patterns-001.
+- `design/matryoshka-io-implementation-plan-018.md` — header, doc-infra list, References → -001 + patterns-001.
 
 **Verification**
 
@@ -299,14 +299,14 @@ Stories infrastructure created with a pilot (video transcoder). Permanent docume
 **Documentation infrastructure (this task)**
 - `design/matryoshka-model.md` — new permanent doc: thinking model, three-category model, story structure.
 - `design/rules.md` — new permanent doc: all coding, doc, and process rules.
-- `design/matryoshka-zig-docs-plan-001.md` — new: documentation work plan.
-- `design/matryoshka-zig-implementation-plan-018.md` — new slim plan; state only; references rules.md.
+- `design/matryoshka-io-docs-plan-001.md` — new: documentation work plan.
+- `design/matryoshka-io-implementation-plan-018.md` — new slim plan; state only; references rules.md.
 
 **Changes**
 - `design/matryoshka-model.md` — new
 - `design/rules.md` — new
-- `design/matryoshka-zig-docs-plan-001.md` — new
-- `design/matryoshka-zig-implementation-plan-018.md` — new
+- `design/matryoshka-io-docs-plan-001.md` — new
+- `design/matryoshka-io-implementation-plan-018.md` — new
 - `design/collected-context-004.md` — trimmed: thinking model, three-category model, story structure sections moved to matryoshka-model.md; links added at top
 - `design/context.md` — references model, rules, plan-018, docs-plan-001
 - `design/STATUS.md` — sources → plan-018 + permanent docs; stages line; this entry
@@ -475,7 +475,7 @@ Fixes during verification:
 - `examples/layer4/layer4.zig` — added 22 new re-exports
 - `tests/layer4_select.zig` — new file: 22 test wrappers
 - `tests/matryoshka_tests.zig` — added `@import("layer4_select.zig")`
-- `design/matryoshka-zig-implementation-plan-016.md` — new version; Stage 7.b collapsed; Stage 8 in full detail
+- `design/matryoshka-io-implementation-plan-016.md` — new version; Stage 7.b collapsed; Stage 8 in full detail
 - `design/context.md` — plan → 016
 - `design/STATUS.md` — sources → 016; stages + this entry
 
@@ -509,7 +509,7 @@ Key decisions:
 - `src/mailbox.zig` — added `ConcurrentError`, `ReceiveResult`, `receiveResult`, `receive_future`
 - `src/pool.zig` — added `ConcurrentError`, `PoolResult`, `getWaitResult`, `get_wait_future`
 - All 29 existing example files — ASCII ownership diagram added at top
-- `design/matryoshka-zig-implementation-plan-015.md` — new version; Stage 7.a + INTR 3 collapsed as DONE; Stage 7.b in full detail
+- `design/matryoshka-io-implementation-plan-015.md` — new version; Stage 7.a + INTR 3 collapsed as DONE; Stage 7.b in full detail
 - `design/context.md` — plan → 015
 - `design/STATUS.md` — sources → 015; stages + this entry
 
@@ -546,7 +546,7 @@ Key decisions:
 - `design/matryoshka-api-reference-014.md` — new version; added `in_pool_count` semantics, hook concurrency, implementer advice
 - `helpers/helpers.zig` — `CappedPoolCtx`: added `io`, `mutex`, `count`; `onGet`/`onPut` use `lockUncancelable`
 - `examples/layer3/capped_pool.zig` — replaced with 4-thread multi-thread example
-- `design/matryoshka-zig-implementation-plan-014.md` — new version; INTR 2 section; doc link rule; stage map updated
+- `design/matryoshka-io-implementation-plan-014.md` — new version; INTR 2 section; doc link rule; stage map updated
 - `design/context.md` — api-ref → 014; plan → 014
 - `design/STATUS.md` — sources → 014; stages → INTR 2 DONE; this entry
 
@@ -661,7 +661,7 @@ Coverage:
 - `tests/layer2_mailbox.zig` — `idempotent` × 2 → behavior description
 - `tests/layer3_pool.zig` — `idempotent` × 1 → behavior description; `fires` × 1 → `triggers`
 - `examples/layer1/ownership_transfer.zig` — `fires` × 1 → `runs`
-- `design/matryoshka-zig-implementation-plan-013.md` — banned list updated: `fires`, `faces` added
+- `design/matryoshka-io-implementation-plan-013.md` — banned list updated: `fires`, `faces` added
 
 **Verification**
 
@@ -673,7 +673,7 @@ Coverage:
 | Post-stage cleanup | nothing to clean — no obsolete parts, no repeated code |
 | AI-sh + banned words scan | hits found and replaced: `fires` ×8, `idempotent` ×3, `re-arm` ×3, `faces` ×1 across 4 files; `fires`+`faces` added to banned list |
 | Post-cleanup debug re-run | pass (121/121 tests) |
-| Plan version 013 | created `design/matryoshka-zig-implementation-plan-013.md` |
+| Plan version 013 | created `design/matryoshka-io-implementation-plan-013.md` |
 | context.md | plan → 013 |
 | STATUS.md | sources → 013; stages line updated |
 
@@ -689,7 +689,7 @@ Added `### No raw allocator calls on PolyNode-based types` rule to `## Cooperati
 
 **Changes**
 - `design/matryoshka-api-reference-013.md` — new version; rule + violation/correct/exempt + change log + manifest
-- `design/matryoshka-zig-implementation-plan-013.md` — new version; Implementation MUST bullet added; INTR 1.d collapsed
+- `design/matryoshka-io-implementation-plan-013.md` — new version; Implementation MUST bullet added; INTR 1.d collapsed
 - `design/context.md` — api-ref → 012, plan → 012
 - `design/STATUS.md` — sources → 012; this entry
 
@@ -722,7 +722,7 @@ Full source audit (`.zig` + `.md`) and comprehensive fix pass. All four findings
 **Doc fixes (active docs only)**
 - `design/matryoshka-api-reference-013.md` — `DLL.Node` → `List.Node`; `dll_node_ptr` → `list_node_ptr` (6 occurrences).
 - `design/matryoshka-api-reference-010.md` — same DLL fixes.
-- `design/matryoshka-zig-implementation-plan-011.md` — LE import order rule clarified (std last); Naming and Terminology section added (banned: `drain`, `dll`/`DLL`).
+- `design/matryoshka-io-implementation-plan-011.md` — LE import order rule clarified (std last); Naming and Terminology section added (banned: `drain`, `dll`/`DLL`).
 - `design/collected-context-003.md` — `"block deepdives"` → `"layer deepdives"`.
 - `design/STATUS.md` — `Three blocks` → `Three layers` in Project section.
 
@@ -853,7 +853,7 @@ Three sub-stages completed:
 - `examples/layer3/pool_seeding.zig` — `m` → `slot`, defer-early in both loops.
 - `examples/layer3/pool_teardown.zig` — `m` → `slot`, defer-early.
 - `design/matryoshka-api-reference-013.md` — `m` → `slot` in all code snippets and signatures.
-- `design/matryoshka-zig-implementation-plan-011.md` — new plan version. INTR 1 added as completed. Slot Rule added to Process Rules.
+- `design/matryoshka-io-implementation-plan-011.md` — new plan version. INTR 1 added as completed. Slot Rule added to Process Rules.
 - `design/context.md` — plan reference → 011, api-reference → 011.
 - `design/STATUS.md` — Sources of Truth → 011; this entry.
 
@@ -866,7 +866,7 @@ Owner applied before this session:
 **Changes**
 - `design/collected-context-003.md` — new (INTR 1.a)
 - `design/matryoshka-api-reference-013.md` — new (INTR 1.b + 1.c rename)
-- `design/matryoshka-zig-implementation-plan-011.md` — new plan version
+- `design/matryoshka-io-implementation-plan-011.md` — new plan version
 - `design/context.md` — api-ref and plan pointers → 011
 - `design/STATUS.md` — sources updated; this entry
 - `src/mailbox.zig` — m→slot in signatures and bodies
@@ -885,7 +885,7 @@ Owner applied before this session:
 | `kitchen/build_cross_debug.sh` | pass (mac x86_64, mac aarch64, windows x86_64) |
 | Post-stage cleanup | nothing to clean — retrofit only, no obsolete parts found |
 | AI-sh + banned words scan | clean (false positives only: `mutex.unlock(io)` code, pre-existing comment with "ensure") |
-| Plan version 011 | created `design/matryoshka-zig-implementation-plan-011.md` |
+| Plan version 011 | created `design/matryoshka-io-implementation-plan-011.md` |
 | context.md | api-ref → 011, plan → 011 |
 | STATUS.md | sources → 011; stages line updated |
 | README.md | no sync needed (still WIP) |
@@ -938,7 +938,7 @@ Key findings during coding:
 | `kitchen/build_cross_debug.sh` | pass (mac x86_64, mac aarch64, windows x86_64) |
 | Post-stage cleanup | nothing to clean — no repeated code, no wrong comments found |
 | AI-sh + banned words scan | 1 hit: "undelivered" in minimal_master.zig:39 — natural technical vocabulary, owner to decide |
-| Plan version 010 | created `design/matryoshka-zig-implementation-plan-010.md` |
+| Plan version 010 | created `design/matryoshka-io-implementation-plan-010.md` |
 | context.md | plan reference → 010; examples count 21 → 29 |
 | STATUS.md | plan reference → 010; stages line updated |
 | README.md | no sync needed (still WIP) |
@@ -959,7 +959,7 @@ Key finding during coding: `group.concurrent` worker must return exactly `error{
 
 Pre-stage doc work (Session 9 continuation):
 - `design/matryoshka-api-reference-010.md` — new version (api-ref-009 + `### io.concurrent and Io.Group — verified call syntax` subsection).
-- `design/context.md`, `design/matryoshka-zig-implementation-plan-009.md`, `design/STATUS.md`, `design/matryoshka-architecture-001.md` — all updated to reference api-reference-010.
+- `design/context.md`, `design/matryoshka-io-implementation-plan-009.md`, `design/STATUS.md`, `design/matryoshka-architecture-001.md` — all updated to reference api-reference-010.
 
 **Changes**
 - `tests/layer4_master.zig` — new file: 2 tests (scenarios 1-2)
@@ -1101,13 +1101,13 @@ Stage 2.5b — Mailbox test:
 
 Plan and docs updated:
 - `design/matryoshka-api-reference-008.md` — new version.
-- `design/matryoshka-zig-implementation-plan-008.md` — new version; Stage 2.5 added; Stage 3 updated with implementation checklist from review.
+- `design/matryoshka-io-implementation-plan-008.md` — new version; Stage 2.5 added; Stage 3 updated with implementation checklist from review.
 - `design/context.md` — points to plan-008 and api-reference-008.
 - `design/STATUS.md` — this entry.
 
 **Changes**
 - `design/matryoshka-api-reference-008.md` — new (based on 007, additions listed above)
-- `design/matryoshka-zig-implementation-plan-008.md` — new (Stage 2.5 + Stage 3 checklist)
+- `design/matryoshka-io-implementation-plan-008.md` — new (Stage 2.5 + Stage 3 checklist)
 - `design/context.md` — api-reference and plan pointers updated to 008
 - `design/STATUS.md` — API and plan pointers updated; Stage 2.5 added; this entry
 
@@ -1138,7 +1138,7 @@ Stage 2.b (Mailbox examples) completed with 59/59 tests passing. Post-stage clea
 - `tests/matryoshka_tests.zig`: added layer2_examples import.
 - `design/task1-examples-001.md`: renumbered Layer2 examples 50-56 → 53-62; added 60-62; renumbered Layer3 examples 83-86 → 89-92.
 - `design/task1-scenarios-001.md`: added examples 60-62; renumbered Layer3 tests 60-85 → 63-88; renumbered Layer3 examples 86-89 → 89-92.
-- `design/matryoshka-zig-implementation-plan-007.md`: new plan version; all stages through 2.b collapsed; Stage 3 uses updated scenario numbers (63-88 tests, 89-92 examples); total 92 task1 / 153 total.
+- `design/matryoshka-io-implementation-plan-007.md`: new plan version; all stages through 2.b collapsed; Stage 3 uses updated scenario numbers (63-88 tests, 89-92 examples); total 92 task1 / 153 total.
 - `design/context.md`: updated plan pointer to plan-007; updated example count to 19.
 - `design/STATUS.md`: this entry.
 
@@ -1162,7 +1162,7 @@ Stage 2.b (Mailbox examples) completed with 59/59 tests passing. Post-stage clea
 - `tests/matryoshka_tests.zig` — imports layer2_examples
 - `design/task1-examples-001.md` — renumbered Layer2+Layer3 examples
 - `design/task1-scenarios-001.md` — added 60-62; renumbered Layer3
-- `design/matryoshka-zig-implementation-plan-007.md` — new plan version
+- `design/matryoshka-io-implementation-plan-007.md` — new plan version
 - `design/context.md` — plan + example count updated
 - `design/STATUS.md` — this entry
 
@@ -1187,7 +1187,7 @@ Stage 2.a (Mailbox impl + tests) completed with all 46 tests passing. Post-stage
 - `helpers/helpers.zig`: added `pub fn clearList` (replaces banned "drain" pattern).
 - `tests/layer2_mailbox.zig`: replaced local `drainList` with `helpers.clearList`; removed WHAT inline comments; added 3 multi-threaded scenarios (50 fan-in, 51 fan-out, 52 combined); added `Sensor`/`SensorPolyHelper` imports; added `freeItem` tag-dispatch helper.
 - `design/task1-scenarios-001.md`: added multi-threaded test descriptions (50–52); renumbered Layer 2 examples 53–59 and Layer 3 60–89; corrected stale note about `popFirst` link clearing.
-- Created `design/matryoshka-zig-implementation-plan-006.md`.
+- Created `design/matryoshka-io-implementation-plan-006.md`.
 - Updated `design/context.md`.
 
 **Changes**
@@ -1195,7 +1195,7 @@ Stage 2.a (Mailbox impl + tests) completed with all 46 tests passing. Post-stage
 - `helpers/helpers.zig` — added `clearList`
 - `tests/layer2_mailbox.zig` — clearList, no WHAT comments, scenarios 50/51/52, freeItem helper
 - `design/task1-scenarios-001.md` — scenarios 50–52 added; renumbered 53–89
-- `design/matryoshka-zig-implementation-plan-006.md` — new plan version
+- `design/matryoshka-io-implementation-plan-006.md` — new plan version
 - `design/context.md` — updated plan pointer
 - `design/STATUS.md` — this entry
 
@@ -1233,7 +1233,7 @@ Stage 1.b: renamed NodeMixin → PolyHelper (bad name, not in API ref). Created 
 - `build.zig` — added emod (examples) via createModule, wired to tmod
 - `design/matryoshka-api-reference-007.md` — new version, added PolyHelper section
 - `design/context.md` — added API ref -007 pointer
-- `design/matryoshka-zig-implementation-plan-003.md` — updated API ref references to -007
+- `design/matryoshka-io-implementation-plan-003.md` — updated API ref references to -007
 
 **Verification**
 
@@ -1290,7 +1290,7 @@ Stage 1.a: implemented PolyNode ownership atom and Layer 1 tests. Types: PolyTag
 - `tests/layer1_polynode.zig` — new file: 16 tests (scenarios 1-14, 17)
 - `tests/matryoshka_tests.zig` — imports layer1_polynode
 - `build.zig` — helpers module via createModule, tmod switched from addModule to createModule
-- `design/matryoshka-zig-implementation-plan-003.md` — added helpers/ to folder structure, tests-before-examples rule (N.a/N.b), plan versioning rule, post-stage cleanup rule
+- `design/matryoshka-io-implementation-plan-003.md` — added helpers/ to folder structure, tests-before-examples rule (N.a/N.b), plan versioning rule, post-stage cleanup rule
 - `design/STATUS.md` — rules updated, session logged
 
 **Verification**

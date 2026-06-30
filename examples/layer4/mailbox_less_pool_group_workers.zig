@@ -26,7 +26,7 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
     var slot: Slot = null;
     defer helpers.freeSlot(&slot, ctx.alloc); // fallback: frees if pool.put saw closed pool
-    defer pool.put(ctx.ph, &slot);            // primary: recycles (clears slot when open)
+    defer pool.put(ctx.ph, &slot); // primary: recycles (clears slot when open)
     // Single get_wait — worker processes one item and exits.
     // Blocked workers get error.Canceled from group.cancel.
     pool.get_wait(ctx.ph, types.EventPolyHelper.TAG, &slot, null) catch |err| switch (err) {

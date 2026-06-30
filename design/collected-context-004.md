@@ -36,9 +36,9 @@ Model and rules moved to permanent docs:
 - ICE agent (Io.Select + concurrent pattern): `/home/g41797/Downloads/media-protocols-master/src/ice/agent.zig`
 
 ### Working Folder
-- `/home/g41797/dev/root/github.com/g41797/matryoshka-zig/design/`
+- `/home/g41797/dev/root/github.com/g41797/matryoshka-io/design/`
 - Current API reference: `matryoshka-api-reference-015.md` — source of truth. Wins over all other sources.
-- Current plan: `matryoshka-zig-implementation-plan-018.md` (slim, state-only; rules in `rules.md`)
+- Current plan: `matryoshka-io-implementation-plan-018.md` (slim, state-only; rules in `rules.md`)
 - This document: `collected-context-004.md`
 
 ---
@@ -77,7 +77,7 @@ Model and rules moved to permanent docs:
 ## Repo Folder Structure (current)
 
 ```
-matryoshka-zig/
+matryoshka-io/
 ├── build.zig
 ├── build.zig.zon
 ├── README.md

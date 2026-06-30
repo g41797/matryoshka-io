@@ -24,7 +24,7 @@
 
 const N_CAMERAS: usize = 3;
 const N_FRAMES_PER_CAMERA: usize = 2; // total frames = 6
-const N_BUFFERS: usize = 2;           // fewer than workers — forces backpressure
+const N_BUFFERS: usize = 2; // fewer than workers — forces backpressure
 const N_WORKERS: usize = 2;
 
 const VideoBuffer = struct {
@@ -42,7 +42,7 @@ const StreamContext = struct {
     camera_id: u32 = 0,
     frame_id: u32 = 0,
     frames_processed: u32 = 0, // encoder state: accumulates across frames
-    buffer_slot: Slot = null,  // VideoBuffer in transit (owned by StreamContext)
+    buffer_slot: Slot = null, // VideoBuffer in transit (owned by StreamContext)
 };
 const StreamContextPolyHelper = polynode.PolyHelper(StreamContext);
 

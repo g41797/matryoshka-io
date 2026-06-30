@@ -236,10 +236,22 @@ test "35 - send_oob delivers to front" {
     EventPolyHelper.init(&ev3);
     EventPolyHelper.init(&oob);
 
-    { var slot: Slot = &ev1.poly; try mailbox.send(mbh, &slot); }
-    { var slot: Slot = &ev2.poly; try mailbox.send(mbh, &slot); }
-    { var slot: Slot = &ev3.poly; try mailbox.send(mbh, &slot); }
-    { var slot: Slot = &oob.poly; try mailbox.send_oob(mbh, &slot); }
+    {
+        var slot: Slot = &ev1.poly;
+        try mailbox.send(mbh, &slot);
+    }
+    {
+        var slot: Slot = &ev2.poly;
+        try mailbox.send(mbh, &slot);
+    }
+    {
+        var slot: Slot = &ev3.poly;
+        try mailbox.send(mbh, &slot);
+    }
+    {
+        var slot: Slot = &oob.poly;
+        try mailbox.send_oob(mbh, &slot);
+    }
 
     var slot: Slot = null;
     try mailbox.receive(mbh, &slot, 1_000_000_000);
@@ -308,9 +320,18 @@ test "37 - multiple send_oob items are FIFO among OOBs" {
     EventPolyHelper.init(&oob_b);
     EventPolyHelper.init(&regular);
 
-    { var slot: Slot = &regular.poly; try mailbox.send(mbh, &slot); }
-    { var slot: Slot = &oob_a.poly; try mailbox.send_oob(mbh, &slot); }
-    { var slot: Slot = &oob_b.poly; try mailbox.send_oob(mbh, &slot); }
+    {
+        var slot: Slot = &regular.poly;
+        try mailbox.send(mbh, &slot);
+    }
+    {
+        var slot: Slot = &oob_a.poly;
+        try mailbox.send_oob(mbh, &slot);
+    }
+    {
+        var slot: Slot = &oob_b.poly;
+        try mailbox.send_oob(mbh, &slot);
+    }
 
     // Expected order: oob_a(10), oob_b(20), regular(99)
     const expected = [_]i32{ 10, 20, 99 };
@@ -848,8 +869,14 @@ test "oob last resets after last oob received, next send_oob goes to front" {
     var ev_a: Event = .{ .code = 1 };
     EventPolyHelper.init(&ev_b);
     EventPolyHelper.init(&ev_a);
-    { var slot: Slot = &ev_b.poly; try mailbox.send(mbh, &slot); } // queue=[B], oob_count=0
-    { var slot: Slot = &ev_a.poly; try mailbox.send_oob(mbh, &slot); } // queue=[A,B], oob_count=1, oob_last=&A
+    {
+        var slot: Slot = &ev_b.poly;
+        try mailbox.send(mbh, &slot);
+    } // queue=[B], oob_count=0
+    {
+        var slot: Slot = &ev_a.poly;
+        try mailbox.send_oob(mbh, &slot);
+    } // queue=[A,B], oob_count=1, oob_last=&A
 
     {
         var slot: Slot = null;
@@ -862,7 +889,10 @@ test "oob last resets after last oob received, next send_oob goes to front" {
     // send_oob C must prepend (go before B), not insert after dangling A.
     var ev_c: Event = .{ .code = 3 };
     EventPolyHelper.init(&ev_c);
-    { var slot: Slot = &ev_c.poly; try mailbox.send_oob(mbh, &slot); } // queue=[C,B], oob_count=1
+    {
+        var slot: Slot = &ev_c.poly;
+        try mailbox.send_oob(mbh, &slot);
+    } // queue=[C,B], oob_count=1
 
     {
         var slot: Slot = null;

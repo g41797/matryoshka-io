@@ -85,8 +85,8 @@ pub const AlwaysCreateCtx = struct {
 
 pub const CappedPoolCtx = struct {
     alloc: std.mem.Allocator,
-    cap:   usize,
-    io:    Io,
+    cap: usize,
+    io: Io,
     mutex: Io.Mutex = .init,
     count: usize = 0,
 

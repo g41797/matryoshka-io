@@ -7,7 +7,7 @@ Tracks docs-facing work: stories, examples-as-docs, README, autodocs.
 
 ## Goal
 
-Document matryoshka-zig for users.
+Document matryoshka-io for users.
 - Target reader: knows Zig, does not know Matryoshka.
 - Teach the ownership thinking model, then the API, then real flows.
 

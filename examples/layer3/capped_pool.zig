@@ -15,7 +15,7 @@ const thread_count = 4;
 const iterations = 8;
 
 const WorkerCtx = struct {
-    ph:    PoolHandle,
+    ph: PoolHandle,
     alloc: std.mem.Allocator,
 };
 
