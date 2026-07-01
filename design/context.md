@@ -13,11 +13,11 @@ Latest context: [collected-context-004.md](collected-context-004.md) — project
 
 Thinking model: [matryoshka-model-003.md](matryoshka-model-003.md) — ownership mantra, three-category model, story structure, pool items are empty containers, when to allocate a Master
 
-Rules: [rules-003.md](rules-003.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule)
+Rules: [rules-006.md](rules-006.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule)
 
-Patterns: [patterns-002.md](patterns-002.md) — reusable coding patterns (pool, Select, Group, shutdown, dispatch, Master composition)
+Patterns: [patterns-005.md](patterns-005.md) — reusable coding patterns (Observable function shapes, pool, Select, Group, shutdown, dispatch, Master composition)
 
-Plan: [matryoshka-io-implementation-plan-023.md](matryoshka-io-implementation-plan-023.md) — slim state-only plan; rules live in rules-003.md
+Plan: [matryoshka-io-implementation-plan-027.md](matryoshka-io-implementation-plan-027.md) — slim state-only plan; rules live in rules-006.md
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 

@@ -59,6 +59,16 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     }
 }
 
+fn sendEvents(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
+    for (0..count) |i| {
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(alloc, &slot);
+        try types.EventPolyHelper.create(alloc, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        try mailbox.send(mbh, &slot);
+    }
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
@@ -67,14 +77,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         mailbox.destroy(mbh, allocator);
     }
 
-    // Send data Events before spawning the timer task.
-    for (0..N_EVENTS) |i| {
-        var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
-        try mailbox.send(mbh, &slot);
-    }
+    try sendEvents(mbh, allocator, N_EVENTS);
 
     var timer_ctx: TimerCtx = .{ .mbh = mbh, .alloc = allocator, .io = io };
     var worker_ctx: WorkerCtx = .{

@@ -3,12 +3,19 @@
 
 // Ownership:
 //
-//  pool.get (new_only) ──► slot ──pool.put──► pool
+//  pool.get ──► slot ──► pool.put ──► pool
 //  │
 //  get_wait_future ──► Future(PoolResult)
 //  fut.await ──► PoolResult .item ──► slot (master owns)
 //  │
 //  pool.put ──► pool ──pool.close──► on_close ──► freeList
+
+fn seedPool(ph: PoolHandle) !void {
+    var slot: Slot = null;
+    try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+    types.EventPolyHelper.cast(slot.?).?.code = 7;
+    pool.put(ph, &slot);
+}
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
@@ -20,13 +27,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         pool.destroy(ph, allocator);
     }
 
-    // Seed one Event into the pool.
-    {
-        var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 7;
-        pool.put(ph, &slot);
-    }
+    try seedPool(ph);
 
     var fut: std.Io.Future(pool.PoolResult) = try pool.get_wait_future(ph, types.EventPolyHelper.TAG, null);
     const result: pool.PoolResult = fut.await(io);

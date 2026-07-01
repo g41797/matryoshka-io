@@ -33,6 +33,14 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
     std.Io.Timeout.sleep(sleep_t, io) catch {};
 }
 
+fn seedPool(ph: PoolHandle) !void {
+    for (0..N_ITEMS) |_| {
+        var slot: Slot = null;
+        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+        pool.put(ph, &slot);
+    }
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
@@ -43,12 +51,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         pool.destroy(ph, allocator);
     }
 
-    // Seed pool with N_ITEMS empty containers (code=0 — no work data yet).
-    for (0..N_ITEMS) |_| {
-        var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        pool.put(ph, &slot);
-    }
+    try seedPool(ph);
 
     const sleep_t: std.Io.Timeout = .{
         .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real },
@@ -59,7 +62,6 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
     try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
 
-    // Master's own counter is the work input. Pool item is the carrier.
     var cycle: usize = 0;
 
     while (true) {
@@ -91,7 +93,6 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         }
     }
 
-    // Only the timer may still be in-flight here (no getWaitResult re-spawned at target).
     sel.cancelDiscard();
 
     try helpers.expect(error.SelectPoolEventFailed, cycle == TARGET, "wrong cycle count");

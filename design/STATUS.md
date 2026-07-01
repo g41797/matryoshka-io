@@ -18,6 +18,7 @@
 - Coding style: LE imports, explicit types, explicit dereference, stdlib first, errdefer/defer for resource cleanup.
 - Doc style: short sentences, bullets, no AI-sh words. See plan Section 1.
 - Run verification via kitchen scripts, not manual zig commands.
+- Redirect kitchen script output to zig-out/ log files: `bash kitchen/script.sh > zig-out/script.log 2>&1`. Read the log file. Do NOT analyze shell stdout.
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
@@ -31,10 +32,10 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-023.md (slim, state-only)
-- Rules: rules-003.md
+- Plan: matryoshka-io-implementation-plan-027.md (slim, state-only)
+- Rules: rules-006.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-002.md
+- Patterns: patterns-005.md
 - Docs plan: matryoshka-io-docs-plan-001.md
 
 ## Participants
@@ -111,10 +112,126 @@ STORY 1 — Video Transcoder narrative rewrite. DONE.
 Story Rhythm — Both stories SRS+Translation+Insight rewritten. DONE.
 EXMPL 1 — Example completeness audit + rule addition. DONE. Plan version 022 created.
 EXMPL 2 — Master pattern: pilot (scenario 18) + doc update. DONE. Plan version 023 created.
-Stage 9 — Docs + README + autodocs. NEXT.
-Current: Stage 9 not started.
+EXMPL 3a — 7 semantic rewrites (scenarios 46,47,53,56,57,58,59). DONE. Plan version 024 created.
+EXMPL 3b — Rename NNN- prefix + Master pattern (6 files). DONE. Plan version 025 created.
+EXMPL 3c — Observable by human rule + 3 Master fixes. DONE. Plan version 026 created.
+EXMPL 3d — Observable: extract steps in 35 flat examples. NEXT.
+Stage 9 — Docs + README + autodocs. PLANNED.
+Current: 161/161 tests. EXMPL 3d not started.
 
 ## Session Log
+
+### 2026-07-01 — EXMPL 3c (Observable by human rule + 3 Master fixes)
+**Participants**: human + Claude
+
+**Summary**
+New MUST rule: "Observable by human". Added to `rules-005.md` as first coding rule section.
+Fixed 3 Master files that violated the coordinator rule. Created `patterns-004.md` with new "Observable function shapes" pattern section.
+
+Observable by human rule.
+- Every function with distinct phases is written in two levels: coordinator + step functions.
+- Coordinator (`run`, any sequencing method): dominant structure is calls to named step functions. Simple glue (a guard, a `helpers.expect`, a log line) stays inline.
+- Step functions: each implements one step. Name IS the documentation.
+- Development order: write coordinator first (named calls to stubs), fill steps one by one.
+- The signal: if you feel the need to place a comment explaining a block → extract it to a named step. A comment marks a step that should have been named before writing.
+- `var`/`const` declarations are fine anywhere they are needed.
+
+Full audit of all 47 layer4 examples.
+- 3 Master files with violations fixed: 020, 031, 048.
+- 3 Master files already compliant: 027, 047, 053.
+- 6 flat files with no section comments — no extraction needed: 017, 021, 026, 042, 045, 049.
+- 35 flat files with section comments in `run` — extraction deferred to EXMPL 3d.
+
+Master file fixes.
+- `020-pipeline_masters.zig` — merged `spawnWorkers` + `awaitWorkers` → `runWorkers`. Futures move inside `runWorkers`. `run` becomes thin.
+- `031-select_graceful_shutdown.zig` — `buf` and `sel` added as struct fields. Initialized in `init`. `eventLoop` and `gracefulShutdown` access `self.sel` directly — no pointer passing.
+- `048-select_mailbox_pool_timer.zig` — same as 031. Also extracted `sleep_t` construction to private `timerTimeout() std.Io.Timeout`.
+
+**Changes**
+- `design/matryoshka-io-implementation-plan-026.md` — new plan version; EXMPL 3c in progress; EXMPL 3d NEXT
+- `design/rules-005.md` — new version of rules-004.md; Observable by human MUST rule added first
+- `design/patterns-004.md` — new version of patterns-003.md; Observable function shapes section added
+- `examples/layer4/020-pipeline_masters.zig` — merged spawnWorkers+awaitWorkers → runWorkers
+- `examples/layer4/031-select_graceful_shutdown.zig` — buf+sel as struct fields; remove pointer args
+- `examples/layer4/048-select_mailbox_pool_timer.zig` — buf+sel as struct fields; timerTimeout extracted
+- `design/context.md` — rules → 005, patterns → 004, plan → 026
+- `design/STATUS.md` — sources updated; EXMPL 3c stage line; this entry
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (x86_64-macos, aarch64-macos, x86_64-windows) |
+| Post-stage cleanup | AI-sh scan pending (Step 8) |
+| AI-sh + banned words scan | see below |
+
+**Next**: EXMPL 3d — extract step functions from 35 flat examples with section comments.
+
+---
+
+### 2026-07-01 — EXMPL 3b (Rename NNN- prefix + Master pattern conversion)
+**Participants**: human + Claude
+
+**Summary**
+Two-part stage. All 47 `examples/layer4/*.zig` files renamed to `NNN-current-name.zig`. Six complex examples rewritten with the Master pattern.
+
+Rename.
+- 47 files renamed (41 rename-only, 6 rename + rewrite).
+- `layer4.zig` updated: all `@import("old-name.zig")` → `@import("NNN-old-name.zig")`.
+- `pub const` names in `layer4.zig` unchanged — test wrappers unaffected.
+
+Master pattern rewrites (6 files).
+- `020-pipeline_masters.zig` — `PipelineMaster` struct; `transformer_mbh`, `consumer_mbh`, 3 worker contexts.
+- `027-select_cancel_master_decides.zig` — `CancelDecideMaster` struct; `mbh1_closed` state; phase1/phase2 methods.
+- `031-select_graceful_shutdown.zig` — `GracefulShutdownMaster` struct; `buf` + `sel` in `run()` to avoid dangling pointer.
+- `047-select_job_pool.zig` — `JobPoolMaster` struct; errdefer-loop for N mailboxes + futures.
+- `048-select_mailbox_pool_timer.zig` — `MailboxPoolTimerMaster` struct; `setupSelect` + `eventLoop` methods.
+- `053-pool_fan_in.zig` — `PoolFanInMaster` struct; `collectResults` returns anonymous struct tuple.
+
+Doc updates.
+- `design/rules-004.md` — new version of rules-003.md; canonical ref updated to `018-master_with_pool.zig`.
+- `design/patterns-003.md` — new version of patterns-002.md; all 9 example path occurrences updated to NNN-prefix.
+- `design/context.md` — rules → 004, patterns → 003, plan → 025.
+- `design/STATUS.md` — Sources of Truth updated; EXMPL 3b stage line; this entry.
+
+**Changes**
+- `examples/layer4/layer4.zig` — all @import paths updated to NNN-prefix
+- 41 rename-only files — content unchanged, filename prefixed NNN-
+- `examples/layer4/020-pipeline_masters.zig` — Master pattern rewrite
+- `examples/layer4/027-select_cancel_master_decides.zig` — Master pattern rewrite; `fires` → `triggers` (×2)
+- `examples/layer4/031-select_graceful_shutdown.zig` — Master pattern rewrite
+- `examples/layer4/047-select_job_pool.zig` — Master pattern rewrite
+- `examples/layer4/048-select_mailbox_pool_timer.zig` — Master pattern rewrite
+- `examples/layer4/053-pool_fan_in.zig` — Master pattern rewrite
+- `design/matryoshka-io-implementation-plan-025.md` — new plan version; EXMPL 3b plan
+- `design/rules-004.md` — new version (rules-003.md + NNN-prefix path + stale ref fixes)
+- `design/patterns-003.md` — new version (patterns-002.md + NNN-prefix paths + header fix)
+- `design/context.md` — rules → 004, patterns → 003, plan → 025
+- `design/STATUS.md` — sources updated; EXMPL 3b stage line; this entry
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (x86_64-macos, aarch64-macos, x86_64-windows) |
+| Post-stage cleanup | AI-sh scan only; no structural cleanup needed |
+| AI-sh + banned words scan | see below |
+
+**Post-stage cleanup**
+- `027-select_cancel_master_decides.zig`: `fires` → `triggers` in ownership diagram and TIMER_NS comment.
+- No other violations in changed .zig files.
+
+**AI-sh + banned words scan** (new .md files — rules-004.md, patterns-003.md):
+- `rules-004.md:208` — banned-word definition list itself. Not a violation.
+- `patterns-003.md:693` — `drain` in "Drain an entire mailbox." Pre-existing from patterns-002.md. Owner decides on fix.
+
+**Next**: Stage 9 — Docs + README + autodocs.
+
+---
 
 ### 2026-07-01 — EXMPL 1 (Example completeness audit + rule addition)
 **Participants**: human + Claude
@@ -218,6 +335,55 @@ Pilot implementation.
 - Scan of rules-003.md and matryoshka-model-003.md: all hits are inside the banned-words definition list. No violations.
 
 **Next**: EXMPL 3 — Full task2 conversion (all task2 examples to Master pattern).
+
+---
+
+### 2026-07-01 — EXMPL 3a (7 semantic rewrites — pool items as empty containers)
+**Participants**: human + Claude
+
+**Summary**
+EXMPL 1 revised 7 scenario descriptions but wrote no code. EXMPL 3a implements those descriptions.
+Root cause: old code seeded pool items with data; workers read/modified that data. New spec: pool items are empty containers; work input comes from outside (Master state, spawn-time args, mailbox).
+
+Affected files (flat style — no Master struct):
+- `examples/layer4/select_pool_event.zig` (46) — Master cycle counter drives work; pool item is empty carrier.
+- `examples/layer4/select_job_pool.zig` (47) — Master pre-loads job queue; pool gates dispatch; workers receive via mailbox.
+- `examples/layer4/pool_fan_in.zig` (53) — Master fills empty containers from job list; sends to per-worker mailbox; workers process and pool.put.
+- `examples/layer4/job_pool_circular.zig` (56) — Master job list drives circular flow; 1 empty container circulates; worker receives via mailbox.
+- `examples/layer4/mailbox_less_pool_future_worker.zig` (57) — Worker gets spawn-time N; own counter written into empty container each cycle.
+- `examples/layer4/mailbox_less_pool_select_scheduler.zig` (58) — Master cycle index fills empty containers; pool gates loop; timer logs from Master state.
+- `examples/layer4/mailbox_less_pool_group_workers.zig` (59) — N empty containers; each worker gets own container via spawn-time task index.
+
+Process note.
+- Added zig-out redirect rule to STATUS.md Constraints and rules-003.md (line 305 already had it).
+- Run kitchen scripts as: `bash kitchen/script.sh > zig-out/script.log 2>&1`. Read log file. Not stdout.
+
+**Changes**
+- `examples/layer4/select_pool_event.zig` — rewritten
+- `examples/layer4/select_job_pool.zig` — rewritten
+- `examples/layer4/pool_fan_in.zig` — rewritten
+- `examples/layer4/job_pool_circular.zig` — rewritten
+- `examples/layer4/mailbox_less_pool_future_worker.zig` — rewritten
+- `examples/layer4/mailbox_less_pool_select_scheduler.zig` — rewritten
+- `examples/layer4/mailbox_less_pool_group_workers.zig` — rewritten
+- `design/STATUS.md` — Constraints: zig-out redirect rule added; EXMPL 3a stage line; this entry
+- `design/matryoshka-io-implementation-plan-024.md` — new plan version; EXMPL 3a added; Stage 9 NEXT
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (mac x86_64, mac aarch64, windows x86_64) |
+| Post-stage cleanup | done — AI-sh scan only; no structural cleanup needed |
+| AI-sh + banned words scan | 3 violations fixed (fires ×2, deliver ×1) |
+
+**Post-stage cleanup**
+- `select_job_pool.zig`: `fires` → `triggers` in ownership diagram.
+- `job_pool_circular.zig`: `fires` → `triggers` in ownership diagram; `undelivered` → `remaining`.
+
+**Next**: Stage 9 — Docs + README + autodocs.
 
 ---
 

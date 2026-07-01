@@ -13,6 +13,31 @@
 
 const N_ITEMS: usize = 5;
 
+fn fillMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
+    for (0..count) |i| {
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(alloc, &slot);
+        try types.EventPolyHelper.create(alloc, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        try mailbox.send(mbh, &slot);
+    }
+}
+
+fn batchDrainToPool(ph: PoolHandle, mbh: MailboxHandle) !void {
+    var batch: std.DoublyLinkedList = try mailbox.receive_batch(mbh);
+    pool.put_all(ph, &batch);
+    std.log.info("receive_batch → put_all: stdlib list bridges mailbox to pool", .{});
+}
+
+fn verifyPool(ph: PoolHandle) !void {
+    var slot: Slot = null;
+    defer pool.put(ph, &slot);
+    pool.get(ph, types.EventPolyHelper.TAG, .available_only, &slot) catch {
+        return error.MasterBatchDrainFailed;
+    };
+    std.log.info("verified: pool has items after put_all", .{});
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
@@ -30,30 +55,11 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         mailbox.destroy(mbh, allocator);
     }
 
-    // Fill mailbox with N_ITEMS items.
-    for (0..N_ITEMS) |i| {
-        var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
-        try mailbox.send(mbh, &slot);
-    }
+    try fillMailbox(mbh, allocator, N_ITEMS);
     std.log.info("mailbox: {d} items queued", .{N_ITEMS});
 
-    // Batch receive: collect all at once, pass list directly to pool.put_all.
-    var batch: std.DoublyLinkedList = try mailbox.receive_batch(mbh);
-    pool.put_all(ph, &batch);
-    std.log.info("receive_batch → put_all: stdlib list bridges mailbox to pool", .{});
-
-    // Verify: items are back in pool — get one and put it back.
-    {
-        var slot: Slot = null;
-        defer pool.put(ph, &slot);
-        pool.get(ph, types.EventPolyHelper.TAG, .available_only, &slot) catch {
-            return error.MasterBatchDrainFailed;
-        };
-        std.log.info("verified: pool has items after put_all", .{});
-    }
+    try batchDrainToPool(ph, mbh);
+    try verifyPool(ph);
 
     std.log.info("done: {d} items — mailbox.receive_batch → pool.put_all, no conversion needed", .{N_ITEMS});
 }

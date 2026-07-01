@@ -1,9 +1,42 @@
-# Matryoshka Zig — Rules (003)
+# Matryoshka Zig — Rules (005)
 
-Versioned doc. Replaces [rules-002.md](rules-002.md).
+Versioned doc. Replaces [rules-004.md](rules-004.md).
 All coding, doc, and process rules for the project.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
-Companion: [patterns-002.md](patterns-002.md) — reusable coding patterns.
+Companion: [patterns-004.md](patterns-004.md) — reusable coding patterns.
+
+---
+
+## Observable by human — MUST
+
+Every function with distinct phases or steps is written in two levels.
+
+Level 1 — the coordinator (`run`, any sequencing function).
+- Dominant structure: calls to named step functions.
+- Simple glue stays inline: a guard, a `helpers.expect`, a `std.log.info` line.
+- Inline logic blocks with distinct purpose — extract to a named step.
+- The full flow is visible in a few lines without opening anything.
+
+Level 2 — the step functions.
+- Each implements exactly one step.
+- Named for what they do. The name IS the documentation.
+- `var`/`const` declarations are fine anywhere they are needed.
+
+Development order.
+- Write the coordinator first. Name the steps before implementing them.
+- Add stub step functions that compile but do nothing.
+- Fill in steps one by one, sequentially or iteratively.
+- The flow is known and visible from the start.
+
+The signal.
+- If you feel the need to place a comment explaining a block of code: stop.
+- That block must be a named step function instead.
+- A comment marks a step you should have named before writing.
+- Common sense: a 1-2 line guard or log between step calls stays inline.
+- Only blocks with distinct, nameable purpose are extracted.
+
+Applies to all code: `src/`, `helpers/`, `examples/`, `tests/`, `stories/`.
+Small functions with no distinct phases need no extraction.
 
 ---
 
@@ -115,7 +148,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 - Private functions — each implements one internal step.
 - Fields — shared state between steps; replace scattered locals.
 
-Canonical reference: `examples/layer4/master_with_pool.zig`.
+Canonical reference: `examples/layer4/018-master_with_pool.zig`.
 
 ---
 
@@ -166,7 +199,7 @@ Why this shape.
 Import order (LE style).
 - Package and local imports first.
 - `const std = @import("std")` always last.
-- "LE" means Local-first, External last.
+- "LE" means "_Little-endian_" - imports are placed at the bottom of the file, after the code. 
 - Do NOT flag std-last as a violation.
 
 ```zig
@@ -269,8 +302,8 @@ Banned words.
 * Link to:
 
    * `matryoshka-model-003.md`
-   * `rules-003.md`
-   * `patterns-002.md`
+   * `rules-005.md`
+   * `patterns-004.md`
 
 * When extending an existing document:
 
@@ -290,7 +323,7 @@ Per-stage finish checklist.
 3. `kitchen/build_cross_debug.sh` — cross-compile Debug for mac + windows.
 4. Post-stage cleanup: revise code for obsolete parts, wrong comments, repeated code that can be extracted.
 5. Re-run all three kitchen scripts after cleanup.
-6. After kitchen scripts pass: scan changed `.zig` files for patterns not yet in `patterns-002.md`.
+6. After kitchen scripts pass: scan changed `.zig` files for patterns not yet in `patterns-004.md`.
    - Report candidate new patterns to owner. Owner decides.
    - Do not auto-document or auto-extract. Report only.
 7. AI-sh + banned words scan over changed `*.md` and `*.zig`. Report to owner.
@@ -350,8 +383,9 @@ Implementation invariants.
 
 ## Matryoshka Coding Patterns
 
-The pattern catalog lives in [patterns-002.md](patterns-002.md).
+The pattern catalog lives in [patterns-004.md](patterns-004.md).
 
+- Observable function shapes: coordinator / step / init / destroy.
 - Pool modes, seeding, backpressure, hooks.
 - Io.Select event loop and re-register.
 - Io.Group worker sets and shutdown.

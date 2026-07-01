@@ -27,6 +27,15 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     ctx.got = true;
 }
 
+fn seedPool(ph: PoolHandle) !void {
+    for (0..3) |i| {
+        var slot: Slot = null;
+        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 10);
+        pool.put(ph, &slot);
+    }
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
@@ -37,13 +46,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         pool.destroy(ph, allocator);
     }
 
-    // Seed 3 Events into the pool.
-    for (0..3) |i| {
-        var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 10);
-        pool.put(ph, &slot);
-    }
+    try seedPool(ph);
 
     var ctx1: WorkerCtx = .{ .ph = ph, .alloc = allocator };
     var ctx2: WorkerCtx = .{ .ph = ph, .alloc = allocator };

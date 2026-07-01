@@ -1,8 +1,9 @@
-# Matryoshka Zig — Pattern Catalog (001)
+# Matryoshka Zig — Pattern Catalog (004)
 
+Versioned doc. Replaces [patterns-003.md](patterns-003.md).
 Reusable idioms confirmed in the examples and the API reference.
-Companion: [rules-001.md](rules-001.md) — what is mandatory.
-Companion: [matryoshka-model-001.md](matryoshka-model-001.md) — the thinking model.
+Companion: [rules-005.md](rules-005.md) — what is mandatory.
+Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 
 How this doc differs from rules.
 - Rules constrain. A rule says what you must or must not do.
@@ -16,6 +17,109 @@ How to use it.
 
 Each pattern lists: name, when to use, code shape, example reference.
 Every example path is under `examples/` or `stories/`.
+
+---
+
+## Observable function shapes
+
+Concrete templates for the "Observable by human" MUST rule. See [rules-005.md](rules-005.md).
+
+### Coordinator / run
+
+When to use.
+- Any function that sequences discrete steps: `pub fn run`, a Master's `run`, any sequencing method.
+
+Code shape.
+```zig
+fn run(self: *Master) !void {
+    try self.seedResources();
+    try self.eventLoop();
+    self.gracefulShutdown();
+    try helpers.expect(error.XFailed, self.count > 0, "expected items");
+    std.log.info("done: {d} processed", .{self.count});
+}
+```
+
+- Dominant structure: calls to named step functions.
+- Simple glue (a guard, a `helpers.expect`, a `std.log.info`) stays inline.
+- No inline logic blocks with distinct purpose — those are extracted to named steps.
+
+Example: `examples/layer4/031-select_graceful_shutdown.zig`.
+
+### Step function
+
+When to use.
+- Any function that implements one discrete phase of the coordinator.
+
+Code shape.
+```zig
+fn seedResources(self: *Master) !void {
+    for (0..N) |i| {
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(self.allocator, &slot);
+        try types.EventPolyHelper.create(self.allocator, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        try mailbox.send(self.mbh, &slot);
+    }
+}
+```
+
+- Each step implements one thing. Name = documentation.
+- `var`/`const` declarations are fine.
+- Loops are one unit at their scope level.
+
+Example: `examples/layer4/031-select_graceful_shutdown.zig`.
+
+### Init
+
+When to use.
+- Allocating a Master struct and acquiring its resources.
+
+Code shape.
+```zig
+fn init(allocator: std.mem.Allocator, io: std.Io) !*Master {
+    const self = try allocator.create(Master);
+    errdefer allocator.destroy(self);
+    self.allocator = allocator;
+    self.io = io;
+    self.mbh = try mailbox.new(io, allocator);
+    errdefer {
+        var rem = mailbox.close(self.mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(self.mbh, allocator);
+    }
+    self.ph = try pool.new(io, allocator, &self.pool_ctx, pool_hooks);
+    return self;
+}
+```
+
+- Allocate first, guard with `errdefer allocator.destroy`.
+- Acquire each resource, guard with `errdefer` for that resource.
+- Return `self` last.
+
+Example: `examples/layer4/018-master_with_pool.zig`.
+
+### Destroy
+
+When to use.
+- Releasing a Master struct and its resources.
+
+Code shape.
+```zig
+fn destroy(self: *Master) void {
+    var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
+    helpers.freeList(&rem, self.allocator);
+    mailbox.destroy(self.mbh, self.allocator);
+    pool.close(self.ph);
+    pool.destroy(self.ph, self.allocator);
+    self.allocator.destroy(self);
+}
+```
+
+- Release resources in reverse acquisition order.
+- Free the allocation last.
+
+Example: `examples/layer4/018-master_with_pool.zig`.
 
 ---
 
@@ -35,7 +139,7 @@ try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
 
 - `on_get` runs every call. If `slot.*` is non-null it was recycled — reinitialize. If null, create.
 
-Example: `examples/layer4/master_with_pool.zig`.
+Example: `examples/layer4/018-master_with_pool.zig`.
 
 ### Pool mode — .new_only
 
@@ -189,7 +293,7 @@ while (true) {
 
 - Re-register the source after each item. A source delivers one result per `concurrent` call.
 
-Example: `examples/layer4/select_graceful_shutdown.zig`, `examples/layer4/select_mixed_sources.zig`.
+Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/028-select_mixed_sources.zig`.
 
 ### Direct push — putOneUncancelable
 
@@ -201,7 +305,7 @@ Code shape.
 select.queue.putOneUncancelable(select.io, .{ .field = value }) catch {};
 ```
 
-Example: `examples/layer4/select_direct_push.zig`.
+Example: `examples/layer4/043-select_direct_push.zig`.
 
 ### Graceful cancel walk — recover in-flight items
 
@@ -231,7 +335,7 @@ while (sel.cancel()) |event| {
 }
 ```
 
-Example: `examples/layer4/select_graceful_shutdown.zig`.
+Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 
 ### cancelDiscard — timer-only or no-item sources
 
@@ -295,7 +399,7 @@ group.cancel(io);   // injects error.Canceled into all blocked workers, then wai
 
 - Blocked workers return `error.Canceled`. A worker that already finished is unaffected.
 
-Example: `examples/layer4/mailbox_less_pool_group_workers.zig`.
+Example: `examples/layer4/059-mailbox_less_pool_group_workers.zig`.
 
 ---
 
@@ -328,7 +432,7 @@ if (sc.buffer_slot != null) {
 }
 ```
 
-Example: `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/cross_layer_close_mailbox_then_pool.zig`.
+Example: `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/037-cross_layer_close_mailbox_then_pool.zig`.
 
 ---
 
@@ -351,7 +455,7 @@ if (EventPolyHelper.cast(handle)) |ev| {
 - `cast` returns null on a tag mismatch. Chain casts for each known type.
 - Tag identifies class, not instance. Use a `kind`/`role` field or pointer comparison for instance identity.
 
-Example: `examples/layer4/select_graceful_shutdown.zig`, `examples/layer4/cross_layer_mixed_types_mailbox.zig`.
+Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/033-cross_layer_mixed_types_mailbox.zig`.
 
 ---
 
@@ -374,7 +478,7 @@ The distinction.
 - `error.Timeout` — the wait window passed. Treat per domain.
 - Never remap `error.Canceled` to `error.Closed`. They mean different things.
 
-Example: `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/mailbox_less_pool_group_workers.zig`.
+Example: `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/059-mailbox_less_pool_group_workers.zig`.
 
 ---
 
@@ -1092,5 +1196,3 @@ Purpose.
 - Worker parallelism.
 - Ownership-safe transport.
 - Automatic backpressure.
-```
-

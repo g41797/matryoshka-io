@@ -37,6 +37,12 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     }
 }
 
+fn seedContainer(ph: PoolHandle) !void {
+    var slot: Slot = null;
+    try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+    pool.put(ph, &slot);
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
@@ -47,12 +53,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         pool.destroy(ph, allocator);
     }
 
-    // Seed 1 empty container — code=0, no work data.
-    {
-        var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        pool.put(ph, &slot);
-    }
+    try seedContainer(ph);
 
     var ctx: WorkerCtx = .{ .ph = ph, .tag = types.EventPolyHelper.TAG, .n = N };
     var fut: std.Io.Future(anyerror!void) = try io.concurrent(workerFn, .{&ctx});

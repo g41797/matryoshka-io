@@ -92,40 +92,63 @@ fn consumerFn(ctx: *ConsumerCtx) anyerror!void {
     }
 }
 
+const PipelineMaster = struct {
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    transformer_mbh: MailboxHandle,
+    consumer_mbh: MailboxHandle,
+    prod_ctx: ProducerCtx,
+    trans_ctx: TransformerCtx,
+    cons_ctx: ConsumerCtx,
+
+    fn init(allocator: std.mem.Allocator, io: std.Io) !*PipelineMaster {
+        const self = try allocator.create(PipelineMaster);
+        errdefer allocator.destroy(self);
+        self.allocator = allocator;
+        self.io = io;
+        self.transformer_mbh = try mailbox.new(io, allocator);
+        errdefer {
+            var rem: std.DoublyLinkedList = mailbox.close(self.transformer_mbh);
+            helpers.freeList(&rem, allocator);
+            mailbox.destroy(self.transformer_mbh, allocator);
+        }
+        self.consumer_mbh = try mailbox.new(io, allocator);
+        self.prod_ctx = .{ .out_mbh = self.transformer_mbh, .alloc = allocator };
+        self.trans_ctx = .{ .in_mbh = self.transformer_mbh, .out_mbh = self.consumer_mbh, .alloc = allocator };
+        self.cons_ctx = .{ .in_mbh = self.consumer_mbh, .alloc = allocator };
+        return self;
+    }
+
+    fn destroy(self: *PipelineMaster) void {
+        var rem1: std.DoublyLinkedList = mailbox.close(self.transformer_mbh);
+        helpers.freeList(&rem1, self.allocator);
+        mailbox.destroy(self.transformer_mbh, self.allocator);
+        var rem2: std.DoublyLinkedList = mailbox.close(self.consumer_mbh);
+        helpers.freeList(&rem2, self.allocator);
+        mailbox.destroy(self.consumer_mbh, self.allocator);
+        self.allocator.destroy(self);
+    }
+
+    fn run(self: *PipelineMaster) !void {
+        try self.runWorkers();
+        try helpers.expect(error.PipelineFailed, self.cons_ctx.count == 3, "expected consumer to receive 3 Sensors");
+        std.log.info("pipeline done: consumer received {d} items", .{self.cons_ctx.count});
+    }
+
+    fn runWorkers(self: *PipelineMaster) !void {
+        var fut_prod: std.Io.Future(anyerror!void) = try self.io.concurrent(producerFn, .{&self.prod_ctx});
+        var fut_trans: std.Io.Future(anyerror!void) = try self.io.concurrent(transformerFn, .{&self.trans_ctx});
+        var fut_cons: std.Io.Future(anyerror!void) = try self.io.concurrent(consumerFn, .{&self.cons_ctx});
+        try fut_prod.await(self.io);
+        try fut_trans.await(self.io);
+        try fut_cons.await(self.io);
+    }
+};
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const transformer_mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(transformer_mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(transformer_mbh, allocator);
-    }
-
-    const consumer_mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(consumer_mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(consumer_mbh, allocator);
-    }
-
-    var prod_ctx: ProducerCtx = .{ .out_mbh = transformer_mbh, .alloc = allocator };
-    var trans_ctx: TransformerCtx = .{
-        .in_mbh = transformer_mbh,
-        .out_mbh = consumer_mbh,
-        .alloc = allocator,
-    };
-    var cons_ctx: ConsumerCtx = .{ .in_mbh = consumer_mbh, .alloc = allocator };
-
-    var fut_prod = try io.concurrent(producerFn, .{&prod_ctx});
-    var fut_trans = try io.concurrent(transformerFn, .{&trans_ctx});
-    var fut_cons = try io.concurrent(consumerFn, .{&cons_ctx});
-
-    try fut_prod.await(io);
-    try fut_trans.await(io);
-    try fut_cons.await(io);
-
-    try helpers.expect(error.PipelineFailed, cons_ctx.count == 3, "expected consumer to receive 3 Sensors");
-
-    std.log.info("pipeline done: consumer received {d} items", .{cons_ctx.count});
+    const master = try PipelineMaster.init(allocator, io);
+    defer master.destroy();
+    try master.run();
 }
 
 const helpers = @import("helpers");

@@ -10,6 +10,26 @@
 //  │
 //  mailbox.receive (synchronous) still works
 
+fn testFutureUnavailable(mbh: MailboxHandle) !void {
+    if (mailbox.receive_future(mbh, null)) |_| {
+        return error.FutureSingleThreadedFailed;
+    } else |_| {}
+    std.log.info("receive_future: ConcurrencyUnavailable on single-threaded backend as expected", .{});
+}
+
+fn testSynchronousReceive(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
+    var slot: Slot = null;
+    defer types.EventPolyHelper.destroy(alloc, &slot);
+    try types.EventPolyHelper.create(alloc, &slot);
+    types.EventPolyHelper.cast(slot.?).?.code = 1;
+    try mailbox.send(mbh, &slot);
+
+    var received: Slot = null;
+    defer helpers.freeSlot(&received, alloc);
+    try mailbox.receive(mbh, &received, null);
+    std.log.info("synchronous receive still works: code={d}", .{types.EventPolyHelper.cast(received.?).?.code});
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
@@ -18,23 +38,8 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         mailbox.destroy(mbh, allocator);
     }
 
-    // receive_future fails on single-threaded backend.
-    if (mailbox.receive_future(mbh, null)) |_| {
-        return error.FutureSingleThreadedFailed;
-    } else |_| {}
-    std.log.info("receive_future: ConcurrencyUnavailable on single-threaded backend as expected", .{});
-
-    // Synchronous receive still works: send then receive.
-    var slot: Slot = null;
-    defer types.EventPolyHelper.destroy(allocator, &slot);
-    try types.EventPolyHelper.create(allocator, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = 1;
-    try mailbox.send(mbh, &slot);
-
-    var received: Slot = null;
-    defer helpers.freeSlot(&received, allocator);
-    try mailbox.receive(mbh, &received, null);
-    std.log.info("synchronous receive still works: code={d}", .{types.EventPolyHelper.cast(received.?).?.code});
+    try testFutureUnavailable(mbh);
+    try testSynchronousReceive(mbh, allocator);
 }
 
 const helpers = @import("helpers");

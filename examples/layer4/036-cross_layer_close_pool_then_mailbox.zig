@@ -14,6 +14,44 @@
 const N_POOL: usize = 2;
 const N_MAILBOX: usize = 1;
 
+fn seedPool(ph: PoolHandle, count: usize) !void {
+    for (0..count) |i| {
+        var slot: Slot = null;
+        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        pool.put(ph, &slot);
+    }
+}
+
+fn seedMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
+    for (0..count) |i| {
+        var slot: Slot = null;
+        defer types.EventPolyHelper.destroy(alloc, &slot);
+        try types.EventPolyHelper.create(alloc, &slot);
+        types.EventPolyHelper.cast(slot.?).?.code = @intCast(100 + i);
+        try mailbox.send(mbh, &slot);
+    }
+}
+
+fn closePool(ph: PoolHandle, alloc: std.mem.Allocator) void {
+    pool.close(ph);
+    pool.destroy(ph, alloc);
+    std.log.info("pool.close: on_close freed {d} pool items", .{N_POOL});
+}
+
+fn closeMailboxAndFree(mbh: MailboxHandle, alloc: std.mem.Allocator) usize {
+    var rem: std.DoublyLinkedList = mailbox.close(mbh);
+    var freed: usize = 0;
+    while (rem.popFirst()) |node| {
+        const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
+        polynode.reset(poly);
+        helpers.freeItem(poly, alloc);
+        freed += 1;
+    }
+    mailbox.destroy(mbh, alloc);
+    return freed;
+}
+
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
@@ -22,40 +60,14 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
 
-    // Seed pool with N_POOL items in free-list.
-    for (0..N_POOL) |i| {
-        var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
-        pool.put(ph, &slot);
-    }
-
-    // Put N_MAILBOX items in mailbox queue.
-    for (0..N_MAILBOX) |i| {
-        var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(100 + i);
-        try mailbox.send(mbh, &slot);
-    }
+    try seedPool(ph, N_POOL);
+    try seedMailbox(mbh, allocator, N_MAILBOX);
 
     std.log.info("before close: {d} in pool, {d} in mailbox", .{ N_POOL, N_MAILBOX });
 
-    // Close pool first — on_close frees all pool items.
-    pool.close(ph);
-    pool.destroy(ph, allocator);
-    std.log.info("pool.close: on_close freed {d} pool items", .{N_POOL});
+    closePool(ph, allocator);
 
-    // Close mailbox — returns remaining items as std.DoublyLinkedList.
-    var rem: std.DoublyLinkedList = mailbox.close(mbh);
-    var freed: usize = 0;
-    while (rem.popFirst()) |node| {
-        const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-        polynode.reset(poly);
-        helpers.freeItem(poly, allocator);
-        freed += 1;
-    }
-    mailbox.destroy(mbh, allocator);
+    const freed = closeMailboxAndFree(mbh, allocator);
     std.log.info("mailbox.close: walked list, freed {d} mailbox items", .{freed});
 
     try helpers.expect(error.CrossLayerCloseOrderFailed, freed == N_MAILBOX, "mailbox item count mismatch");

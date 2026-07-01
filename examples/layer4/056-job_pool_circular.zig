@@ -10,7 +10,7 @@
 //  master: fill container from job list ──► mailbox.send ──► mbh
 //                                                              │ worker
 //                                                              │ process (code *= 2) ──► pool.put ──► pool
-//  pool fires again ──► master dispatches next job (or breaks when all N sent + last returned)
+//  pool triggers again ──► master dispatches next job (or breaks when all N sent + last returned)
 //
 //  Container circulates: pool → master fills → mailbox → worker → pool.
 //  Work input: Master's pre-loaded job list. Pool provides the container and controls pacing.
@@ -101,7 +101,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     sel.cancelDiscard();
 
-    // Close mailbox to signal worker to stop, then collect any undelivered items.
+    // Close mailbox to signal worker to stop, then walk any remaining items.
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
     helpers.freeList(&rem, allocator);
     try worker_fut.await(io);

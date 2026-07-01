@@ -26,49 +26,26 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
     std.Io.Timeout.sleep(sleep_t, io) catch {};
 }
 
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    // Seed pool with 3 items.
+fn seedPool(ph: PoolHandle) !void {
     for (0..3) |i| {
         var slot: Slot = null;
         try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
         types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
         pool.put(ph, &slot);
     }
+}
 
-    const sleep_t: std.Io.Timeout = .{
-        .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real },
-    };
-
-    var buf: [8]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-
-    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
-    try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
-
-    var processed: usize = 0;
-    var recycled: usize = 0;
-
-    // Event loop: process 1 item, then let timer trigger cancel.
+fn eventLoop(ph: PoolHandle, sel: *std.Io.Select(MasterEvent), processed: *usize) !void {
     loop: while (true) {
         const event: MasterEvent = try sel.await();
         switch (event) {
             .pool_ev => |r| switch (r) {
                 .item => |handle| {
                     var slot: Slot = handle;
-                    defer pool.put(ph, &slot); // put back = recycle
+                    defer pool.put(ph, &slot);
                     const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
-                    processed += 1;
+                    processed.* += 1;
                     std.log.info("pool_ev: processed code={d} → put back to pool", .{ev.code});
-                    // Re-spawn pool watcher for next item.
                     try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
                 },
                 .closed, .canceled, .timeout, .not_created => break :loop,
@@ -79,15 +56,16 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
             },
         }
     }
+}
 
-    // Walk remaining items from outstanding pool.getWaitResult and recycle them.
+fn cancelAndRecycle(ph: PoolHandle, sel: *std.Io.Select(MasterEvent), recycled: *usize) void {
     while (sel.cancel()) |event| {
         switch (event) {
             .pool_ev => |r| switch (r) {
                 .item => |handle| {
                     var slot: Slot = handle;
-                    pool.put(ph, &slot); // recycle — do NOT free
-                    recycled += 1;
+                    pool.put(ph, &slot);
+                    recycled.* += 1;
                     std.log.info("cancel walk: recycled pool item (not freed)", .{});
                 },
                 .canceled, .closed, .timeout, .not_created => {},
@@ -95,9 +73,34 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
             .timer => {},
         }
     }
+}
+
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedPool(ph);
+
+    const sleep_t: std.Io.Timeout = .{
+        .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real },
+    };
+    var buf: [8]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+    try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
+
+    var processed: usize = 0;
+    var recycled: usize = 0;
+    try eventLoop(ph, &sel, &processed);
+    cancelAndRecycle(ph, &sel, &recycled);
 
     std.log.info("done: processed={d}, recycled via cancel={d}", .{ processed, recycled });
-    // pool.close (deferred above) will cleanly free any items still in pool via on_close.
 }
 
 const helpers = @import("helpers");
