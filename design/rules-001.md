@@ -180,12 +180,55 @@ Banned words.
 
 ## Documentation Rules
 
-- Simple English. Short sentences. Bullets over long sentences.
-- Story narrative uses the 4-part structure: arch dialogue → SRS → matryoshka translation → flow diagram.
-- Diagrams are ASCII, human-readable, not space-optimized.
-- Do not save space in files. Clarity over brevity.
-- Cross-reference instead of duplicating. Link to `matryoshka-model-001.md`, `rules-001.md`, and `patterns-001.md`.
-- When appending to a doc, match the heading levels already in use.
+* Document is not a novel.
+
+* Do not use prose style.
+
+* Use simple English.
+
+* Use short sentences.
+
+* Prefer bullets over long paragraphs.
+
+* One fact per bullet.
+
+* Use a staccato rhythm.
+
+   * Start with a short introduction.
+   * Follow with a bullet list.
+   * One bullet. One fact.
+   * Keep the introduction short.
+   * Do not chain multiple ideas into one sentence.
+   * Do not replace bullet lists with many standalone one-line sentences.
+
+* Story narrative uses the 4-part structure:
+
+   * Architecture dialogue.
+   * SRS.
+   * Matryoshka translation.
+   * Flow diagram.
+
+* Use ASCII diagrams.
+
+* Make diagrams human-readable.
+
+* Do not optimize diagrams for compactness.
+
+* Prefer clarity over brevity.
+
+* Do not save space in files.
+
+* Cross-reference instead of duplicating.
+
+* Link to:
+
+   * `matryoshka-model-001.md`
+   * `rules-001.md`
+   * `patterns-001.md`
+
+* When extending an existing document:
+
+   * Match the heading levels already in use.
 
 ---
 
