@@ -145,8 +145,9 @@ Four functions in `PolyHelper(T)`:
 - `helpers/helpers.zig` — `identifyNodeAs` replaces `cast`.
 - Post-cleanup: 6 ASCII diagram comments + 2 test name strings updated via `sed`.
 - `design/matryoshka-api-reference-016.md` — new version; four functions documented; `no_create_destroy` diagram updated; violation example updated.
-- `design/patterns-007.md` — new version; polymorphic dispatch and step function patterns updated.
-- `design/context.md` — api-ref → 016, patterns → 007.
+- `design/patterns-007.md` — new version; polymorphic dispatch, step function, and new Slot identification patterns updated; companion link → rules-008.
+- `design/rules-008.md` — new version of rules-007.md; stale patterns-006 references updated to patterns-007.
+- `design/context.md` — api-ref → 016, patterns → 007, rules → 008, plan → 029.
 - `design/STATUS.md` — sources updated; API 2 stage line; this entry.
 
 **Verification**
@@ -157,10 +158,15 @@ Four functions in `PolyHelper(T)`:
 | build_and_test_all.sh | PASS (161/161 × 4 modes) |
 | build_cross_debug.sh | PASS (x86_64-macos, aarch64-macos, x86_64-windows) |
 | Post-stage cleanup | 6 diagram comments + 2 test names fixed; re-run all green |
-| AI-sh + banned words scan | pending (Step 10) |
-| Rules audit | pending (Step 11) |
+| AI-sh + banned words scan | CLEAN (no new violations) |
+| Rules audit | CLEAN — 3 pre-existing findings reported to owner (see below) |
 
-**Next**: Step 9 — scan changed .zig files for new patterns not yet in patterns-007.md. Then AI-sh scan. Then Stage 9.
+**Rules audit findings (pre-existing, owner decides)**
+- `rules-007.md` stale patterns-006 refs — fixed: created rules-008.md.
+- `src/polynode.zig` has `///` doc comments — pre-existing, consistent with all other functions. Rule vs practice contradiction.
+- `stories/video_transcoder/video_transcoder.zig` — spawn cluster inline in `run` (lines 287, 293-294). Observable signal #3. Pre-existing from INTR 5.
+
+**Next**: Stage 9 — Docs + README + autodocs.
 
 ---
 

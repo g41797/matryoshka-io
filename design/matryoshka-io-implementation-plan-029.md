@@ -17,7 +17,7 @@ API 2 — DONE. 161/161 tests.
 - EXMPL 3c: Observable by human rule (rules-005 → rules-006); fixed 3 Master violations (020, 031, 048).
 - EXMPL 3d: extracted step functions from 31 flat layer4 files with section comments.
 - EXMPL 3e: structural extraction signals (rules-007); fixed 24 Observable violations; patterns-006 → patterns-007 (coordinator templates).
-- API 2: renamed `cast`→`identifyNodeAs`, `mustCast`→`mustIdentifyNodeAs`; added `identifySlotAs` / `mustIdentifySlotAs` to `PolyHelper`. Updated all call sites (src, examples, tests, stories, helpers). api-reference-015 → api-reference-016. patterns-006 → patterns-007 (Slot identification pattern). 161/161 tests.
+- API 2: renamed `cast`→`identifyNodeAs`, `mustCast`→`mustIdentifyNodeAs`; added `identifySlotAs` / `mustIdentifySlotAs` to `PolyHelper`. Updated all call sites (src, examples, tests, stories, helpers). api-reference-015 → api-reference-016. patterns-006 → patterns-007 (Slot identification pattern). rules-007 → rules-008 (stale patterns ref fix). 161/161 tests.
 
 ---
 
