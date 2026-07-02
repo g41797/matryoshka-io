@@ -2,7 +2,7 @@
 
 Versioned doc. Replaces [patterns-006.md](patterns-006.md).
 Reusable idioms confirmed in the examples and the API reference.
-Companion: [rules-007.md](rules-007.md) — what is mandatory.
+Companion: [rules-008.md](rules-008.md) — what is mandatory.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 
 How this doc differs from rules.
@@ -22,7 +22,7 @@ Every example path is under `examples/` or `stories/`.
 
 ## Observable function shapes
 
-Concrete templates for the "Observable by human" MUST rule. See [rules-007.md](rules-007.md).
+Concrete templates for the "Observable by human" MUST rule. See [rules-008.md](rules-008.md).
 
 ### Coordinator / run
 

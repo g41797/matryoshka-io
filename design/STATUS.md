@@ -33,7 +33,7 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-029.md (slim, state-only)
-- Rules: rules-007.md
+- Rules: rules-008.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-007.md
 - Docs plan: matryoshka-io-docs-plan-001.md
