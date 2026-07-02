@@ -6,9 +6,11 @@ We know how to write Zig libraries.
 
 We are still learning how to build Zig systems.
 
-Zig **Io** makes developers' lives even more _interesting_.
+Zig Io makes developers' lives even more interesting.
 
-**Matryoshka** is my attempt to make them a little more _boring_.
+Matryoshka is my attempt to make them a little more **_boring_**.
+
+---
 
 ## Three small building blocks
 
@@ -18,74 +20,70 @@ Matryoshka-io is built on only three small source files.
 
 `PolyNode` is the bigger brother of Zig's intrusive `Node`.
 
-Like `Node`, it is suitable for:
+Like `Node`, it is:
 
-* intrusive lists
-* intrusive queues
-* other intrusive containers
+- embedded into application objects
+- suitable for:
+    - intrusive lists
+    - intrusive queues
+    - other intrusive containers
 
 In addition, it:
 
-* is embedded into application objects
-* provides simple run-time type identification
+- provides simple run-time type identification.
 
-Given a `PolyNode`, the application can:
+Given a `PolyNode`, you can:
 
-* safely recover the containing object
-* without interfaces
-* without virtual dispatch
+- safely identify the containing object
+- without interfaces
+- without virtual dispatch
 
 ### Mailbox
 
-`Mailbox` transfers `PolyNode` objects between _Masters_.
+`Mailbox`:
 
-It is type-erased.
-
-It does not know or care about the concrete object type.
-
-It transfers ownership together with the object.
+- transfers `PolyNode` objects between Masters
+- transfers ownership together with the object
+- does not know or care about the concrete object type
 
 ### Pool
 
-`Pool` reuses `PolyNode`-based objects.
+`Pool`:
 
-It is type-erased.
-
-It does not know or care about the concrete object type.
-
-It returns objects for reuse instead of destroying them.
+- reuses `PolyNode`-based objects
+- does not know or care about the concrete object type
+- returns objects for reuse instead of destroying them
 
 ### Intrusive containers on steroids
 
-If
+Think of them this way.
 
-- `PolyNode` is the bigger brother of Zig's intrusive `Node`
+`PolyNode` is the bigger brother of Zig's intrusive `Node`.
 
-then
-
-- `Mailbox` and `Pool` are intrusive containers on steroids.
+`Mailbox` and `Pool` are intrusive containers on steroids.
 
 The steroids are simple:
 
-* ownership transfer;
-* object reuse.
+- ownership transfer;
+- object reuse.
 
-Nothing more.
+Nothing else.
 
-* No interfaces.
-* No inheritance.
-* No framework.
+- No interfaces.
+- No framework.
 
 Just three small source files.
 
-> Together, these three building blocks provide only two capabilities:
+> Together, this troika provides two powerful capabilities:
 >
-> * move objects;
-> * reuse objects.
+> - move objects;
+> - reuse objects.
+
+---
 
 ## One architectural concept
 
-Matryoshka also introduces one architectural concept.
+Matryoshka introduces one architectural concept.
 
 **Master**.
 
@@ -93,24 +91,24 @@ Master is a role.
 
 Master is **not**:
 
-* a type;
-* an interface;
-* a base class;
-* a runtime.
+- a type
+- an interface
+- a runtime
 
 A Master:
 
-* has a relatively long lifetime;
-* owns Matryoshka building blocks;
-* owns internal state;
-* performs a dedicated responsibility.
+- typically has a long lifetime
+- owns Matryoshka building blocks
+- owns internal state
 
 Some Masters also:
 
-* coordinate other Masters;
-* own shared resources.
+- coordinate other Masters
+- own shared resources
 
-A worker is simply a Master with a single dedicated responsibility.
+A _worker_ is simply a Master with a single dedicated responsibility.
+
+---
 
 ## Matryoshka-based system
 
@@ -118,11 +116,13 @@ A Matryoshka-based system is built from Masters.
 
 Masters:
 
-* own state;
-* communicate through Mailboxes;
-* share reusable objects through Pool(s).
+- own state;
+- communicate through Mailboxes;
+- share reusable objects through Pools.
 
-Matryoshka doesn't dictate the implementation.
+Matryoshka does not dictate the implementation.
+
+---
 
 ## The role of Zig Io
 
@@ -130,39 +130,44 @@ Matryoshka-io uses Zig Io in two situations.
 
 ### Required by Zig
 
-Some operations must use Zig Io because Zig provides them only through the Io API.
+Some operations must use Zig Io because Zig exposes them only through the Io API.
 
-Matryoshka uses Io where it is required, but the architectural concepts remain unchanged.
+Matryoshka uses Io where it is required.
 
-### Useful Io features
+The architecture remains unchanged.
 
-Some Io features make Matryoshka better integrated with the Zig Io ecosystem.
+### Additional Io capabilities
+
+Matryoshka also uses Zig Io where it provides useful functionality.
 
 Examples include:
 
-* waiting for multiple event sources;
-* timers;
-* cancellation;
-* integration with other Io-based libraries.
+- waiting for multiple event sources
+- timers
+- cancellation
+- integration with other Io-based libraries
 
 These capabilities extend Matryoshka.
 
 They do not define it.
 
+---
+
 ## Why use Matryoshka with Zig Io?
 
 Think about cars.
 
-* A traditional threaded application is a _conventional_ car.
-* A pure Io-based application is an _electric_ car.
-* Matryoshka-io is a _**hybrid**_.
+- A traditional threaded application is a conventional car
+- A pure Io-based application is an electric car
+- Matryoshka-io is a hybrid
 
 Matryoshka:
 
-* keeps the architecture simple;
-* uses Zig Io where Zig requires it;
-* uses Zig Io where it provides additional functionality.
+- keeps the architecture simple
+- uses Zig Io where Zig requires it
+- uses Zig Io where it provides additional functionality
 
-Build Zig systems today.
+Start building today.
 
 If Zig Io changes tomorrow—and it will—your architecture stays the same.
+
