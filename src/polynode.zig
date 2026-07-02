@@ -45,18 +45,32 @@ pub fn PolyHelper(comptime T: type) type {
                 return tag == TAG;
             }
 
-            /// Safely casts a PolyNode to T.
+            /// Identifies a PolyNode as T.
             /// Returns null if the runtime tag does not match.
-            pub inline fn cast(node: *PolyNode) ?*T {
+            /// Use in infrastructure code that works with *PolyNode directly.
+            pub inline fn identifyNodeAs(node: *PolyNode) ?*T {
                 if (node.tag != TAG)
                     return null;
 
                 return @fieldParentPtr("poly", node);
             }
 
-            /// Same as cast(), but requires the node to already be known as T.
-            pub inline fn mustCast(node: *PolyNode) *T {
-                return cast(node) orelse unreachable;
+            /// Same as identifyNodeAs, but panics if the tag does not match.
+            pub inline fn mustIdentifyNodeAs(node: *PolyNode) *T {
+                return identifyNodeAs(node) orelse unreachable;
+            }
+
+            /// Identifies a Slot as T.
+            /// Returns null if the Slot is empty or the tag does not match.
+            /// Use in application code that works with Slots.
+            pub inline fn identifySlotAs(slot: *const Slot) ?*T {
+                const node = slot.* orelse return null;
+                return identifyNodeAs(node);
+            }
+
+            /// Same as identifySlotAs, but panics if the Slot is empty or tag does not match.
+            pub inline fn mustIdentifySlotAs(slot: *const Slot) *T {
+                return identifySlotAs(slot) orelse unreachable;
             }
 
             /// Initializes the embedded PolyNode.
@@ -94,7 +108,7 @@ pub fn PolyHelper(comptime T: type) type {
 
                 std.debug.assert(!is_linked(poly));
 
-                const object = Self.cast(poly);
+                const object = Self.identifyNodeAs(poly);
                 std.debug.assert(object != null);
 
                 // Ownership ends before memory is released.
@@ -117,18 +131,32 @@ pub fn PolyHelper(comptime T: type) type {
                 return tag == TAG;
             }
 
-            /// Safely casts a PolyNode to T.
+            /// Identifies a PolyNode as T.
             /// Returns null if the runtime tag does not match.
-            pub inline fn cast(node: *PolyNode) ?*T {
+            /// Use in infrastructure code that works with *PolyNode directly.
+            pub inline fn identifyNodeAs(node: *PolyNode) ?*T {
                 if (node.tag != TAG)
                     return null;
 
                 return @fieldParentPtr("poly", node);
             }
 
-            /// Same as cast(), but requires the node to already be known as T.
-            pub inline fn mustCast(node: *PolyNode) *T {
-                return cast(node) orelse unreachable;
+            /// Same as identifyNodeAs, but panics if the tag does not match.
+            pub inline fn mustIdentifyNodeAs(node: *PolyNode) *T {
+                return identifyNodeAs(node) orelse unreachable;
+            }
+
+            /// Identifies a Slot as T.
+            /// Returns null if the Slot is empty or the tag does not match.
+            /// Use in application code that works with Slots.
+            pub inline fn identifySlotAs(slot: *const Slot) ?*T {
+                const node = slot.* orelse return null;
+                return identifyNodeAs(node);
+            }
+
+            /// Same as identifySlotAs, but panics if the Slot is empty or tag does not match.
+            pub inline fn mustIdentifySlotAs(slot: *const Slot) *T {
+                return identifySlotAs(slot) orelse unreachable;
             }
 
             /// Initializes the embedded PolyNode.

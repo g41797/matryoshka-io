@@ -18,7 +18,7 @@ fn masterAFn(ctx: *MasterACtx) anyerror!void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, ctx.alloc);
         try types.EventPolyHelper.create(ctx.alloc, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 42;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 42;
         try mailbox.send(ctx.b_inbox, &slot);
         std.log.info("master A: sent Event code=42 request to B", .{});
     }
@@ -27,7 +27,7 @@ fn masterAFn(ctx: *MasterACtx) anyerror!void {
     defer helpers.freeSlot(&slot, ctx.alloc);
     try mailbox.receive(ctx.a_inbox, &slot, null);
 
-    if (types.SensorPolyHelper.cast(slot.?)) |sn| {
+    if (types.SensorPolyHelper.identifySlotAs(&slot)) |sn| {
         std.log.info("master A: received Sensor response value={d}", .{sn.value});
         helpers.freeSlot(&slot, ctx.alloc);
     } else {
@@ -47,7 +47,7 @@ fn masterBFn(ctx: *MasterBCtx) anyerror!void {
     try mailbox.receive(ctx.b_inbox, &slot, null);
 
     var response_value: f64 = 0.0;
-    if (types.EventPolyHelper.cast(slot.?)) |ev| {
+    if (types.EventPolyHelper.identifySlotAs(&slot)) |ev| {
         response_value = @floatFromInt(ev.code);
         std.log.info("master B: received Event code={d}, computing response", .{ev.code});
         helpers.freeSlot(&slot, ctx.alloc);
@@ -56,7 +56,7 @@ fn masterBFn(ctx: *MasterBCtx) anyerror!void {
     }
 
     try types.SensorPolyHelper.create(ctx.alloc, &slot);
-    types.SensorPolyHelper.cast(slot.?).?.value = response_value;
+    types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = response_value;
     try mailbox.send(ctx.a_inbox, &slot);
     std.log.info("master B: sent Sensor response value={d}", .{response_value});
 }

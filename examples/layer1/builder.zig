@@ -5,7 +5,7 @@
 //
 //  alloc.create ──► slot (non-null)
 //       │
-//  Builder.cast ──► field access (no transfer)
+//  Builder.identifyNodeAs ──► field access (no transfer)
 //       │
 //  Builder.destroyByTag ──► slot = null (freed)
 
@@ -14,12 +14,12 @@ pub const Builder = struct {
 
     pub fn createEvent(self: Builder, code: i32, slot: *Slot) !void {
         try types.EventPolyHelper.create(self.alloc, slot);
-        types.EventPolyHelper.cast(slot.*.?).?.code = code;
+        types.EventPolyHelper.mustIdentifySlotAs(slot).code = code;
     }
 
     pub fn createSensor(self: Builder, value: f64, slot: *Slot) !void {
         try types.SensorPolyHelper.create(self.alloc, slot);
-        types.SensorPolyHelper.cast(slot.*.?).?.value = value;
+        types.SensorPolyHelper.mustIdentifySlotAs(slot).value = value;
     }
 
     pub fn destroyByTag(self: Builder, slot: *Slot) void {
@@ -35,7 +35,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer b.destroyByTag(&slot);
         try b.createEvent(100, &slot);
-        const ev = types.EventPolyHelper.cast(slot.?).?;
+        const ev = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.BuilderFailed, ev.code == 100, "wrong event code");
     }
 
@@ -43,7 +43,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer b.destroyByTag(&slot);
         try b.createSensor(9.8, &slot);
-        const sn = types.SensorPolyHelper.cast(slot.?).?;
+        const sn = types.SensorPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.BuilderFailed, sn.value == 9.8, "wrong sensor value");
     }
 }

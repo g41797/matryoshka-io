@@ -44,7 +44,7 @@ test "64 - pool.get creates new item via on_get" {
     var slot: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
     try testing.expect(slot != null);
-    try testing.expect(EventPolyHelper.cast(slot.?) != null);
+    try testing.expect(EventPolyHelper.identifySlotAs(&slot) != null);
     try testing.expectEqual(@as(usize, 1), ctx.get_call_count);
 
     // Return item so on_close can free it.
@@ -107,13 +107,13 @@ test "66 - on_get reinitializes recycled item" {
 
     var slot: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &slot);
-    const ev: *Event = EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+    const ev: *Event = EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
     ev.*.code = 66; // mark with dirty data
     pool.put(ph, &slot);
 
     var m2: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .available_or_new, &m2);
-    const ev2: *Event = EventPolyHelper.cast(m2.?) orelse return error.WrongTag;
+    const ev2: *Event = EventPolyHelper.identifySlotAs(&m2) orelse return error.WrongTag;
     // on_get reinitializes recycled items (code reset to 0).
     try testing.expectEqual(@as(i32, 0), ev2.*.code);
 
@@ -306,7 +306,7 @@ test "72 - GetMode.available_only returns stored item" {
     var slot: Slot = null;
     try pool.get(ph, EventPolyHelper.TAG, .available_only, &slot);
     try testing.expect(slot != null);
-    try testing.expect(EventPolyHelper.cast(slot.?) != null);
+    try testing.expect(EventPolyHelper.identifySlotAs(&slot) != null);
     pool.put(ph, &slot);
 }
 
@@ -345,8 +345,8 @@ test "73 - per-tag free lists: Event and Sensor stored separately" {
     {
         var slot: Slot = null;
         try pool.get(ph, EventPolyHelper.TAG, .available_only, &slot);
-        try testing.expect(EventPolyHelper.cast(slot.?) != null);
-        try testing.expect(SensorPolyHelper.cast(slot.?) == null);
+        try testing.expect(EventPolyHelper.identifySlotAs(&slot) != null);
+        try testing.expect(SensorPolyHelper.identifySlotAs(&slot) == null);
         pool.put(ph, &slot);
     }
 
@@ -354,8 +354,8 @@ test "73 - per-tag free lists: Event and Sensor stored separately" {
     {
         var slot: Slot = null;
         try pool.get(ph, SensorPolyHelper.TAG, .available_only, &slot);
-        try testing.expect(SensorPolyHelper.cast(slot.?) != null);
-        try testing.expect(EventPolyHelper.cast(slot.?) == null);
+        try testing.expect(SensorPolyHelper.identifySlotAs(&slot) != null);
+        try testing.expect(EventPolyHelper.identifySlotAs(&slot) == null);
         pool.put(ph, &slot);
     }
 }
@@ -705,7 +705,7 @@ test "84 - pool.get_wait forever: item put from another thread" {
     t.join();
 
     try testing.expect(slot != null);
-    try testing.expect(EventPolyHelper.cast(slot.?) != null);
+    try testing.expect(EventPolyHelper.identifySlotAs(&slot) != null);
     pool.put(ph, &slot);
 }
 
@@ -858,8 +858,8 @@ fn onGetAlways(ctx_opaque: *anyopaque, tag: *const anyopaque, in_pool_count: usi
     ctx.last_get_count = in_pool_count;
     if (slot.* != null) {
         // Reinitialize recycled item.
-        if (EventPolyHelper.cast(slot.*.?)) |ev| ev.*.code = 0;
-        if (SensorPolyHelper.cast(slot.*.?)) |sn| sn.*.value = 0.0;
+        if (EventPolyHelper.identifySlotAs(slot)) |ev| ev.*.code = 0;
+        if (SensorPolyHelper.identifySlotAs(slot)) |sn| sn.*.value = 0.0;
         return;
     }
     // Create new item based on tag.

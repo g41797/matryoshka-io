@@ -12,13 +12,13 @@ pub fn clearList(list: *std.DoublyLinkedList) void {
 }
 
 pub fn freeItem(poly: *polynode.PolyNode, alloc: std.mem.Allocator) void {
-    if (types.EventPolyHelper.cast(poly)) |ev| {
+    if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
         alloc.destroy(ev);
-    } else if (types.SensorPolyHelper.cast(poly)) |sn| {
+    } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
         alloc.destroy(sn);
-    } else if (types.TimerPolyHelper.cast(poly)) |tm| {
+    } else if (types.TimerPolyHelper.identifyNodeAs(poly)) |tm| {
         alloc.destroy(tm);
-    } else if (types.ShutdownCommandPolyHelper.cast(poly)) |sc| {
+    } else if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |sc| {
         alloc.destroy(sc);
     }
 }

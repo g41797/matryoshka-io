@@ -20,7 +20,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, allocator);
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 53;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 53;
         try mailbox.send(mbh, &slot);
     }
 
@@ -28,7 +28,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, allocator);
         try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.cast(slot.?).?.value = 5.3;
+        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 5.3;
         try mailbox.send(mbh, &slot);
     }
 
@@ -36,7 +36,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, 1_000_000_000);
-        const ev_recv: *types.Event = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+        const ev_recv: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
         try helpers.expect(error.SimpleSendReceiveFailed, ev_recv.*.code == 53, "wrong event code");
         std.log.info("received Event code={d}", .{ev_recv.*.code});
     }
@@ -45,7 +45,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, 1_000_000_000);
-        const sn_recv: *types.Sensor = types.SensorPolyHelper.cast(slot.?) orelse return error.WrongTag;
+        const sn_recv: *types.Sensor = types.SensorPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
         try helpers.expect(error.SimpleSendReceiveFailed, sn_recv.*.value == 5.3, "wrong sensor value");
         std.log.info("received Sensor value={d:.1}", .{sn_recv.*.value});
     }

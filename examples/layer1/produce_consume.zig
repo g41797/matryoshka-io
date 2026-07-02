@@ -18,7 +18,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = i;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
         list.append(&slot.?.*.node);
         slot = null;
     }
@@ -26,7 +26,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var sum: i32 = 0;
     while (list.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-        const ev: *types.Event = types.EventPolyHelper.cast(poly) orelse return error.CastFailed;
+        const ev: *types.Event = types.EventPolyHelper.identifyNodeAs(poly) orelse return error.CastFailed;
         sum += ev.*.code;
         helpers.freeItem(poly, allocator);
     }

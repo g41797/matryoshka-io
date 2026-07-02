@@ -43,7 +43,7 @@ pub fn new(io: Io, alloc: std.mem.Allocator) !PoolHandle {
 }
 
 pub fn destroy(ph: PoolHandle, alloc: std.mem.Allocator) void {
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     if (!p.*.closed.load(.acquire)) {
         @panic("pool.destroy: pool must be closed first");
     }
@@ -53,7 +53,7 @@ pub fn destroy(ph: PoolHandle, alloc: std.mem.Allocator) void {
 }
 
 pub fn init(ph: PoolHandle, hooks: PoolHooks) !void {
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     std.debug.assert(hooks.tags.len > 0);
 
     const io: Io = p.*.io;
@@ -77,7 +77,7 @@ pub fn init(ph: PoolHandle, hooks: PoolHooks) !void {
 }
 
 pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *polynode.Slot) GetError!void {
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     std.debug.assert(slot.* == null);
 
     if (p.*.closed.load(.acquire)) return error.Closed;
@@ -90,7 +90,7 @@ pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *polynode
 }
 
 pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *polynode.Slot, timeout_ns: ?u64) (GetError || Io.Cancelable || error{Timeout})!void {
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     std.debug.assert(slot.* == null);
 
     if (p.*.closed.load(.acquire)) return error.Closed;
@@ -137,7 +137,7 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *polynode.Slot, tim
 pub fn put(ph: PoolHandle, slot: *polynode.Slot) void {
     if (slot.* == null) return;
 
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
 
     std.debug.assert(!polynode.is_linked(slot.*.?));
 
@@ -180,7 +180,7 @@ pub fn put(ph: PoolHandle, slot: *polynode.Slot) void {
 pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void {
     if (list.first == null) return;
 
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     const io: Io = p.*.io;
 
     // Validate all tags under one lock — no partial transfer on bad input.
@@ -207,7 +207,7 @@ pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void {
 }
 
 pub fn close(ph: PoolHandle) void {
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     const io: Io = p.*.io;
     p.*.mutex.lockUncancelable(io);
 
@@ -257,7 +257,7 @@ pub fn getWaitResult(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) Po
 }
 
 pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) ConcurrentError!Io.Future(PoolResult) {
-    const p: *_Pool = PoolPolyHelper.cast(ph).?;
+    const p: *_Pool = PoolPolyHelper.mustIdentifyNodeAs(ph);
     return p.*.io.concurrent(getWaitResult, .{ ph, tag, timeout_ns });
 }
 

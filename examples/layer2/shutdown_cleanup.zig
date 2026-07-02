@@ -20,7 +20,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(allocator, &slot);
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i);
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i);
         try mailbox.send(mbh, &slot);
     }
 
@@ -29,7 +29,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.SensorPolyHelper.destroy(allocator, &slot);
         try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.cast(slot.?).?.value = @as(f64, @floatFromInt(i)) * 1.1;
+        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i)) * 1.1;
         try mailbox.send(mbh, &slot);
     }
 

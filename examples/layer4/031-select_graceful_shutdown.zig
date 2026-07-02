@@ -94,7 +94,7 @@ const GracefulShutdownMaster = struct {
             var slot: Slot = null;
             defer types.EventPolyHelper.destroy(self.allocator, &slot);
             try types.EventPolyHelper.create(self.allocator, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh, &slot);
         }
         {
@@ -106,7 +106,7 @@ const GracefulShutdownMaster = struct {
         {
             var slot: Slot = null;
             try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = 99;
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 99;
             pool.put(self.ph, &slot);
         }
     }
@@ -124,13 +124,13 @@ const GracefulShutdownMaster = struct {
             switch (event) {
                 .inbox => |r| switch (r) {
                     .item => |handle| {
-                        if (types.EventPolyHelper.cast(handle)) |ev| {
+                        if (types.EventPolyHelper.identifyNodeAs(handle)) |ev| {
                             var slot: Slot = handle;
                             defer helpers.freeSlot(&slot, self.allocator);
                             self.events_processed += 1;
                             std.log.info("inbox: Event code={d}", .{ev.code});
                             try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-                        } else if (types.ShutdownCommandPolyHelper.cast(handle)) |_| {
+                        } else if (types.ShutdownCommandPolyHelper.identifyNodeAs(handle)) |_| {
                             var slot: Slot = handle;
                             helpers.freeSlot(&slot, self.allocator);
                             std.log.info("inbox: ShutdownCommand — initiating graceful shutdown", .{});

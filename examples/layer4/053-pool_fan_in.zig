@@ -30,7 +30,7 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     var slot: Slot = null;
     mailbox.receive(ctx.mbh, &slot, null) catch return;
     defer pool.put(ctx.ph, &slot); // return container to pool after processing
-    const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
     ev.code *= 2; // process: double the job value
     std.log.info("worker: processed job, result code={d}", .{ev.code});
 }
@@ -106,7 +106,7 @@ const PoolFanInMaster = struct {
         for (0..N) |i| {
             var slot: Slot = null;
             try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-            const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
             ev.code = jobs[i];
             std.log.info("master: filled container with job code={d}, sending to worker {d}", .{ ev.code, i });
             try mailbox.send(self.mbhs[i], &slot);
@@ -124,7 +124,7 @@ const PoolFanInMaster = struct {
             var slot: Slot = null;
             pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot) catch break;
             defer helpers.freeSlot(&slot, self.allocator);
-            const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
             result_sum += ev.code;
             total += 1;
             std.log.info("master: result code={d}", .{ev.code});

@@ -26,7 +26,7 @@ const Ctx = struct {
             var slot: Slot = null;
             defer types.EventPolyHelper.destroy(self.alloc, &slot);
             try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = 1;
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
             std.log.info("on_get: created Event code=1", .{});
             try mailbox.send(self.mbh, &slot);
         }
@@ -34,7 +34,7 @@ const Ctx = struct {
             var slot: Slot = null;
             try mailbox.receive(self.mbh, &slot, null);
             defer pool.put(self.ph, &slot);
-            std.log.info("on_put: count<cap → keeping Event code={d}", .{types.EventPolyHelper.cast(slot.?).?.code});
+            std.log.info("on_put: count<cap → keeping Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
         }
     }
 
@@ -43,7 +43,7 @@ const Ctx = struct {
             var slot: Slot = null;
             defer types.EventPolyHelper.destroy(self.alloc, &slot);
             try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = 2;
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 2;
             std.log.info("on_get: created fresh Event code=2", .{});
             try mailbox.send(self.mbh, &slot);
         }
@@ -51,7 +51,7 @@ const Ctx = struct {
             var slot: Slot = null;
             try mailbox.receive(self.mbh, &slot, null);
             defer helpers.freeSlot(&slot, self.alloc);
-            std.log.info("on_put: count>=cap → destroying Event code={d}", .{types.EventPolyHelper.cast(slot.?).?.code});
+            std.log.info("on_put: count>=cap → destroying Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
             pool.put(self.ph, &slot);
             // on_put set slot.* = null — item was freed; freeSlot sees null → no-op.
         }
@@ -61,7 +61,7 @@ const Ctx = struct {
         var slot: Slot = null;
         defer pool.put(self.ph, &slot);
         try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.CrossLayerHooksFailed, ev.code == 1, "expected recycled item code=1");
         std.log.info("recycled item: code={d} — hooks decided keep/destroy correctly", .{ev.code});
     }

@@ -20,7 +20,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var slot: Slot = null;
     defer types.EventPolyHelper.destroy(allocator, &slot);
     try types.EventPolyHelper.create(allocator, &slot);
-    const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
     ev.*.code = 42;
     try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after create");
 
@@ -35,7 +35,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     slot = @fieldParentPtr("node", node);
     try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after recovery");
 
-    const recovered: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+    const recovered: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
     try helpers.expect(error.OwnershipTransferFailed, recovered.*.code == 42, "wrong event code");
 
     helpers.freeSlot(&slot, allocator);

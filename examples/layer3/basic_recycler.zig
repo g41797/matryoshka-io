@@ -23,7 +23,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     defer pool.put(ph, &slot);
 
     try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-    const ev = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+    const ev = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
     ev.code = 89;
     std.log.info("got fresh Event, set code={d}", .{ev.code});
 
@@ -31,7 +31,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("returned Event to pool", .{});
 
     try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-    const ev2 = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+    const ev2 = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
     std.log.info("recycled Event code={d}", .{ev2.code});
     try helpers.expect(error.BasicRecyclerFailed, ev2.code == 89, "recycled item lost its data");
 

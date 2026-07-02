@@ -8,8 +8,8 @@
 //  │
 //  mailbox.receive ──► slot (Event or Sensor)
 //    dispatch on poly.tag:
-//    == EventPolyHelper.TAG  ──► cast to *Event  ──► verify code==10 ──► freeSlot
-//    == SensorPolyHelper.TAG ──► cast to *Sensor ──► verify value==3.14 ──► freeSlot
+//    == EventPolyHelper.TAG  ──► identifyNodeAs ──► *Event  ──► verify code==10 ──► freeSlot
+//    == SensorPolyHelper.TAG ──► identifyNodeAs ──► *Sensor ──► verify value==3.14 ──► freeSlot
 //  │
 //  mailbox.close ──► freeList (empty: all received)
 
@@ -17,7 +17,7 @@ fn sendEvent(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
     defer types.EventPolyHelper.destroy(alloc, &slot);
     try types.EventPolyHelper.create(alloc, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = 10;
+    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 10;
     std.log.info("send: Event code={d}", .{10});
     try mailbox.send(mbh, &slot);
 }
@@ -26,7 +26,7 @@ fn sendSensor(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
     defer types.SensorPolyHelper.destroy(alloc, &slot);
     try types.SensorPolyHelper.create(alloc, &slot);
-    types.SensorPolyHelper.cast(slot.?).?.value = 3.14;
+    types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 3.14;
     std.log.info("send: Sensor value={d}", .{3.14});
     try mailbox.send(mbh, &slot);
 }
@@ -40,11 +40,11 @@ fn receiveAndDispatch(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
         try mailbox.receive(mbh, &slot, null);
         defer helpers.freeSlot(&slot, alloc);
         const poly: *polynode.PolyNode = slot.?;
-        if (types.EventPolyHelper.cast(poly)) |ev| {
+        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             try helpers.expect(error.CrossLayerMixedTypesFailed, ev.code == 10, "wrong Event code");
             std.log.info("received: Event code={d}", .{ev.code});
             event_ok = true;
-        } else if (types.SensorPolyHelper.cast(poly)) |sn| {
+        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
             try helpers.expect(error.CrossLayerMixedTypesFailed, sn.value == 3.14, "wrong Sensor value");
             std.log.info("received: Sensor value={d}", .{sn.value});
             sensor_ok = true;

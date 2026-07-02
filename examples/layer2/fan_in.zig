@@ -19,7 +19,7 @@ fn eventSenderFn(ctx: *SenderCtx) void {
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
         types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
-        types.EventPolyHelper.cast(slot.?).?.code = i;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
         mailbox.send(ctx.mbh, &slot) catch {
             helpers.freeSlot(&slot, ctx.alloc);
             return;
@@ -33,7 +33,7 @@ fn sensorSenderFn(ctx: *SenderCtx) void {
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
         types.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
-        types.SensorPolyHelper.cast(slot.?).?.value = @as(f64, @floatFromInt(i)) * 0.1;
+        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i)) * 0.1;
         mailbox.send(ctx.mbh, &slot) catch {
             helpers.freeSlot(&slot, ctx.alloc);
             return;
@@ -48,10 +48,10 @@ fn altSenderFn(ctx: *SenderCtx) void {
         var slot: Slot = null;
         if (@rem(i, 2) == 0) {
             types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
-            types.EventPolyHelper.cast(slot.?).?.code = 100 + i;
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 100 + i;
         } else {
             types.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
-            types.SensorPolyHelper.cast(slot.?).?.value = @as(f64, @floatFromInt(i));
+            types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i));
         }
         mailbox.send(ctx.mbh, &slot) catch {
             helpers.freeSlot(&slot, ctx.alloc);
@@ -88,9 +88,9 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     while (batch.popFirst()) |node| {
         const poly: *PolyNode = @fieldParentPtr("node", node);
-        if (types.EventPolyHelper.cast(poly)) |_| {
+        if (types.EventPolyHelper.identifyNodeAs(poly)) |_| {
             events_received += 1;
-        } else if (types.SensorPolyHelper.cast(poly)) |_| {
+        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |_| {
             sensors_received += 1;
         }
         helpers.freeItem(poly, allocator);

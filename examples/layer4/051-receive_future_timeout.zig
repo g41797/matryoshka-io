@@ -29,7 +29,7 @@ const Ctx = struct {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(self.alloc, &slot);
         try types.EventPolyHelper.create(self.alloc, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 5;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 5;
         try mailbox.send(self.mbh, &slot);
 
         var fut_item: std.Io.Future(mailbox.ReceiveResult) = try mailbox.receive_future(self.mbh, null);
@@ -38,7 +38,7 @@ const Ctx = struct {
             .item => |handle| {
                 var received: Slot = handle;
                 defer helpers.freeSlot(&received, self.alloc);
-                std.log.info("receive_future after timeout: got Event code={d}", .{types.EventPolyHelper.cast(received.?).?.code});
+                std.log.info("receive_future after timeout: got Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
             },
             else => return error.ReceiveFutureTimeoutFailed,
         }

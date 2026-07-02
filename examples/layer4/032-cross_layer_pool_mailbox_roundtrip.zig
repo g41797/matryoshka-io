@@ -21,7 +21,7 @@ const Ctx = struct {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(self.alloc, &slot);
         try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code = 42;
         std.log.info("pool.get: code={d} ptr={*}", .{ ev.code, ev });
         try mailbox.send(self.mbh, &slot);
@@ -32,7 +32,7 @@ const Ctx = struct {
         var slot: Slot = null;
         try mailbox.receive(self.mbh, &slot, null);
         defer pool.put(self.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.CrossLayerRoundtripFailed, ev.code == 42, "wrong code after receive");
         try helpers.expect(error.CrossLayerRoundtripFailed, ev == sent_ptr, "not same pointer after receive");
         std.log.info("mailbox.receive: code={d} same_ptr={}", .{ ev.code, ev == sent_ptr });
@@ -42,7 +42,7 @@ const Ctx = struct {
         var slot: Slot = null;
         defer pool.put(self.ph, &slot);
         try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.CrossLayerRoundtripFailed, ev == sent_ptr, "not same pointer on second get");
         std.log.info("pool.get (recycled): same_ptr={} — pool→mailbox→pool roundtrip complete", .{ev == sent_ptr});
     }

@@ -21,13 +21,13 @@ fn testSynchronousReceive(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
     defer types.EventPolyHelper.destroy(alloc, &slot);
     try types.EventPolyHelper.create(alloc, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = 1;
+    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
     try mailbox.send(mbh, &slot);
 
     var received: Slot = null;
     defer helpers.freeSlot(&received, alloc);
     try mailbox.receive(mbh, &received, null);
-    std.log.info("synchronous receive still works: code={d}", .{types.EventPolyHelper.cast(received.?).?.code});
+    std.log.info("synchronous receive still works: code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
 }
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {

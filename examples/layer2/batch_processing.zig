@@ -22,7 +22,7 @@ fn batchWorkerFn(ctx: *WorkerCtx) void {
         mailbox.receive(ctx.mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
 
-        if (types.ShutdownCommandPolyHelper.cast(poly)) |_| {
+        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
             helpers.freeSlot(&slot, ctx.alloc);
             return;
         }
@@ -33,7 +33,7 @@ fn batchWorkerFn(ctx: *WorkerCtx) void {
         var batch: std.DoublyLinkedList = mailbox.receive_batch(ctx.mbh) catch return;
         while (batch.popFirst()) |node| {
             const bpoly: *PolyNode = @fieldParentPtr("node", node);
-            if (types.ShutdownCommandPolyHelper.cast(bpoly)) |_| {
+            if (types.ShutdownCommandPolyHelper.identifyNodeAs(bpoly)) |_| {
                 helpers.freeItem(bpoly, ctx.alloc);
                 return;
             }
@@ -60,7 +60,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(allocator, &slot);
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i);
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i);
         try mailbox.send(mbh, &slot);
     }
 

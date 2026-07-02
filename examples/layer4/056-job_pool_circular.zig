@@ -34,7 +34,7 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
         var slot: Slot = null;
         mailbox.receive(ctx.mbh, &slot, null) catch return;
         defer pool.put(ctx.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code *= 2;
         std.log.info("worker: processed job, result code={d}", .{ev.code});
     }
@@ -59,14 +59,14 @@ const Ctx = struct {
                     .item => |handle| {
                         if (job_idx.* < N) {
                             var slot: Slot = handle;
-                            const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+                            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
                             ev.code = jobs[job_idx.*];
                             std.log.info("master: dispatching job {d} (code={d})", .{ job_idx.*, ev.code });
                             job_idx.* += 1;
                             try mailbox.send(self.mbh, &slot);
                             try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
                         } else {
-                            const ev: *types.Event = types.EventPolyHelper.cast(handle).?;
+                            const ev: *types.Event = types.EventPolyHelper.mustIdentifyNodeAs(handle);
                             completed.* = job_idx.*;
                             std.log.info("master: last result code={d}, all {d} jobs complete", .{ ev.code, completed.* });
                             var slot: Slot = handle;

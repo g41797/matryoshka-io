@@ -23,7 +23,7 @@ const Ctx = struct {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(self.alloc, &slot);
         try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code = 1;
         std.log.info("producer: get from pool, fill code={d}", .{ev.code});
         try mailbox.send(self.mbh, &slot);
@@ -34,7 +34,7 @@ const Ctx = struct {
         var slot: Slot = null;
         try mailbox.receive(self.mbh, &slot, null);
         defer pool.put(self.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.ProducerConsumerFailed, ev.code == 1, "wrong code after receive");
         try helpers.expect(error.ProducerConsumerFailed, @as(*types.Event, ev) == sent_ptr, "not same pointer");
         std.log.info("consumer: received code={d}, same pointer={}", .{ ev.code, @as(*types.Event, ev) == sent_ptr });
@@ -44,7 +44,7 @@ const Ctx = struct {
         var slot: Slot = null;
         defer pool.put(self.ph, &slot);
         try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.ProducerConsumerFailed, ev.code == 1, "wrong code after recycle");
         std.log.info("recycled item: code={d} — pool → producer → mailbox → consumer → pool cycle complete", .{ev.code});
     }

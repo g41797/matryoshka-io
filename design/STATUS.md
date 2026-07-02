@@ -22,7 +22,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-015.md
+- API: matryoshka-api-reference-016.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -32,10 +32,10 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-028.md (slim, state-only)
+- Plan: matryoshka-io-implementation-plan-029.md (slim, state-only)
 - Rules: rules-007.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-006.md
+- Patterns: patterns-007.md
 - Docs plan: matryoshka-io-docs-plan-001.md
 
 ## Participants
@@ -117,10 +117,52 @@ EXMPL 3b — Rename NNN- prefix + Master pattern (6 files). DONE. Plan version 0
 EXMPL 3c — Observable by human rule + 3 Master fixes. DONE. Plan version 026 created.
 EXMPL 3d — Observable: extract steps in 31 flat examples. DONE. Plan version 027 created.
 EXMPL 3e — Observable: structural extraction signals + fix 24 violating examples. DONE. Plan version 028 created.
+API 2 — PolyHelper Slot-aware identification API. DONE. 161/161 tests.
 Stage 9 — Docs + README + autodocs. PLANNED.
-Current: 161/161 tests. EXMPL 3e DONE.
+Current: 161/161 tests. API 2 DONE.
 
 ## Session Log
+
+### 2026-07-02 — API 2 (PolyHelper Slot-aware identification API)
+**Participants**: human + Claude
+
+**Summary**
+`PolyHelper.cast(slot.?)` appeared 139+ times across the codebase, exposing the implementation detail that `Slot = ?*PolyNode` and using a misleading name. Stage API 2 (inserted before Stage 9) renames `cast`→`identifyNodeAs` / `mustCast`→`mustIdentifyNodeAs` and adds two new Slot-aware helpers: `identifySlotAs` and `mustIdentifySlotAs`.
+
+Four functions in `PolyHelper(T)`:
+- `identifyNodeAs(node: *PolyNode) ?*T` — infrastructure code path; takes raw node pointer.
+- `mustIdentifyNodeAs(node: *PolyNode) *T` — same, panics on mismatch.
+- `identifySlotAs(slot: *const Slot) ?*T` — application code path; unwraps slot internally.
+- `mustIdentifySlotAs(slot: *const Slot) *T` — same, panics if slot empty or mismatched.
+
+**Changes**
+- `src/polynode.zig` — four functions added to both PolyHelper branches; `cast`/`mustCast` removed; `destroy` updated to use `identifyNodeAs`.
+- `src/mailbox.zig` — 8 occurrences: `.cast(mbh).?` → `.mustIdentifyNodeAs(mbh)`.
+- `src/pool.zig` — 8 occurrences: `.cast(ph).?` → `.mustIdentifyNodeAs(ph)`.
+- `examples/` (56 files) — bulk Python refactor: `cast(slot.?).?` → `mustIdentifySlotAs(&slot)` etc.
+- `tests/layer1_polynode.zig`, `tests/layer2_mailbox.zig`, `tests/layer3_pool.zig`, `tests/layer4_cancel.zig`, `tests/layer4_master.zig` — refactored.
+- `stories/video_transcoder/video_transcoder.zig` — refactored.
+- `helpers/helpers.zig` — `identifyNodeAs` replaces `cast`.
+- Post-cleanup: 6 ASCII diagram comments + 2 test name strings updated via `sed`.
+- `design/matryoshka-api-reference-016.md` — new version; four functions documented; `no_create_destroy` diagram updated; violation example updated.
+- `design/patterns-007.md` — new version; polymorphic dispatch and step function patterns updated.
+- `design/context.md` — api-ref → 016, patterns → 007.
+- `design/STATUS.md` — sources updated; API 2 stage line; this entry.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (x86_64-macos, aarch64-macos, x86_64-windows) |
+| Post-stage cleanup | 6 diagram comments + 2 test names fixed; re-run all green |
+| AI-sh + banned words scan | pending (Step 10) |
+| Rules audit | pending (Step 11) |
+
+**Next**: Step 9 — scan changed .zig files for new patterns not yet in patterns-007.md. Then AI-sh scan. Then Stage 9.
+
+---
 
 ### 2026-07-02 — EXMPL 3e (Observable: structural extraction signals + fix 24 violating examples)
 **Participants**: human + Claude

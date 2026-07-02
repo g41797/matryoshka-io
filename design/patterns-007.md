@@ -1,8 +1,8 @@
-# Matryoshka Zig — Pattern Catalog (005)
+# Matryoshka Zig — Pattern Catalog (007)
 
-Versioned doc. Replaces [patterns-004.md](patterns-004.md).
+Versioned doc. Replaces [patterns-006.md](patterns-006.md).
 Reusable idioms confirmed in the examples and the API reference.
-Companion: [rules-006.md](rules-006.md) — what is mandatory.
+Companion: [rules-007.md](rules-007.md) — what is mandatory.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 
 How this doc differs from rules.
@@ -22,7 +22,7 @@ Every example path is under `examples/` or `stories/`.
 
 ## Observable function shapes
 
-Concrete templates for the "Observable by human" MUST rule. See [rules-005.md](rules-005.md).
+Concrete templates for the "Observable by human" MUST rule. See [rules-007.md](rules-007.md).
 
 ### Coordinator / run
 
@@ -58,7 +58,7 @@ fn seedResources(self: *Master) !void {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(self.allocator, &slot);
         try types.EventPolyHelper.create(self.allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(self.mbh, &slot);
     }
 }
@@ -120,6 +120,140 @@ fn destroy(self: *Master) void {
 - Free the allocation last.
 
 Example: `examples/layer4/018-master_with_pool.zig`.
+
+### Coordinator with Select event loop (flat file)
+
+When to use.
+- A flat `pub fn run` (no Master struct) that owns an `Io.Select` event loop.
+- `buf` and `sel` are declared at coordinator scope; passed as `*Sel` (transient) to step functions.
+- Use when the file has 1-2 coordinator-scope params (explicit passing) or 3+ params (introduce a local Ctx struct).
+
+Code shape (explicit params, 1-2 shared values).
+```zig
+const Sel = std.Io.Select(MasterEvent);
+
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator, &pool_ctx, pool_hooks);
+    defer pool.destroy(ph, allocator);
+
+    try seedPool(ph, allocator);
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: Sel = Sel.init(io, &buf);
+    try setupSelect(ph, io, &sel);
+    try runEventLoop(ph, io, &sel);
+
+    try helpers.expect(error.XFailed, ...);
+    std.log.info("done", .{});
+}
+
+fn setupSelect(ph: PoolHandle, io: std.Io, sel: *Sel) !void {
+    const sleep_t: std.Io.Timeout = .{ .ns = 100_000_000 };
+    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, TAG, null });
+    try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
+}
+
+fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *Sel) !void {
+    while (true) {
+        const event: MasterEvent = try sel.await();
+        switch (event) {
+            .pool_ev => |r| switch (r) {
+                .item => |handle| {
+                    // process handle
+                    pool.put(ph, &(var s: Slot = handle; &s));
+                    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, TAG, null });
+                },
+                .closed, .canceled, .not_created => break,
+                .timeout => {},
+            },
+            .timer => break,
+        }
+    }
+    sel.cancelDiscard();
+}
+```
+
+Code shape (3+ shared values — local Ctx struct, stack-allocated).
+```zig
+const Ctx = struct {
+    mbh: MailboxHandle,
+    alloc: std.mem.Allocator,
+    io: std.Io,
+
+    fn setupSelect(self: *Ctx, sel: *Sel) !void { ... }
+    fn runEventLoop(self: *Ctx, sel: *Sel) !void { ... }
+};
+
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer { ... }
+
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: Sel = Sel.init(io, &buf);
+    try ctx.setupSelect(&sel);
+    try ctx.runEventLoop(&sel);
+}
+```
+
+- `setupSelect` owns timeout construction and initial `concurrent` registrations.
+- `runEventLoop` owns the loop body, re-registrations, and final `cancelDiscard`.
+- `buf` and `sel` are declared at coordinator scope; passed as `*Sel` to steps.
+- Ctx is stack-allocated (`var ctx: Ctx = .{...}`). No heap allocation.
+- Methods declared inside the Ctx struct body (`fn setupSelect(self: *Ctx, ...) !void`).
+
+Examples: `examples/layer4/046-select_pool_event.zig`, `examples/layer4/028-select_mixed_sources.zig`.
+
+### Coordinator with spawn + await (flat file)
+
+When to use.
+- A flat `pub fn run` that spawns concurrent workers (`io.concurrent`, `group.concurrent`, `Thread.spawn`) and awaits them.
+- The spawn block and the await block together form one named step.
+
+Code shape (single spawn+await step).
+```zig
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer { ... }
+
+    try seedMailbox(mbh, allocator);
+    try spawnAndAwaitWorkers(mbh, allocator, io);
+
+    try helpers.expect(error.XFailed, ...);
+    std.log.info("done", .{});
+}
+
+fn spawnAndAwaitWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io) !void {
+    var ctx1: WorkerCtx = .{ .mbh = mbh, .alloc = alloc };
+    var ctx2: WorkerCtx = .{ .mbh = mbh, .alloc = alloc };
+    var fut1 = try io.concurrent(workerFn, .{&ctx1});
+    var fut2 = try io.concurrent(workerFn, .{&ctx2});
+    try fut1.await(io);
+    try fut2.await(io);
+}
+```
+
+Code shape (separate spawn and await steps).
+```zig
+fn spawnWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, group: *std.Io.Group) !void {
+    for (0..N_WORKERS) |i| {
+        group.concurrent(io, workerFn, .{ &worker_ctxs[i] }) catch return error.SpawnFailed;
+    }
+}
+
+fn awaitWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, group: *std.Io.Group) !void {
+    try group.await(io);
+    // verify results
+}
+```
+
+- ctx declarations, spawns, and awaits all live inside the named step — not inline in the coordinator.
+- Coordinator sees one or two calls. Flow is visible without opening the step.
+- If spawn and await are tightly coupled (no coordinator logic between them), merge into one step.
+- If coordinator logic falls between spawn and await, use two steps.
+
+Examples: `examples/layer4/017-minimal_master.zig`, `examples/layer4/054-pool_fan_out.zig`.
 
 ---
 
@@ -443,16 +577,16 @@ When to use.
 
 Code shape.
 ```zig
-if (EventPolyHelper.cast(handle)) |ev| {
+if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
     // handle Event
-} else if (ShutdownCommandPolyHelper.cast(handle)) |_| {
+} else if (ShutdownCommandPolyHelper.identifyNodeAs(handle)) |_| {
     // handle ShutdownCommand
 } else {
     // unknown — free and move on
 }
 ```
 
-- `cast` returns null on a tag mismatch. Chain casts for each known type.
+- `identifyNodeAs` returns null on a tag mismatch. Chain calls for each known type.
 - Tag identifies class, not instance. Use a `kind`/`role` field or pointer comparison for instance identity.
 
 Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/033-cross_layer_mixed_types_mailbox.zig`.
@@ -667,22 +801,52 @@ Why.
 
 ---
 
-## Safe polymorphic cast
+## Safe polymorphic identification — Node path
 
 When to use.
-- Recovering a concrete type.
+- Recovering a concrete type from a `*PolyNode` handle (e.g. a `NodeHandle` received from a mailbox or returned by a pool event source).
 
 Code shape.
 
 ```zig
-if (EventPolyHelper.cast(handle)) |ev| {
+if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
     ...
 }
 ```
 
 Why.
-- Tag check and cast are combined.
+- Tag check and recovery are combined.
 - Wrong types return null.
+
+---
+
+## Slot identification — accessing owned items
+
+When to use.
+- After `create` or `get`, to access fields of the item in a Slot before sending or returning it.
+
+Code shape (assert non-null, known type).
+
+```zig
+var slot: Slot = null;
+defer EventPolyHelper.destroy(allocator, &slot);
+try EventPolyHelper.create(allocator, &slot);
+EventPolyHelper.mustIdentifySlotAs(&slot).code = 42;
+try mailbox.send(mbh, &slot);
+```
+
+Code shape (optional — type may vary).
+
+```zig
+if (EventPolyHelper.identifySlotAs(&slot)) |ev| {
+    ev.code = 42;
+}
+```
+
+Why.
+- Unwraps the optional internally — no `.?` in application code.
+- `mustIdentifySlotAs` panics if the Slot is empty or the tag does not match.
+- Use `identifySlotAs` (nullable) when the type is not guaranteed.
 
 ---
 

@@ -47,13 +47,13 @@ const Ctx = struct {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(self.alloc, &slot);
         try types.EventPolyHelper.create(self.alloc, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 9;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 9;
         try mailbox.send(self.mbh, &slot);
 
         var received: Slot = null;
         defer helpers.freeSlot(&received, self.alloc);
         try mailbox.receive(self.mbh, &received, TIMEOUT_NS);
-        std.log.info("receive after send: code={d}", .{types.EventPolyHelper.cast(received.?).?.code});
+        std.log.info("receive after send: code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
     }
 };
 

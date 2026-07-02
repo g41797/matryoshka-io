@@ -24,11 +24,11 @@ fn workerFn(ctx: *WorkerCtx) void {
         defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
-        if (types.EventPolyHelper.cast(poly)) |ev| {
+        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             std.log.debug("worker: Event code={d}", .{ev.*.code});
             ctx.event_sum += ev.*.code;
             ctx.count += 1;
-        } else if (types.SensorPolyHelper.cast(poly)) |sn| {
+        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
             std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
             ctx.sensor_sum += sn.*.value;
             ctx.count += 1;
@@ -52,7 +52,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(allocator, &slot);
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = code;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = code;
         try mailbox.send(mbh, &slot);
     }
 
@@ -61,7 +61,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.SensorPolyHelper.destroy(allocator, &slot);
         try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.cast(slot.?).?.value = value;
+        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = value;
         try mailbox.send(mbh, &slot);
     }
 

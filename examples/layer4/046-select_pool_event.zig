@@ -58,7 +58,7 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent)) !u
                 .item => |handle| {
                     var slot: Slot = handle;
                     defer pool.put(ph, &slot);
-                    const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+                    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
                     ev.code = @intCast(cycle);
                     cycle += 1;
                     std.log.info("pool_ev: filled container with cycle={d}", .{ev.code});

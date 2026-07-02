@@ -19,7 +19,7 @@ fn workerFn(ctx: *WorkerCtx) void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.req_mbh, &slot, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.cast(slot.?) orelse continue;
+        const ev: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse continue;
         std.log.debug("worker: request code={d}", .{ev.*.code});
         ev.*.code += 1000;
         mailbox.send(ctx.resp_mbh, &slot) catch {};
@@ -40,7 +40,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, allocator);
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 42;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 42;
         try mailbox.send(req_mbh, &slot);
     }
 
@@ -48,7 +48,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer helpers.freeSlot(&slot, allocator);
         try mailbox.receive(resp_mbh, &slot, 5_000_000_000);
-        const resp: *types.Event = types.EventPolyHelper.cast(slot.?) orelse return error.WrongTag;
+        const resp: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
         std.log.info("request_response: response code={d}", .{resp.*.code});
         try helpers.expect(error.RequestResponseFailed, resp.*.code == 1042, "wrong response code");
     }

@@ -126,7 +126,7 @@ const CancelDecideMaster = struct {
             var slot: Slot = null;
             defer types.EventPolyHelper.destroy(self.allocator, &slot);
             try types.EventPolyHelper.create(self.allocator, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 10);
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 10);
             try mailbox.send(self.mbh2, &slot);
         }
 
@@ -145,7 +145,7 @@ const CancelDecideMaster = struct {
                         var slot: Slot = handle;
                         defer helpers.freeSlot(&slot, self.allocator);
                         items_after += 1;
-                        std.log.info("inbox2 phase2: item code={d}", .{types.EventPolyHelper.cast(slot.?).?.code});
+                        std.log.info("inbox2 phase2: item code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         if (items_after < 2) {
                             try sel2.concurrent(.inbox2, mailbox.receiveResult, .{ self.mbh2, null });
                         }

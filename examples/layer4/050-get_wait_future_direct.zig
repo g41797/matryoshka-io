@@ -13,7 +13,7 @@
 fn seedPool(ph: PoolHandle) !void {
     var slot: Slot = null;
     try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = 7;
+    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
     pool.put(ph, &slot);
 }
 
@@ -25,7 +25,7 @@ fn receiveViaFuture(ph: PoolHandle, io: std.Io) !void {
         .item => |handle| {
             var slot: Slot = handle;
             defer pool.put(ph, &slot);
-            const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
             try helpers.expect(error.GetWaitFutureDirectFailed, ev.code == 7, "wrong code");
             std.log.info("get_wait_future direct: got Event code={d}", .{ev.code});
         },

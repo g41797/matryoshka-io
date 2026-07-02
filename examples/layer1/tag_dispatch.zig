@@ -7,7 +7,7 @@
 //  alloc.create (Sensor) ──► list
 //       │ list.popFirst
 //       ▼
-//  tag check ──► EventPolyHelper.cast or SensorPolyHelper.cast
+//  tag check ──► EventPolyHelper.identifyNodeAs or SensorPolyHelper.identifyNodeAs
 //       │ freeItem per node
 
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
@@ -19,7 +19,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     {
         var slot: Slot = null;
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = 7;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
         list.append(&slot.?.*.node);
         slot = null;
     }
@@ -27,7 +27,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     {
         var slot: Slot = null;
         try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.cast(slot.?).?.value = 2.71;
+        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 2.71;
         list.append(&slot.?.*.node);
         slot = null;
     }
@@ -38,11 +38,11 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     while (list.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
 
-        if (types.EventPolyHelper.cast(poly)) |recovered_ev| {
+        if (types.EventPolyHelper.identifyNodeAs(poly)) |recovered_ev| {
             try helpers.expect(error.TagDispatchFailed, recovered_ev.*.code == 7, "wrong event code");
             processed_events += 1;
             helpers.freeItem(poly, allocator);
-        } else if (types.SensorPolyHelper.cast(poly)) |recovered_sn| {
+        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |recovered_sn| {
             try helpers.expect(error.TagDispatchFailed, recovered_sn.*.value == 2.71, "wrong sensor value");
             processed_sensors += 1;
             helpers.freeItem(poly, allocator);

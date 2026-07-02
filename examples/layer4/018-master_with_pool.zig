@@ -71,7 +71,7 @@ const MasterWithPool = struct {
             var slot: Slot = null;
             defer pool.put(self.ph, &slot);
             try pool.get(self.ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-            const ev = types.EventPolyHelper.cast(slot.?).?;
+            const ev = types.EventPolyHelper.mustIdentifySlotAs(&slot);
             ev.code = @intCast(i + 1);
             std.log.info("master: sending Event code={d}", .{ev.code});
             try mailbox.send(self.mbh, &slot);

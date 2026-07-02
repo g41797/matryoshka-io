@@ -28,7 +28,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer pool.put(ph, &slot);
         try pool.get(ph, types.SensorPolyHelper.TAG, .new_only, &slot);
-        const sn = types.SensorPolyHelper.cast(slot.?).?;
+        const sn = types.SensorPolyHelper.mustIdentifySlotAs(&slot);
         sn.value = @as(f64, @floatFromInt(i)) * 0.1;
     }
     std.log.info("seeded {d} Sensor items into pool", .{n});
@@ -39,7 +39,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.SensorPolyHelper.destroy(allocator, &slot);
         pool.get(ph, types.SensorPolyHelper.TAG, .available_only, &slot) catch break;
-        const sn = types.SensorPolyHelper.cast(slot.?).?;
+        const sn = types.SensorPolyHelper.mustIdentifySlotAs(&slot);
         std.log.info("consumed Sensor value={d:.1}", .{sn.value});
         consumed += 1;
     }

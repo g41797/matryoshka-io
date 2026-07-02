@@ -27,7 +27,7 @@ fn sendItems(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(alloc, &slot);
         try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
         std.log.info("master: sent Event code={d}", .{i + 1});
     }

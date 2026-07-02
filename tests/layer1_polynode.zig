@@ -22,23 +22,23 @@ test "3 - tag identity check" {
     try testing.expect(!SensorPolyHelper.isIt(ev.poly.tag));
 }
 
-// --- Scenario 4: @fieldParentPtr cast success ---
-test "4 - fieldParentPtr cast success" {
+// --- Scenario 4: identifyNodeAs success ---
+test "4 - identifyNodeAs success" {
     var ev: Event = .{ .code = 42 };
     EventPolyHelper.init(&ev);
 
     const poly: *PolyNode = &ev.poly;
-    const recovered: *Event = EventPolyHelper.cast(poly) orelse unreachable;
+    const recovered: *Event = EventPolyHelper.mustIdentifyNodeAs(poly);
     try testing.expectEqual(@as(i32, 42), recovered.*.code);
 }
 
-// --- Scenario 5: @fieldParentPtr cast wrong tag ---
-test "5 - fieldParentPtr cast wrong tag" {
+// --- Scenario 5: identifyNodeAs wrong tag ---
+test "5 - identifyNodeAs wrong tag" {
     var ev: Event = .{ .code = 42 };
     EventPolyHelper.init(&ev);
 
     const poly: *PolyNode = &ev.poly;
-    const result: ?*Sensor = SensorPolyHelper.cast(poly);
+    const result: ?*Sensor = SensorPolyHelper.identifyNodeAs(poly);
     try testing.expectEqual(@as(?*Sensor, null), result);
 }
 
@@ -49,7 +49,7 @@ test "6 - two-level fieldParentPtr chain" {
 
     const dll_node: *std.DoublyLinkedList.Node = &ev.poly.node;
     const poly: *PolyNode = @fieldParentPtr("node", dll_node);
-    const recovered: *Event = EventPolyHelper.cast(poly) orelse unreachable;
+    const recovered: *Event = EventPolyHelper.mustIdentifyNodeAs(poly);
     try testing.expectEqual(@as(i32, 99), recovered.*.code);
 }
 
@@ -109,10 +109,10 @@ test "10 - multiple types in one list" {
 
     while (list.popFirst()) |node| {
         const poly: *PolyNode = @fieldParentPtr("node", node);
-        if (EventPolyHelper.cast(poly)) |recovered_ev| {
+        if (EventPolyHelper.identifyNodeAs(poly)) |recovered_ev| {
             try testing.expectEqual(@as(i32, 10), recovered_ev.*.code);
             count_event += 1;
-        } else if (SensorPolyHelper.cast(poly)) |recovered_sn| {
+        } else if (SensorPolyHelper.identifyNodeAs(poly)) |recovered_sn| {
             try testing.expectEqual(@as(f64, 3.14), recovered_sn.*.value);
             count_sensor += 1;
         } else {
@@ -175,7 +175,7 @@ test "14 - IN_FLIGHT to FREE" {
     try testing.expect(slot != null);
 
     const poly: *PolyNode = slot.?;
-    _ = EventPolyHelper.cast(poly) orelse unreachable;
+    _ = EventPolyHelper.mustIdentifyNodeAs(poly);
     EventPolyHelper.destroy(alloc, &slot);
 
     try testing.expectEqual(@as(Slot, null), slot);

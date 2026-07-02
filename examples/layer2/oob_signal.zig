@@ -23,7 +23,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(allocator, &slot);
         try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = code;
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = code;
         try mailbox.send(mbh, &slot);
     }
 
@@ -31,7 +31,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         var slot: Slot = null;
         defer types.SensorPolyHelper.destroy(allocator, &slot);
         try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.cast(slot.?).?.value = -1.0;
+        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = -1.0;
         try mailbox.send_oob(mbh, &slot);
     }
 
@@ -43,13 +43,13 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         defer helpers.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, 1_000_000_000);
         const poly: *PolyNode = slot.?;
-        if (types.SensorPolyHelper.cast(poly)) |oob_sn| {
+        if (types.SensorPolyHelper.identifyNodeAs(poly)) |oob_sn| {
             std.log.info("OOB signal value={d:.1}", .{oob_sn.value});
             try helpers.expect(error.OobSignalFailed, !received_oob, "duplicate OOB");
             try helpers.expect(error.OobSignalFailed, event_count == 0, "OOB did not arrive first");
             received_oob = true;
             helpers.freeSlot(&slot, allocator);
-        } else if (types.EventPolyHelper.cast(poly)) |ev| {
+        } else if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             std.log.info("event code={d}", .{ev.code});
             event_count += 1;
             helpers.freeSlot(&slot, allocator);

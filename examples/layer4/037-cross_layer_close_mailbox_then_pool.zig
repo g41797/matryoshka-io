@@ -6,7 +6,7 @@
 //  pool (1 item in free-list)    mailbox (1 item in queue)
 //  │
 //  mailbox.close ──► std.DoublyLinkedList (1 item)
-//  walk list: popFirst ──► cast ──► pool.put (pool still open)
+//  walk list: popFirst ──► identifyNodeAs ──► pool.put (pool still open)
 //  │                                        └──► pool free-list (now 2 items)
 //  pool.close ──► on_close ──► freeList (both items freed)
 //  │
@@ -15,7 +15,7 @@
 fn seedPool(ph: PoolHandle) !void {
     var slot: Slot = null;
     try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = 1;
+    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
     pool.put(ph, &slot);
 }
 
@@ -23,7 +23,7 @@ fn seedMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
     defer types.EventPolyHelper.destroy(alloc, &slot);
     try types.EventPolyHelper.create(alloc, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = 2;
+    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 2;
     try mailbox.send(mbh, &slot);
 }
 
@@ -41,7 +41,7 @@ fn returnCloseListToPool(ph: PoolHandle, rem: *std.DoublyLinkedList) usize {
         var slot: Slot = poly;
         pool.put(ph, &slot);
         returned += 1;
-        std.log.info("mailbox close list: returned item to pool (code={d})", .{types.EventPolyHelper.cast(poly).?.code});
+        std.log.info("mailbox close list: returned item to pool (code={d})", .{types.EventPolyHelper.mustIdentifyNodeAs(poly).code});
     }
     return returned;
 }

@@ -40,13 +40,13 @@ const Ctx = struct {
         var s1: Slot = null;
         defer types.EventPolyHelper.destroy(self.alloc, &s1);
         try types.EventPolyHelper.create(self.alloc, &s1);
-        types.EventPolyHelper.cast(s1.?).?.code = 1;
+        types.EventPolyHelper.mustIdentifySlotAs(&s1).code = 1;
         try mailbox.send(self.mbh1, &s1);
 
         var s2: Slot = null;
         defer types.EventPolyHelper.destroy(self.alloc, &s2);
         try types.EventPolyHelper.create(self.alloc, &s2);
-        types.EventPolyHelper.cast(s2.?).?.code = 2;
+        types.EventPolyHelper.mustIdentifySlotAs(&s2).code = 2;
         try mailbox.send(self.mbh2, &s2);
 
         const long_t: std.Io.Timeout = .{
@@ -76,7 +76,7 @@ const Ctx = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer helpers.freeSlot(&slot, self.alloc);
-                        std.log.info("inbox1: Event code={d}", .{types.EventPolyHelper.cast(slot.?).?.code});
+                        std.log.info("inbox1: Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         self.got1 = true;
                         if (!self.got2) {
                             try sel.concurrent(.inbox1, mailbox.receiveResult, .{ self.mbh1, null });
@@ -88,7 +88,7 @@ const Ctx = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer helpers.freeSlot(&slot, self.alloc);
-                        std.log.info("inbox2: Event code={d}", .{types.EventPolyHelper.cast(slot.?).?.code});
+                        std.log.info("inbox2: Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         self.got2 = true;
                     },
                     .closed, .canceled, .timeout => break :loop,

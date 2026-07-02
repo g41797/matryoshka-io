@@ -7,7 +7,7 @@
 //       │
 //  PolyHelper.init ──► msg.poly.tag set (no alloc)
 //       │
-//  MessagePolyHelper.cast ──► field access (no transfer)
+//  MessagePolyHelper.identifyNodeAs ──► field access (no transfer)
 //  (stack-allocated — no free needed)
 
 pub const Message = struct {
@@ -28,7 +28,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.DefineTypeFailed, !types.EventPolyHelper.isIt(msg.poly.tag), "unexpected Event tag");
 
     const poly: *polynode.PolyNode = &msg.poly;
-    const recovered: *Message = MessagePolyHelper.cast(poly) orelse return error.CastFailed;
+    const recovered: *Message = MessagePolyHelper.identifyNodeAs(poly) orelse return error.CastFailed;
     try helpers.expect(error.DefineTypeFailed, std.mem.eql(u8, "hello", recovered.*.text), "wrong text");
     try helpers.expect(error.DefineTypeFailed, recovered.*.priority == 1, "wrong priority");
 }

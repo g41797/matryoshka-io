@@ -81,13 +81,13 @@ const MailboxPoolTimerMaster = struct {
             var slot: Slot = null;
             defer types.EventPolyHelper.destroy(self.allocator, &slot);
             try types.EventPolyHelper.create(self.allocator, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh, &slot);
         }
         {
             var slot: Slot = null;
             try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = 10;
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 10;
             pool.put(self.ph, &slot);
         }
     }
@@ -118,7 +118,7 @@ const MailboxPoolTimerMaster = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer helpers.freeSlot(&slot, self.allocator);
-                        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
                         self.inbox_count += 1;
                         std.log.info("inbox: Event code={d} ({d}/2)", .{ ev.code, self.inbox_count });
                         if (self.inbox_count < 2) {
@@ -131,7 +131,7 @@ const MailboxPoolTimerMaster = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer pool.put(self.ph, &slot);
-                        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
                         self.pool_count += 1;
                         std.log.info("pool_ev: Event code={d} ({d}/1)", .{ ev.code, self.pool_count });
                     },

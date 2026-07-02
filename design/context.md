@@ -5,7 +5,7 @@
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 
-API reference: [matryoshka-api-reference-015.md](matryoshka-api-reference-015.md) — signatures, types, error sets, cancel contract, PolyHelper (+ create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, Select internals, receiveResult/getWaitResult
+API reference: [matryoshka-api-reference-016.md](matryoshka-api-reference-016.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, Select internals, receiveResult/getWaitResult
 
 Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
 
@@ -15,9 +15,9 @@ Thinking model: [matryoshka-model-003.md](matryoshka-model-003.md) — ownership
 
 Rules: [rules-007.md](rules-007.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item)
 
-Patterns: [patterns-006.md](patterns-006.md) — reusable coding patterns (Observable function shapes, pool, Select, Group, shutdown, dispatch, Master composition + Select event loop and spawn+await coordinator templates)
+Patterns: [patterns-007.md](patterns-007.md) — reusable coding patterns (Observable function shapes, pool, Select, Group, shutdown, dispatch, Master composition + Select event loop and spawn+await coordinator templates)
 
-Plan: [matryoshka-io-implementation-plan-028.md](matryoshka-io-implementation-plan-028.md) — slim state-only plan; rules live in rules-007.md
+Plan: [matryoshka-io-implementation-plan-029.md](matryoshka-io-implementation-plan-029.md) — slim state-only plan; rules live in rules-007.md
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 

@@ -49,10 +49,10 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
         try mailbox.receive(ctx.mbh, &slot, null);
         received += 1;
 
-        if (types.TimerPolyHelper.cast(slot.?)) |_| {
+        if (types.TimerPolyHelper.identifySlotAs(&slot)) |_| {
             ctx.timer_count += 1;
             std.log.info("worker: timer tick {d}", .{ctx.timer_count});
-        } else if (types.EventPolyHelper.cast(slot.?)) |ev| {
+        } else if (types.EventPolyHelper.identifySlotAs(&slot)) |ev| {
             ctx.event_count += 1;
             std.log.info("worker: Event code={d} (event {d})", .{ ev.code, ctx.event_count });
         }
@@ -64,7 +64,7 @@ fn sendEvents(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void 
         var slot: Slot = null;
         defer types.EventPolyHelper.destroy(alloc, &slot);
         try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 }

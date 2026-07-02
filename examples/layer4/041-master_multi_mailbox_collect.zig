@@ -25,7 +25,7 @@ const Ctx = struct {
             var slot: Slot = null;
             defer types.EventPolyHelper.destroy(self.alloc, &slot);
             try types.EventPolyHelper.create(self.alloc, &slot);
-            types.EventPolyHelper.cast(slot.?).?.code = @intCast(i + 1);
+            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh_a, &slot);
         }
     }
@@ -35,7 +35,7 @@ const Ctx = struct {
             var slot: Slot = null;
             defer types.SensorPolyHelper.destroy(self.alloc, &slot);
             try types.SensorPolyHelper.create(self.alloc, &slot);
-            types.SensorPolyHelper.cast(slot.?).?.value = @floatFromInt(i + 10);
+            types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @floatFromInt(i + 10);
             try mailbox.send(self.mbh_b, &slot);
         }
     }

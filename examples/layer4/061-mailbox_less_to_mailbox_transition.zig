@@ -39,7 +39,7 @@ fn clientFn(ctx: *ClientCtx, io: std.Io) anyerror!void {
     var slot: Slot = null;
     defer types.EventPolyHelper.destroy(ctx.alloc, &slot);
     try types.EventPolyHelper.create(ctx.alloc, &slot);
-    types.EventPolyHelper.cast(slot.?).?.code = @intCast(ctx.id);
+    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(ctx.id);
     std.log.info("client {d}: sending to mailbox", .{ctx.id});
     mailbox.send(ctx.mbh, &slot) catch {};
 }
@@ -85,7 +85,7 @@ const Ctx = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer pool.put(ph, &slot);
-                        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
                         ev.code += 1;
                         self.pool_done += 1;
                         std.log.info("pool_ev: processed code={d} ({d}/{d})", .{ ev.code, self.pool_done, N_POOL_ITEMS });
@@ -99,7 +99,7 @@ const Ctx = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer helpers.freeSlot(&slot, self.alloc);
-                        const ev: *types.Event = types.EventPolyHelper.cast(slot.?).?;
+                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
                         self.inbox_done += 1;
                         std.log.info("inbox: client item code={d} ({d}/{d})", .{ ev.code, self.inbox_done, N_CLIENTS });
                         if (self.inbox_done < N_CLIENTS) {
@@ -118,7 +118,7 @@ fn seedPool(ph: PoolHandle) !void {
     for (0..N_POOL_ITEMS) |i| {
         var slot: Slot = null;
         try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.cast(slot.?).?.code = @intCast(100 + i);
+        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(100 + i);
         pool.put(ph, &slot);
     }
 }
