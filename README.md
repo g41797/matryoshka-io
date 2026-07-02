@@ -171,3 +171,28 @@ Start building today.
 
 If Zig Io changes tomorrow—and it will—your architecture stays the same.
 
+## Try Matryoshka without fear
+
+There is no big-bang commitment.
+
+Start with the simplest building block: `PolyNode`.
+
+Add `Pool` when object reuse becomes useful.
+
+Add `Mailbox` when you need 'message' passing.
+
+Or use your own type-erased queue.
+
+It's up to you.
+
+The **Master** concept comes naturally as the application grows.
+
+Each step provides immediate value.
+
+Each step remains useful after the next one.
+
+Don't be afraid.
+
+The whole troika is only **582 lines of code**.
+
+Go ahead.
