@@ -181,7 +181,7 @@ Add `Pool` when object reuse becomes useful.
 
 Add `Mailbox` when you need 'message' passing.
 
-Or use your own type-erased queue.
+Or use your type-erased queue.
 
 It's up to you.
 
@@ -191,8 +191,8 @@ Each step provides immediate value.
 
 Each step remains useful after the next one.
 
-Don't be afraid.
+The whole troika is only 582 lines of code.
 
-The whole troika is only **582 lines of code**.
+Don't be afraid.
 
 Go ahead.
