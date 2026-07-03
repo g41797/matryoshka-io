@@ -21,7 +21,7 @@ Plan: [matryoshka-io-implementation-plan-031.md](matryoshka-io-implementation-pl
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 
-Docs plan: [matryoshka-io-docs-plan-001.md](matryoshka-io-docs-plan-001.md) — documentation work plan (stories, examples-as-docs, README, autodocs)
+Docs plan: [matryoshka-io-docs-plan-002.md](matryoshka-io-docs-plan-002.md) — documentation work plan (mkdocs + autodocs, tofu audit, iterative DOC stages)
 
 Tests (Layers 1-3): [task1-tests-001.md](task1-tests-001.md) — 73 scenarios (Layer1: 1-20, Layer2: 26-52, Layer3: 63-88), correctness/edge cases/contract violations
 

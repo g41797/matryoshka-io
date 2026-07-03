@@ -75,4 +75,48 @@ pub fn build(b: *std.Build) void {
 
     const test_step: *std.Build.Step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
+
+    // Documentation generation step
+    const docs_step: *std.Build.Step = b.step("docs", "Generate API documentation");
+
+    const apidocs_lib: *std.Build.Step.Compile = b.addObject(.{
+        .name = "matryoshka",
+        .root_module = mod,
+        .use_llvm = true,
+        .use_lld = use_lld,
+    });
+
+    const install_apidocs: *std.Build.Step.InstallDir = b.addInstallDirectory(.{
+        .source_dir = apidocs_lib.getEmittedDocs(),
+        .install_dir = .{ .custom = "../kitchen/docs" },
+        .install_subdir = "apidocs",
+    });
+
+    // Doc-only module: folds stories into the examples doc target, mirroring
+    // how tofu's cookbook doc target already imports mailbox. Does not affect
+    // the runtime "examples" module's import graph.
+    const edocsMod: *std.Build.Module = b.createModule(.{
+        .root_source_file = b.path("examples/examples.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    edocsMod.addImport("matryoshka", mod);
+    edocsMod.addImport("helpers", helpers);
+    edocsMod.addImport("stories", smod);
+
+    const examplesdocs_lib: *std.Build.Step.Compile = b.addObject(.{
+        .name = "examples",
+        .root_module = edocsMod,
+        .use_llvm = true,
+        .use_lld = use_lld,
+    });
+
+    const install_examplesdocs: *std.Build.Step.InstallDir = b.addInstallDirectory(.{
+        .source_dir = examplesdocs_lib.getEmittedDocs(),
+        .install_dir = .{ .custom = "../kitchen/docs" },
+        .install_subdir = "examplesdocs",
+    });
+
+    docs_step.dependOn(&install_apidocs.step);
+    docs_step.dependOn(&install_examplesdocs.step);
 }

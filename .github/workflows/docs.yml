@@ -5,9 +5,11 @@ on:
     branches:
       - main
     paths:
-      - 'docs_site/**'
       - 'src/**'
-      - 'recipes/**'
+      - 'helpers/**'
+      - 'examples/**'
+      - 'stories/**'
+      - 'kitchen/**'
       - 'build.zig'
 
 jobs:
@@ -27,15 +29,15 @@ jobs:
           version: 0.15.2
 
       - name: Regenerate Autodoc Artifacts
-        run: ./docs_zig.sh
+        run: ./kitchen/tools/docs_zig.sh
 
       - name: Build MkDocs Site
         run: |
-          pip install mkdocs-material mkdocs-awesome-pages-plugin mkdocs-minify-plugin mkdocs-open-in-new-tab mkdocs-git-revision-date-localized-plugin
-          cd docs_site && mkdocs build
+          pip install mkdocs-material
+          cd kitchen && mkdocs build -f mkdocs.yml
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/
+          path: kitchen/output
 
       - uses: actions/deploy-pages@v4

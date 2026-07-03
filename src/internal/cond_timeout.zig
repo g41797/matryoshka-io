@@ -14,7 +14,7 @@ pub const WaitTimeoutError = Io.Cancelable || Io.Timeout.Error;
 /// See also:
 /// * `wait`
 /// * `waitUncancelable`
-    pub fn condition_waitTimeout(cond: *Condition, io: Io, mutex: *Mutex, timeout: Io.Timeout) WaitTimeoutError!void {
+pub fn condition_waitTimeout(cond: *Condition, io: Io, mutex: *Mutex, timeout: Io.Timeout) WaitTimeoutError!void {
     const deadline = timeout.toDeadline(io);
 
     var epoch = cond.epoch.load(.acquire); // `.acquire` to ensure ordered before state load
@@ -22,7 +22,7 @@ pub const WaitTimeoutError = Io.Cancelable || Io.Timeout.Error;
     {
         const prev_state = cond.state.fetchAdd(.{ .waiters = 1, .signals = 0 }, .monotonic);
         assert(prev_state.waiters < math.maxInt(u16)); // overflow caused by too many waiters
-        }
+    }
 
     mutex.unlock(io);
     defer mutex.lockUncancelable(io);
@@ -32,9 +32,9 @@ pub const WaitTimeoutError = Io.Cancelable || Io.Timeout.Error;
 
         epoch = cond.epoch.load(.acquire); // `.acquire` to ensure ordered before `state` laod
 
-            // Even on error, try to consume a pending signal first. Otherwise a race might
-            // cause a signal to get stuck in the state with no corresponding waiter.
-            {
+        // Even on error, try to consume a pending signal first. Otherwise a race might
+        // cause a signal to get stuck in the state with no corresponding waiter.
+        {
             var prev_state = cond.state.load(.monotonic);
             while (prev_state.signals > 0) {
                 prev_state = cond.state.cmpxchgWeak(prev_state, .{
@@ -42,7 +42,7 @@ pub const WaitTimeoutError = Io.Cancelable || Io.Timeout.Error;
                     .signals = prev_state.signals - 1,
                 }, .acquire, .monotonic) orelse {
                     // We successfully consumed a signal.
-                        return;
+                    return;
                 };
             }
         }
@@ -51,23 +51,22 @@ pub const WaitTimeoutError = Io.Cancelable || Io.Timeout.Error;
         // was an error, we will remove ourselves as a waiter and return that error. If a
         // timeout was specified and the deadline has passed, we remove ourselves as a waiter
         // and return `error.Timeout`. Otherwise, we'll loop back to the futex wait.
-            result catch |err| {
+        result catch |err| {
             const prev_state = cond.state.fetchSub(.{ .waiters = 1, .signals = 0 }, .monotonic);
             assert(prev_state.waiters > 0); // underflow caused by illegal state
-                return err;
+            return err;
         };
         switch (deadline) {
             .none => {},
             .deadline => |d| if (d.untilNow(io).raw.nanoseconds >= 0) {
                 const prev_state = cond.state.fetchSub(.{ .waiters = 1, .signals = 0 }, .monotonic);
                 assert(prev_state.waiters > 0); // underflow caused by illegal state
-                    return error.Timeout;
+                return error.Timeout;
             },
             .duration => unreachable,
         }
     }
 }
-
 
 const std = @import("std");
 const Io = std.Io;

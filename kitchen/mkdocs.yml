@@ -1,0 +1,69 @@
+site_name: matryoshka-io
+docs_dir: docs
+site_dir: output
+site_description: Building Blocks for Modular Monoliths in Zig
+repo_url: https://github.com/g41797/matryoshka-io/
+repo_name: matryoshka-io on GitHub
+
+theme:
+  name: material
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: lime
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - navigation.instant
+    - toc.follow
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Reference:
+      - API Reference: api_reference.md
+      - Examples Reference: examples_reference.md
+  - Storytelling:
+      - Storytelling Rhythm: matryoshka-storytelling-001.md
+      - Storytelling (cont.): matryoshka-storytelling-002.md
+      - Storytelling (cont.): matryoshka-storytelling-003.md
+  - Concepts:
+      - Slot vs Ref-Counting: slot-vs-ref-counting.md
+      - Tag vs Tagged Union: tag-vs-tagged-union.md
+      - TypeErasedQueue vs Mailbox: typeErasedQueue-vs-mailbox.md
+      - Test / Example Story: test-example-story.md
+  - Chat Logs:
+      - README Chat: matryoshka-readme-chat.md
+      - Chat Prolog: matryoshka-io-chat-prolog.md
+
+plugins:
+  - search
+
+extra:
+  generator: false
+
+markdown_extensions:
+  - attr_list
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+copyright: >
+  Copyright &copy; 2026 g41797

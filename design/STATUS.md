@@ -36,7 +36,7 @@
 - Rules: rules-010.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-007.md
-- Docs plan: matryoshka-io-docs-plan-001.md
+- Docs plan: matryoshka-io-docs-plan-002.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -123,9 +123,191 @@ EXMPL 4 — Description as code: staccato descriptions moved into source `///` c
 EXMPL 4b — Descriptive entry-point names: `pub fn run` renamed to `pub fn @"<description>"` in all 66 example files; test-wrapper call sites updated. DONE. Plan version 031 created.
 EXMPL 4c — Eliminated all remaining live `drain` occurrences (8 files: prose word-swaps + `batchDrainToPool`/`MasterBatchDrainFailed`/barrel-alias identifier renames). DONE.
 Stage 9 — Docs + README + autodocs. PLANNED.
-Current: 161/161 tests. EXMPL 4c DONE.
+DOC 1 — tofu audit + docs plan skeleton. DONE. Plan version matryoshka-io-docs-plan-002.md created.
+DOC 2 — confirm tofu + Odin mix decision. DONE (audit only, no implementation).
+DOC 3 — kitchen/ doc folder layout proposal + DOCS-folder claim check. DONE (analysis only).
+DOC 4 — build kitchen/ doc infra (build.zig docs step, mkdocs.yml, tools/, docs.yml fix), verify locally. DONE.
+Current: 161/161 tests. DOC 4 DONE.
 
 ## Session Log
+
+### 2026-07-03 — DOC 4 (build kitchen/ doc infra, verify locally)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: Owner asked to implement DOC 3's proposed layout — all infra scripts, mkdocs
+site skeleton — and check it locally. Owner also confirmed working in auto mode (no
+per-step confirmation needed; git actions still require an explicit ask).
+
+**Key findings**:
+- `build.zig`'s new `docs` step needs a doc-only module (`edocsMod`) to fold `stories`
+  into the `examplesdocs` target without changing the runtime `examples` module's import
+  graph — mirrors tofu's `cookbookMod` pattern exactly.
+- Zig's native `getEmittedDocs()` needs zero post-processing (unlike Odin's `odin-doc` +
+  sed pipeline) — confirms DOC 1/DOC 2 finding.
+- matryoshka-io's pre-copied `.github/workflows/docs.yml` was fully wrong for this repo's
+  layout (trigger paths, script path, artifact path) — now fixed to match.
+- Full local build (Zig autodocs + mkdocs) succeeded with no deviation from the DOC 3
+  proposal.
+
+**Changes**:
+- `build.zig` — new `docs` step, 2 `addObject`/`getEmittedDocs()`/`addInstallDirectory`
+  targets (`apidocs`, `examplesdocs`).
+- `kitchen/mkdocs.yml` (new), `kitchen/docs/index.md` (new).
+- `kitchen/tools/{docs_zig,build_site,preview_apidocs,preview_site}.sh` (new, executable).
+- `.gitignore` — ignore generated `kitchen/docs/apidocs/`, `kitchen/docs/examplesdocs/`,
+  `kitchen/output/`.
+- `.github/workflows/docs.yml` — fixed trigger paths, autodoc step, mkdocs build step,
+  `upload-pages-artifact` path.
+- `design/matryoshka-io-docs-plan-002.md` — new "Stage DOC 4" section + Stages update.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `zig build docs` | succeeded — apidocs/examplesdocs populated |
+| `bash kitchen/tools/build_site.sh` (output → `zig-out/docs_build_site.log`) | succeeded — `kitchen/output/index.html` built, nav wired |
+| `zig build test -freference-trace --summary all` (output → `zig-out/test_run.log`) | 161/161 pass |
+| Kitchen script output | redirected to `zig-out/*.log`, read via Read/grep — no raw stdout |
+
+**Next**: DOC 5+ — TBD, scoped when reached. Open items carried: mkdocs nav-content
+authoring plan (DOC 2 finding #3, still using topical asides, not yet mapped from
+`design/`'s richer narrative source of truth).
+
+### 2026-07-03 — DOC 3 (kitchen/ doc folder layout proposal + DOCS-folder claim check)
+**Participants**: human + Claude
+
+**Summary**: Doc-only stage, no code changes. Owner asked to (1) re-confirm the must-rule
+that all doc housekeeping lives under `kitchen/`, and (2) check a claim that a new,
+separate top-level `DOCS` folder is needed for GitHub Pages deployment. Also asked for a
+concrete proposed folder/file layout.
+
+**Key findings**:
+- Must-rule re-confirmed — no new evidence contradicts it.
+- "DOCS folder" claim refuted as stated: matryoshka-io's pre-copied `docs.yml` has
+  `upload-pages-artifact` `path: docs/`, copied verbatim from tofu, where it only makes
+  sense because tofu's `mkdocs.yml` sets `site_dir: ../docs` (escaping its own housekeeping
+  folder to repo root). Odin `matryoshka` does not do this — its `site_dir: output` stays
+  under `kitchen/`, and its workflow points `upload-pages-artifact` at `kitchen/output`
+  directly. `actions/upload-pages-artifact` accepts any path; no GitHub Pages requirement
+  for a repo-root `docs/` folder in the Actions-based deploy flow. Conclusion: no new
+  top-level `DOCS` folder needed — keep `site_dir` under `kitchen/`, matching the must-rule.
+- Owner directed a 2-way doc-target split (src vs examples), matching tofu exactly, not the
+  3-way split noted in DOC 2 finding #2 — `stories` folds into the `examples` doc target
+  (same way tofu's `cookbook` target already pulls in `mailbox`).
+- Proposed layout: `kitchen/mkdocs.yml`, `kitchen/docs/{index.md + existing *.md, apidocs/,
+  examplesdocs/}`, `kitchen/tools/{docs_zig.sh, build_site.sh, preview_apidocs.sh,
+  preview_site.sh}` — advice only, nothing created this stage.
+
+**Changes**:
+- `design/matryoshka-io-docs-plan-002.md` — new "Stage DOC 3" section (must-rule
+  re-confirmation, DOCS-folder claim analysis, proposed layout, open items); Stages section
+  updated.
+- `design/STATUS.md` — Stage 9 stages line; this entry.
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only stage, no `.zig`/`build.zig` changes |
+| Post-stage cleanup | doc-only — no code to clean |
+
+**Next**: DOC 4 — TBD, scoped when reached. Likely candidate: build the actual mixed
+`kitchen/` doc infra per the DOC 3 layout proposal (mkdocs.yml, build.zig docs step for 2
+targets, preview scripts, docs.yml path fix). Open items carried: nav-content authoring
+plan; fixing matryoshka-io's pre-copied `docs.yml` (`path:` and missing `docs_zig.sh`/
+`build.zig` `docs` step).
+
+---
+
+### 2026-07-03 — DOC 2 (confirm tofu + Odin mix decision)
+**Participants**: human + Claude
+
+**Summary**: Doc-only stage, no code changes. Owner proposed that matryoshka-io's docs
+infra should mix tofu (autodoc generation) and the Odin `matryoshka` repo's `kitchen/`
+(layout, CI shape, local-preview scripts) — since Odin has everything needed except
+Zig-source autodoc generation. This stage audited Odin's `kitchen/` doc tooling in full and
+confirmed the claim, plus ran 3 additional checks the owner asked for.
+
+**Key findings**:
+- Odin's `kitchen/` is self-contained (mkdocs.yml, build_site.sh, preview_apidocs.sh,
+  preview_site.sh — dedicated local-preview scripts tofu lacks entirely) and CI-scoped
+  under one folder, matching matryoshka-io's own `kitchen/` convention (unlike tofu's
+  scattered layout).
+- The only piece Odin can't provide: its apidocs step clones/builds an external `odin-doc`
+  HTML renderer with heavy Odin-specific `sed` post-processing — none of it applies to Zig.
+- Confirmed mix: borrow Odin's layout/CI/preview-script shape + tofu's `build.zig` `docs`
+  step (`getEmittedDocs()`) for the actual generation mechanism.
+- Additional audit (owner-requested): (1) tofu's generated Zig autodoc output is a 4-file
+  WASM viewer with zero absolute paths — confirmed no post-processing needed, unlike Odin;
+  (2) matryoshka-io needs 3 doc targets (`matryoshka`, `examples`, `stories`), not tofu's 2
+  (`tofu`, `cookbook`) — matches existing `build.zig` module structure; (3) mkdocs nav
+  content can't be borrowed 1:1 from either prototype — matryoshka-io's `kitchen/docs/*.md`
+  and `design/` don't match either prototype's nav shape, needs fresh authoring later.
+
+**Changes**:
+- `design/matryoshka-io-docs-plan-002.md` — new "Stage DOC 2" section (Odin audit,
+  confirmed mix conclusion, 3 additional findings); Stages section updated.
+- `design/STATUS.md` — Stage 9 stages line; this entry.
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only stage, no `.zig`/`build.zig` changes |
+| Post-stage cleanup | doc-only — no code to clean |
+
+**Next**: DOC 3 — TBD, scoped when reached. Likely candidate: build the actual mixed
+`kitchen/` doc infra (mkdocs.yml, build.zig docs step for 3 targets, preview scripts),
+per the decision recorded in DOC 2. Open items carried: fate of matryoshka-io's pre-copied
+`docs.yml`; nav-content authoring plan.
+
+---
+
+### 2026-07-03 — DOC 1 (tofu audit + docs plan skeleton)
+**Participants**: human + Claude
+
+**Summary**: Doc-only stage, no code changes. Owner decided Stage 9 docs will mix
+mkdocs-generated pages (from markdown) with autodocs generated from Zig sources, using the
+sibling `tofu` repo as prototype. Work proceeds iteratively (DOC 1, DOC 2, ... — not planned
+in advance). This stage: full read-only audit of tofu's doc flow (all housekeeping files,
+scattered across root scripts, `docs_site/`, `docs/`, `.github/workflows/docs.yml` — not
+confined to one folder like matryoshka-io's `kitchen/`), plus a look at the Odin
+`matryoshka` repo's `kitchen/` doc tooling for comparison.
+
+**Key findings**:
+- tofu's doc flow: `zig build docs` (via `build.zig` `docs` step, two `addObject` +
+  `getEmittedDocs()` targets) → `docs_site/docs/{apidocs,recipes}/`, then
+  `mkdocs build` → `docs/` (committed, GitHub Pages source). CI
+  (`.github/workflows/docs.yml`) runs the same two steps on push to `main`, then deploys.
+- Gap: tofu has no committed local-preview script — `_notes.txt` shows only a manual
+  `python3 -m http.server` command for one case.
+- matryoshka-io already has `.github/workflows/docs.yml`, an exact copy of tofu's, but none
+  of the supporting infra exists yet (no `docs_zig.sh`, no `docs_site/`, no `build.zig`
+  `docs` step) — CI was pre-copied ahead of the infra it depends on. Open item for a future
+  DOC stage.
+- Odin `matryoshka`'s `kitchen/` has dedicated `preview_apidocs.sh`/`preview_site.sh`
+  scripts (tofu does not) and keeps everything under one `kitchen/` folder, matching
+  matryoshka-io's own convention.
+
+**Changes**:
+- `design/matryoshka-io-docs-plan-002.md` — new version; Background section (mkdocs
+  decision, tofu prototype, kitchen/ rule, current project state) + full audit findings
+  (flow diagram, two tables) + iterative-stages placeholder (DOC 1 DONE, DOC 2+ TBD).
+- `design/context.md` — Docs plan pointer → -002.
+- `design/STATUS.md` — Docs plan source → -002; Stage 9 line; this entry.
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — doc-only stage, no `.zig`/`build.zig` changes |
+| Post-stage cleanup | doc-only — no code to clean |
+
+**Next**: DOC 2 — TBD, scoped when reached (per iterative-stage rule). Open item carried:
+decide fate of matryoshka-io's pre-copied `docs.yml` (keep vs. hold back until infra built).
+
+---
 
 ### 2026-07-03 — EXMPL 4c (Eliminate remaining `drain` occurrences)
 **Participants**: human + Claude

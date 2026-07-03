@@ -30,7 +30,7 @@ test "55 - OOB via send_oob" {
 
 test "56 - pipeline" {
     std.testing.log_level = .debug;
-    layer2.pipeline.@"Pipeline"(allocator, io) catch |err| {
+    layer2.pipeline.Pipeline(allocator, io) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };

@@ -10,5 +10,8 @@ site/
 *.a.o
 #docs_site/docs/api/*
 #!docs_site/docs/api/.gitkeep
+/kitchen/docs/apidocs/
+/kitchen/docs/examplesdocs/
+/kitchen/output/
 /zig-pkg/
 .antigravitycli/
