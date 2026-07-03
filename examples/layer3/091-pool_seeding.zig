@@ -14,7 +14,7 @@
 ///       │ pool.get (available_only) × 5
 ///       ▼
 ///  slot ──► SensorPolyHelper.destroy per item
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool seeding"(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.SensorPolyHelper.TAG};
 

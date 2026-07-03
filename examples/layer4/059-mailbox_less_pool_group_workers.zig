@@ -21,7 +21,7 @@
 ///
 ///  Work input: task index passed at spawn time. Pool item is an empty container.
 ///  Each worker gets its own container, writes its index, returns it. No mailbox needed.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool + Group: worker pool"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

@@ -15,7 +15,7 @@
 ///  fut.await ──► PoolResult .item ──► slot (master owns)
 ///  │
 ///  pool.put ──► pool ──pool.close──► on_close ──► freeList
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"get_wait_future awaited directly"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

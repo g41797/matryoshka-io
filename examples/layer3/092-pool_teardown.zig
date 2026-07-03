@@ -14,7 +14,7 @@
 ///       │ pool.close
 ///       ▼
 ///  on_close ──► AlwaysCreateCtx: destroys all 4 items
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool teardown"(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
 

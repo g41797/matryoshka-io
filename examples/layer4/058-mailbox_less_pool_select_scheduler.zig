@@ -26,7 +26,7 @@
 ///
 ///  Work input: Master's own cycle counter. Pool item is an empty container — the processing slot.
 ///  No mailbox. Pool + Select gates the processing loop.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool + Select: job scheduler"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

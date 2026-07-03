@@ -26,7 +26,7 @@
 ///  Work input: Master's own cycle counter. Pool item is an empty container.
 ///  Stop condition: cycle reaches target. getWaitResult not re-spawned at target,
 ///  so cancelDiscard only cancels the timer — no items in-transit, no leak.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool get_wait as Select event source"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

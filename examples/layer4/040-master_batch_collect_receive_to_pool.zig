@@ -4,7 +4,7 @@
 /// Master batch collect: receive_batch → put_all.
 ///
 /// - Fill the mailbox with 5 items.
-/// - batchDrainToPool: mailbox.receive_batch returns a std.DoublyLinkedList,
+/// - batchCollectToPool: mailbox.receive_batch returns a std.DoublyLinkedList,
 ///   passed directly to pool.put_all — no per-item conversion.
 /// - verifyPool confirms the pool has items after the transfer.
 ///
@@ -17,7 +17,7 @@
 ///  │
 ///  std.DoublyLinkedList flows from mailbox to pool without conversion.
 ///  pool.close ──► on_close ──► freeList
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Master batch collect: receive_batch → put_all"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
@@ -37,7 +37,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     try fillMailbox(mbh, allocator, N_ITEMS);
     std.log.info("mailbox: {d} items queued", .{N_ITEMS});
 
-    try batchDrainToPool(ph, mbh);
+    try batchCollectToPool(ph, mbh);
     try verifyPool(ph);
 
     std.log.info("done: {d} items — mailbox.receive_batch → pool.put_all, no conversion needed", .{N_ITEMS});
@@ -55,7 +55,7 @@ fn fillMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void
     }
 }
 
-fn batchDrainToPool(ph: PoolHandle, mbh: MailboxHandle) !void {
+fn batchCollectToPool(ph: PoolHandle, mbh: MailboxHandle) !void {
     var batch: std.DoublyLinkedList = try mailbox.receive_batch(mbh);
     pool.put_all(ph, &batch);
     std.log.info("receive_batch → put_all: stdlib list bridges mailbox to pool", .{});
@@ -65,7 +65,7 @@ fn verifyPool(ph: PoolHandle) !void {
     var slot: Slot = null;
     defer pool.put(ph, &slot);
     pool.get(ph, types.EventPolyHelper.TAG, .available_only, &slot) catch {
-        return error.MasterBatchDrainFailed;
+        return error.MasterBatchCollectFailed;
     };
     std.log.info("verified: pool has items after put_all", .{});
 }

@@ -12,7 +12,7 @@
 ///  master A ──Event(request)──► b_inbox ──► master B
 ///  master A ◄──Sensor(response)── a_inbox ◄── master B
 ///  (fut_a + fut_b run concurrently; fut_a.await → fut_b.await)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Request-response between Masters"(allocator: std.mem.Allocator, io: std.Io) !void {
     const a_inbox: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(a_inbox);

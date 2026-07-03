@@ -20,7 +20,7 @@
 ///  .pool_ev .item ──► pool.put
 ///  .timer         ──► log tick, re-spawn
 ///  done when inbox×2 + pool×1 received ──► sel.cancelDiscard()
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Mixed mailbox + pool event sources in Select"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MailboxPoolTimerMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

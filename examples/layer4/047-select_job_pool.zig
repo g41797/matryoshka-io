@@ -28,7 +28,7 @@
 ///  Pool availability gates job submission. Work input: Master's pre-loaded queue.
 ///  Pool provides empty containers. One container per in-flight job.
 ///  Master dispatches jobs until queue exhausted, then shuts down workers.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Job pool pattern"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try JobPoolMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

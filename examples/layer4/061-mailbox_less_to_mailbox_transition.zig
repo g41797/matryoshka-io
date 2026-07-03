@@ -23,7 +23,7 @@
 ///
 ///  Transition: when senders are multiple and independent, fan-in via mailbox
 ///  becomes necessary. Mailbox is the third event source in Select.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"When to add Mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

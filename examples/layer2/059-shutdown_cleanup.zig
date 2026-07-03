@@ -13,7 +13,7 @@
 ///       │ mailbox.close (no receive — all items returned)
 ///       ▼
 ///  DoublyLinkedList ──► freeItem × N
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Shutdown with remaining item cleanup"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(mbh, allocator);
 

@@ -1,9 +1,9 @@
-# Matryoshka Zig — Rules (008)
+# Matryoshka Zig — Rules (010)
 
-Versioned doc. Replaces [rules-007.md](rules-007.md).
+Versioned doc. Replaces [rules-009.md](rules-009.md).
 All coding, doc, and process rules for the project.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
-Companion: [patterns-007.md](patterns-007.md) — reusable coding patterns.
+Companion: [patterns-008.md](patterns-008.md) — reusable coding patterns.
 
 ---
 
@@ -61,6 +61,52 @@ Step function parameters.
 
 Applies to all code: `src/`, `helpers/`, `examples/`, `tests/`, `stories/`.
 Small functions with no distinct phases need no extraction.
+
+---
+
+## Description as code — MUST
+
+An example's or story's description is written like its code, not like prose about its code.
+
+Applies to.
+- Every `///` description block on an example's or story's entry point.
+- `task1-examples-*.md` / `task2-examples-*.md` catalog entries (see Catalog docs below).
+
+Same shape as Observable by human.
+- One-line intent — what the example demonstrates. This is the coordinator line.
+- Named steps as bullets — one step per bullet, in the order they run.
+- A bullet names a step the same way a step function is named: what it does, not how.
+- No single long sentence chaining multiple facts with commas — that is an unextracted
+  block, same violation as an unextracted code block.
+
+Staccato rhythm applies.
+- Short intro line, then bullets.
+- One fact per bullet.
+- No prose paragraphs.
+
+Placement — `///` doc comment, not `//`.
+- The description + ASCII ownership diagram is a `///` doc comment.
+- `///` is autodoc-extractable (Stage 9). Plain `//` is not.
+- Attached to the example's entry point (`pub fn @"<description>"`) — the sole `pub`
+  declaration, and the one autodoc actually reads.
+- If the example uses a Master, the Master's own `run` method is the real coordinator,
+  but it is private (`fn`, not `pub fn`) — no `///` on it. Its steps are still named,
+  self-documenting per Observable by human; no separate doc block needed.
+
+File layout — flow descriptors at the top.
+- The entry point (`pub fn @"<description>"`) moves to the top of the file, directly
+  after the `///` description + diagram block.
+- Where a Master exists, its `run` method also moves up, directly after the entry
+  point, ahead of struct fields, `init`, `destroy`, and step functions.
+- These two functions are the file's flow descriptors — a reader sees the whole shape
+  first, then drops into detail only if needed.
+- Imports stay at the bottom (LE style, unchanged).
+
+Catalog docs (`task1-examples-*.md`, `task2-examples-*.md`) are an index, not a copy.
+- One line per scenario: number, name, one-line hook, link to the source file.
+- The full staccato description lives in the source `///` block only.
+- Do not duplicate the description in both places — the source is the single source
+  of truth; the catalog just routes to it.
 
 ---
 
@@ -124,8 +170,16 @@ Test wrappers live in `tests/`.
 
 Scope and shape.
 - One pattern. One layer.
-- Signature: `pub fn run(allocator: std.mem.Allocator, io: std.Io) !void`.
-- ASCII ownership circuit diagram at the top of every example. No diagram = not done.
+- Entry point uses a descriptive name, not `run`.
+- Signature: `pub fn @"<description>"(allocator: std.mem.Allocator, io: std.Io) !void`.
+- `<description>` is the example's one-line staccato description — same text as the
+  first line of its `///` doc comment.
+- Master's own `run` method (private, inside the Master struct) is unaffected — this
+  rule targets only the example's public entry point.
+- `///` doc comment at the top of every example: staccato description + ASCII ownership
+  circuit diagram. No doc comment = not done. See Description as code above.
+- The entry point (and Master `run` method, if any) placed at the top of the file, right
+  after that doc comment.
 - Show correct resource cleanup. `errdefer` on error paths, `defer` on all-path cleanup.
 - Examples become docs. Leaky examples teach leaky habits.
 - Reference model: tofu `recipes/cookbook.zig`.
@@ -156,10 +210,11 @@ When to allocate a Master (complex case).
 - Growing functionality that would make a flat function hard to follow.
 
 Master struct shape.
-- `run` entry point allocates the Master, defers destroy, calls master.run:
+- The entry point and the Master's `run` method sit at the top of the file (see
+  Description as code above), directly after the doc comment:
 
 ```zig
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"<description>"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MasterXYZ.init(allocator, io);
     defer master.destroy();
     try master.run();
@@ -168,7 +223,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
 - `init(allocator, io) !*MasterXYZ` — allocates on heap, acquires all resources, can fail.
 - `destroy` — releases resources in correct order, frees the allocation last.
-- `run` — readable main flow: sequenced calls to private step functions.
+- Master's `run` — readable main flow: sequenced calls to private step functions.
 - Private functions — each implements one internal step.
 - Fields — shared state between steps; replace scattered locals.
 
@@ -180,7 +235,8 @@ Canonical reference: `examples/layer4/018-master_with_pool.zig`.
 
 - Signature: `pub fn run(allocator: std.mem.Allocator, io: std.Io) !void`.
 - Must show multiple layers composing into a real flow.
-- ASCII ownership circuit diagram at the top of the file.
+- `///` doc comment at the top of the file: staccato description + ASCII ownership
+  circuit diagram (see Description as code above).
 - Test wrapper in single `tests/stories_test.zig`, using `std.Io.Threaded.init`.
 - SPDX header required if placed under `src/`-style ownership; owner adds SPDX headers.
 - Stories always use the Master pattern. A story is never a flat function.
@@ -278,6 +334,9 @@ Banned words.
 - No multi-paragraph docstrings.
 - No "used by X" / "added for Y flow" comments.
 - No `///` doc comments in `src/`.
+- Exception: `examples/` and `stories/` entry-point functions — see Description as
+  code above. That ban is `src/`-only; examples and stories are a different category
+  (Code quality — all categories).
 
 ---
 
@@ -326,8 +385,8 @@ Banned words.
 * Link to:
 
    * `matryoshka-model-003.md`
-   * `rules-008.md`
-   * `patterns-007.md`
+   * `rules-009.md`
+   * `patterns-008.md`
 
 * When extending an existing document:
 
@@ -347,7 +406,7 @@ Per-stage finish checklist.
 3. `kitchen/build_cross_debug.sh` — cross-compile Debug for mac + windows.
 4. Post-stage cleanup: revise code for obsolete parts, wrong comments, repeated code that can be extracted.
 5. Re-run all three kitchen scripts after cleanup.
-6. After kitchen scripts pass: scan changed `.zig` files for patterns not yet in `patterns-007.md`.
+6. After kitchen scripts pass: scan changed `.zig` files for patterns not yet in `patterns-008.md`.
    - Report candidate new patterns to owner. Owner decides.
    - Do not auto-document or auto-extract. Report only.
 7. AI-sh + banned words scan over changed `*.md` and `*.zig`. Report to owner.
@@ -355,8 +414,9 @@ Per-stage finish checklist.
 9. Sync `README.md` and any touched per-module README.
 10. Rules audit: after any stage that changes `*.zig` or `*.md` files, audit all changed files
     against every rule in this document. Report violations to owner before closing the stage.
-    Covers: Observable structural signals, Slot Rule, import order, banned words,
-    example completeness, Master pattern shape, comment rules, doc rules — all rules.
+    Covers: Observable structural signals, Description as code, descriptive entry-point
+    names, Slot Rule, import order, banned words, example completeness, Master pattern
+    shape, comment rules, doc rules — all rules.
 
 Kitchen script order.
 - `build_and_test_debug.sh` → `build_and_test_all.sh` → `build_cross_debug.sh`.
@@ -411,9 +471,10 @@ Implementation invariants.
 
 ## Matryoshka Coding Patterns
 
-The pattern catalog lives in [patterns-007.md](patterns-007.md).
+The pattern catalog lives in [patterns-008.md](patterns-008.md).
 
 - Observable function shapes: coordinator / step / init / destroy / Select event loop / spawn-await.
+- Description as code: example/story doc comments follow the same coordinator/step shape.
 - Pool modes, seeding, backpressure, hooks.
 - Io.Select event loop and re-register.
 - Io.Group worker sets and shutdown.

@@ -14,7 +14,7 @@
 ///       │ pool.put ──► pool (recycled)
 ///       │ pool.get (available_or_new) ──► slot (same item, data intact)
 ///       │ EventPolyHelper.destroy ──► freed
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Basic recycler"(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
 

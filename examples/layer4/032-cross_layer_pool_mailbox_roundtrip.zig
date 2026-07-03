@@ -18,7 +18,7 @@
 ///  pool.get (.available_only) ──► slot (same ptr P)
 ///  verify ptr==P ──► pool.put ──► pool
 ///  pool.close ──► on_close ──► freed
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool → Mailbox → Pool roundtrip"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

@@ -20,7 +20,7 @@
 ///       │ freeSlot
 ///       ▼
 ///  freed
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Ownership transfer via Slot"(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
 
     var slot: Slot = null;

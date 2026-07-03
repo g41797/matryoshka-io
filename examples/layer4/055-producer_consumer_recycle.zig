@@ -19,7 +19,7 @@
 ///  pool.get ──► slot (same pointer, code still 1)
 ///  verify recycled ──► pool.put ──► pool
 ///  pool.close ──► on_close ──► freeList
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Producer → consumer with recycling"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

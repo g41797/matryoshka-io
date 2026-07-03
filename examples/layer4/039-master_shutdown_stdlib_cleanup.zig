@@ -16,7 +16,7 @@
 ///  pool.close   ──► on_close ──► freeList (×2)
 ///  │
 ///  Entire shutdown: standard Zig stdlib — no Matryoshka-specific cleanup API.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Master shutdown: close → stdlib walk → free"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

@@ -32,8 +32,8 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-030.md (slim, state-only)
-- Rules: rules-009.md
+- Plan: matryoshka-io-implementation-plan-031.md (slim, state-only)
+- Rules: rules-010.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-007.md
 - Docs plan: matryoshka-io-docs-plan-001.md
@@ -120,10 +120,104 @@ EXMPL 3d — Observable: extract steps in 31 flat examples. DONE. Plan version 0
 EXMPL 3e — Observable: structural extraction signals + fix 24 violating examples. DONE. Plan version 028 created.
 API 2 — PolyHelper Slot-aware identification API. DONE. 161/161 tests.
 EXMPL 4 — Description as code: staccato descriptions moved into source `///` comments, layer1-3 NNN- renaming, catalog docs as index. DONE. Plan version 030 created.
+EXMPL 4b — Descriptive entry-point names: `pub fn run` renamed to `pub fn @"<description>"` in all 66 example files; test-wrapper call sites updated. DONE. Plan version 031 created.
+EXMPL 4c — Eliminated all remaining live `drain` occurrences (8 files: prose word-swaps + `batchDrainToPool`/`MasterBatchDrainFailed`/barrel-alias identifier renames). DONE.
 Stage 9 — Docs + README + autodocs. PLANNED.
-Current: 161/161 tests. EXMPL 4 DONE.
+Current: 161/161 tests. EXMPL 4c DONE.
 
 ## Session Log
+
+### 2026-07-03 — EXMPL 4c (Eliminate remaining `drain` occurrences)
+**Participants**: human + Claude
+
+**Summary**: Owner flagged that `drain` still appeared in 14 files / 43 matches despite
+repeated requests. Root cause: prior stages only fixed `drain` inside files actively being
+rewritten, or fixed the one finding explicitly scoped by the owner. This pass swept every
+live (non-historical, non-superseded-doc) occurrence.
+
+**Changes**:
+- `examples/layer2/058-fan_in.zig:8` — "drains it" → "empties it".
+- `examples/layer2/060-batch_processing.zig:8` — "drains the rest" → "empties the rest".
+- `examples/layer4/029-select_cancel_recycle.zig:8` — "drains sel.cancel()" → "empties
+  sel.cancel()".
+- `examples/layer4/031-select_graceful_shutdown.zig:8` — "drains sel.cancel()" → "empties
+  sel.cancel()".
+- `examples/layer4/034-cross_layer_batch_receive_pool_return.zig` — `batchDrainToPool` →
+  `batchCollectToPool` (doc line, function name, call site).
+- `examples/layer4/040-master_batch_collect_receive_to_pool.zig` — `batchDrainToPool` →
+  `batchCollectToPool` (doc line, function name, call site); `error.MasterBatchDrainFailed`
+  → `error.MasterBatchCollectFailed`.
+- `examples/layer4/layer4.zig` — barrel alias `master_batch_drain_receive_to_pool` →
+  `master_batch_collect_receive_to_pool`.
+- `tests/layer4_cross.zig` — updated reference to match renamed barrel alias.
+
+**Excluded** (historical/superseded, per doc-versioning rule — never edit a replaced doc
+version, never rewrite history): `design/patterns-007.md`, `design/rules-009.md`,
+`design/task1-examples-002.md`, `design/task2-examples-002.md`, `design/STATUS.md`
+historical Session Log entries. `design/rules-010.md`'s one hit is the banned-word list
+itself (meta-reference, not a violation).
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| `grep -rniI "drain" --include="*.zig" .` | 0 hits |
+| `grep -rn "MasterBatchDrainFailed\|batchDrainToPool\|master_batch_drain"` | 0 hits |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (3/3 targets: x86_64-macos, aarch64-macos, x86_64-windows) |
+
+No logic changed — word/identifier renames only. Test count unchanged (161/161).
+
+**Next**: Stage 9 — Docs + README + autodocs.
+
+---
+
+### 2026-07-03 — EXMPL 4b (Descriptive entry-point names)
+**Participants**: human + Claude
+
+**Summary**: Every example's `pub fn run` was identical across all 66 files, carrying no
+information. New rule: entry point uses a descriptive name instead of `run`, via Zig's
+quoted identifier syntax `pub fn @"<description>"`, where `<description>` is the example's
+existing one-line staccato description (first line of its `///` doc comment).
+
+**Changes**:
+- `design/rules-009.md` → `rules-010.md` — "Coding Rules — Examples" Scope and shape
+  updated: entry point signature is now `pub fn @"<description>"(...)`, not `pub fn run`.
+  Master's own `run` method (private) explicitly called out as unaffected. Updated all
+  cross-referencing mentions in the Examples section (Description as code placement rule,
+  File layout rule, Master struct shape code block). Rules audit checklist item 10 wording
+  extended to cover "descriptive entry-point names". Stories section left unchanged — out
+  of scope (user request was examples only).
+- All 66 example files renamed `pub fn run(` → `pub fn @"<description>"(`, one per file,
+  no other content changed: `examples/layer1/021-025` (5), `examples/layer2/053-062` (10),
+  `examples/layer3/089-092` (4), `examples/layer4/017-061,095-096` (47).
+- Test wrapper call sites updated to match (~66 call sites + 1 commented-out duplicate):
+  `tests/layer1_examples.zig`, `tests/layer2_examples.zig`, `tests/layer3_examples.zig`,
+  `tests/layer4_examples.zig`, `tests/layer4_select.zig`, `tests/layer4_cross.zig`.
+- `design/matryoshka-io-implementation-plan-030.md` → `-031.md` — EXMPL 4b summary bullet.
+- `design/context.md` — Rules pointer → rules-010.md; Plan pointer → plan-031.md.
+- `design/STATUS.md` — Sources of Truth (Rules → rules-010.md, Plan → plan-031.md),
+  Stages line, this entry.
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| `grep "pub fn run("` across examples/layer{1,2,3,4} | 0 hits (all renamed) |
+| `grep ".run("` across all 6 test wrapper files | 0 hits (all call sites updated) |
+| AI-sh + banned words scan on new descriptive names | CLEAN |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (3/3 targets: x86_64-macos, aarch64-macos, x86_64-windows) |
+
+No logic changed — only identifier names (source + call sites). Test count unchanged
+(161/161).
+
+**Next**: Stage 9 — Docs + README + autodocs. Owner still to decide on removing old-named
+(pre-`NNN-`) layer1-3 example files, currently unreferenced and left in place.
+
+---
 
 ### 2026-07-03 — EXMPL 4 (Description as code: staccato descriptions in source, layer1-3 renaming)
 **Participants**: human + Claude
@@ -207,6 +301,14 @@ same `///` doc-comment + flow-descriptor-placement treatment; no renaming needed
 - `src/polynode.zig`, `src/internal/cond_timeout.zig` — `///` doc comments in `src/`,
   contradicting the "no `///` in `src/`" rule. Already reported in the API 2 session log
   entry (2026-07-02); owner decided not to fix now, unchanged, out of scope for this stage.
+
+**Re-verification after `patterns-008.md` fix**
+
+| Check | Result |
+| :---- | :----- |
+| build_and_test_debug.sh | PASS (161/161) |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (3/3 targets: x86_64-macos, aarch64-macos, x86_64-windows) |
 
 **Next**: Stage 9 — Docs + README + autodocs. Owner to decide on removing old-named
 layer1-3 example files (currently unreferenced, left in place per owner instruction).

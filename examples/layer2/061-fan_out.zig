@@ -14,7 +14,7 @@
 ///                                      ├──► worker B  (compete; each item goes to one)
 ///                                      └──► worker C
 ///  mailbox.close ──► remaining list ──► freeItem (main)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Fan-out"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(mbh, allocator);
 

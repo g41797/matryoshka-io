@@ -16,7 +16,7 @@
 ///       │
 ///  MessagePolyHelper.identifyNodeAs ──► field access (no transfer)
 ///  (stack-allocated — no free needed)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Define a PolyNode type"(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = .{ allocator, io };
 
     var msg: Message = .{ .text = "hello", .priority = 1 };

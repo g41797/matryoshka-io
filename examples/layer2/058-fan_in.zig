@@ -5,7 +5,7 @@
 ///
 /// - 3 concurrent senders: Events, Sensors, and a mixed sender.
 /// - All send into one shared mailbox.
-/// - Single receiver drains it with mailbox.receive_batch.
+/// - Single receiver empties it with mailbox.receive_batch.
 /// - Counts events and sensors received, verifies the total.
 ///
 /// Ownership:
@@ -14,7 +14,7 @@
 ///  sensorSenderFn ──Sensor×5──► mailbox ──receive_batch──► freeItem per node
 ///  altSenderFn ──mixed×4──►
 ///  (3 concurrent senders fan-in to one mailbox)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Fan-in"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

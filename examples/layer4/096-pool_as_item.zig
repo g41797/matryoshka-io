@@ -14,7 +14,7 @@
 ///       │ pool.close (carrier)
 ///       ▼
 ///  on_close ──► pool.close + pool.destroy per inner pool
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool holds pools at teardown"(allocator: std.mem.Allocator, io: std.Io) !void {
     // Carrier pool — holds inner PoolHandles as items.
     const carrier: PoolHandle = try pool.new(io, allocator);
     var carrier_ctx: CarrierCtx = .{ .alloc = allocator };

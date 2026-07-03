@@ -22,7 +22,7 @@
 ///  Work input: spawn-time arg n + worker's own counter.
 ///  Pool item is an empty container — a processing slot, not a data carrier.
 ///  No mailbox needed for simple single-worker coordination.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool + Future: simple worker"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

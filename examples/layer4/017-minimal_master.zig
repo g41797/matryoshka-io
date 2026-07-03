@@ -15,7 +15,7 @@
 ///                                                      │ mailbox.receive ──► freeSlot
 ///  mailbox.close ──► remaining list ──► freeList
 ///  fut.await ──► worker done
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Minimal Master"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

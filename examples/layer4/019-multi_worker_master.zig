@@ -14,7 +14,7 @@
 ///                             ├──► worker B  (compete; each freeSlot)
 ///                             └──► worker C
 ///  mailbox.close ──► remaining freeList ──► group.await
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Multi-worker Master"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

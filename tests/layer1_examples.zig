@@ -6,7 +6,7 @@ const io = std.Io.Threaded.global_single_threaded.*.io();
 
 test "21 - define a PolyNode type" {
     std.testing.log_level = .debug;
-    layer1.define_type.run(allocator, io) catch |err| {
+    layer1.define_type.@"Define a PolyNode type"(allocator, io) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };
@@ -14,7 +14,7 @@ test "21 - define a PolyNode type" {
 
 test "22 - ownership transfer via Slot" {
     std.testing.log_level = .debug;
-    layer1.ownership_transfer.run(allocator, io) catch |err| {
+    layer1.ownership_transfer.@"Ownership transfer via Slot"(allocator, io) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };
@@ -22,7 +22,7 @@ test "22 - ownership transfer via Slot" {
 
 test "23 - tag-dispatch consume loop" {
     std.testing.log_level = .debug;
-    layer1.tag_dispatch.run(allocator, io) catch |err| {
+    layer1.tag_dispatch.@"Tag-dispatch consume loop"(allocator, io) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };
@@ -30,7 +30,7 @@ test "23 - tag-dispatch consume loop" {
 
 test "24 - builder pattern" {
     std.testing.log_level = .debug;
-    layer1.builder.run(allocator, io) catch |err| {
+    layer1.builder.@"Builder pattern"(allocator, io) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };
@@ -38,7 +38,7 @@ test "24 - builder pattern" {
 
 test "25 - produce-consume with defer cleanup" {
     std.testing.log_level = .debug;
-    layer1.produce_consume.run(allocator, io) catch |err| {
+    layer1.produce_consume.@"Produce-consume with defer cleanup"(allocator, io) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };

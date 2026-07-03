@@ -13,7 +13,7 @@
 ///       │ list.popFirst × 5
 ///       ▼
 ///  freeItem per node (consumer)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Produce-consume with defer cleanup"(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};
 

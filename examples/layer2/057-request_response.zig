@@ -13,7 +13,7 @@
 ///                                          │ code += 1000
 ///                                          ▼
 ///  main ◄──Event(code=1042)── resp_mbh ◄── worker
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Request-response"(allocator: std.mem.Allocator, io: std.Io) !void {
     const req_mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(req_mbh, allocator);
 

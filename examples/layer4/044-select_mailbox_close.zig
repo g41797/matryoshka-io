@@ -19,7 +19,7 @@
 ///  │
 ///  sel.await() ──► .inbox .closed
 ///  sel.cancelDiscard()
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Select mailbox close propagation"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
     defer {

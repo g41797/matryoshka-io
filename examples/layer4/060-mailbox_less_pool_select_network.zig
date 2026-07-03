@@ -21,7 +21,7 @@
 ///  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
 ///
 ///  No mailbox. Pool + Select + external Io: two independent event sources.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool + Select + Network"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

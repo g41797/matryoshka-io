@@ -16,7 +16,7 @@
 ///                                                           ▼ exit
 ///  master ◄──worker_mbh (as NodeHandle)── master_inbox
 ///  master: close + destroy worker_mbh (tag+pointer verified first)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Worker finish signal via mailbox return"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master_inbox: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         _ = mailbox.close(master_inbox);

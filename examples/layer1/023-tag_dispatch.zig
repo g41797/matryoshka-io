@@ -16,7 +16,7 @@
 ///       ▼
 ///  tag check ──► EventPolyHelper.identifyNodeAs or SensorPolyHelper.identifyNodeAs
 ///       │ freeItem per node
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Tag-dispatch consume loop"(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};
 

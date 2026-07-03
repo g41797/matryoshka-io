@@ -22,7 +22,7 @@
 ///
 ///  Ownership: Master list → pool containers → worker mailboxes → workers → pool → master.
 ///  Pool items are empty containers: Master fills from job list, worker writes result back.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool fan-in: many workers return"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try PoolFanInMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

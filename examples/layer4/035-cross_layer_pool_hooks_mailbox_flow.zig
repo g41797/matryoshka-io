@@ -21,7 +21,7 @@
 ///  │
 ///  pool.get (.available_only) ──► recycled (code=1) ──► verify
 ///  pool.close ──► on_close ──► freeList
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pool hooks + mailbox flow"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     // CappedPoolCtx: cap=1 — first put keeps, second put destroys.
     var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = 1, .io = io };

@@ -15,7 +15,7 @@
 ///  (no concurrent task can be spawned on single-threaded backend)
 ///  │
 ///  mailbox.receive (synchronous) still works
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"ConcurrencyUnavailable on single-threaded"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

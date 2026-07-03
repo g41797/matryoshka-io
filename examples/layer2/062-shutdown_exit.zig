@@ -12,7 +12,7 @@
 ///  main ──Event×3──► mailbox ──► worker (processes, freeSlot)
 ///  main ──ShutdownCommand──► mailbox ──► worker (exits, freeSlot)
 ///  (mailbox stays open; worker owns all received items)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Shutdown via ShutdownCommand"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
 
     defer {

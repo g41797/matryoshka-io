@@ -18,7 +18,7 @@
 ///             (group.cancel signals receiveResult to stop)
 ///  │
 ///  mailbox.close ──► freeList ──► mailbox.destroy
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Select cancel propagation"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

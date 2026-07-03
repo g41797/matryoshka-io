@@ -16,7 +16,7 @@
 ///  consumer ◄──Sensor── consumer_mbh ◄── transformer
 ///  (ShutdownCommand sentinel propagates: producer→transformer→consumer)
 ///  fut_prod.await → fut_trans.await → fut_cons.await
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pipeline of Masters"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try PipelineMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

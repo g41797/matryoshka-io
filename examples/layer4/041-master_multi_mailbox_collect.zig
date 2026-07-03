@@ -17,7 +17,7 @@
 ///  walk combined: popFirst ──► freeItem (×5)
 ///  │
 ///  One stdlib walk handles items from multiple mailboxes — no special API.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Master pre-shutdown collect"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh_a: MailboxHandle = try mailbox.new(io, allocator);
     const mbh_b: MailboxHandle = try mailbox.new(io, allocator);
 

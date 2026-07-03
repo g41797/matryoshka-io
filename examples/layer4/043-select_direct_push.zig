@@ -15,7 +15,7 @@
 ///  sel.await() ──► .direct u32 value
 ///  │
 ///  sel.cancelDiscard() ──► cancels blocking .inbox source
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Select direct queue push"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

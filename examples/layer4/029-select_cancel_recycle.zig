@@ -5,7 +5,7 @@
 ///
 /// - Pool seeded with 3 Events, used as a Select event source via getWaitResult.
 /// - eventLoop processes one item, then a timer triggers, ending the loop.
-/// - cancelAndRecycle drains sel.cancel(), recycles any in-flight item via pool.put.
+/// - cancelAndRecycle empties sel.cancel(), recycles any in-flight item via pool.put.
 /// - pool.close then frees everything recycled — no item is lost or double-freed.
 ///
 /// Ownership:
@@ -21,7 +21,7 @@
 ///             .pool_ev .canceled ──► (no item, skip)
 ///  │
 ///  pool.close ──► on_close ──► freeList (all recycled items freed cleanly)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Cancel → Master close → pool.put_all"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

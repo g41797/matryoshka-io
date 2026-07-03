@@ -22,7 +22,7 @@
 ///  │
 ///  Phase 2: new Select, mbh2 only
 ///  send 2 items to mbh2 ──► receive them via fresh Select
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Cancel reports, Master decides"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try CancelDecideMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

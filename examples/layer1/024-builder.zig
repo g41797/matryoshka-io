@@ -15,7 +15,7 @@
 ///  Builder.identifyNodeAs ──► field access (no transfer)
 ///       │
 ///  Builder.destroyByTag ──► slot = null (freed)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Builder pattern"(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     const b: Builder = .{ .alloc = allocator };
 

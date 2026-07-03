@@ -17,7 +17,7 @@
 ///  walk list: popFirst ──► freeItem
 ///  │
 ///  All 3 items accounted for, no leaks.
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Close ordering: pool then mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

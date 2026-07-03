@@ -22,7 +22,7 @@
 ///  │
 ///  mailbox.close(mbh1) ──► freeList
 ///  mailbox.close(mbh2) ──► freeList
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Timer cancel → close → walk remaining"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh1: MailboxHandle = try mailbox.new(io, allocator);
     const mbh2: MailboxHandle = try mailbox.new(io, allocator);
     defer {

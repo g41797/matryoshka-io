@@ -15,7 +15,7 @@
 ///                                              ▼
 ///  consumer ◄──Event── stage2 mailbox ◄── transformer
 ///  (sentinel: Event code=-1 terminates each stage; consumer frees)
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Pipeline"(allocator: std.mem.Allocator, io: std.Io) !void {
     const stage1: MailboxHandle = try mailbox.new(io, allocator);
     const stage2: MailboxHandle = try mailbox.new(io, allocator);
     defer {

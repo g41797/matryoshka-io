@@ -14,7 +14,7 @@
 ///  timerFn ──Timer×2──► mailbox ──► workerFn (tag dispatch; fixed count)
 ///  (workerFn exits after receiving N_EVENTS + N_TICKS items)
 ///  fut_timer.await → fut_worker.await
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Timer via mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

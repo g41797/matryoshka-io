@@ -16,7 +16,7 @@
 ///                                                 │ pool.put (defer) ──► pool (recycled)
 ///  fut.cancel ──► worker exits at next mailbox.receive
 ///  master.destroy ──► pool.close ──► mailbox.close ──► free remaining
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Master with Pool"(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MasterWithPool.init(allocator, io);
     defer master.destroy();
     try master.run();

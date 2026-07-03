@@ -16,7 +16,7 @@
 ///       ▼
 ///  OOB Sensor arrives first, then Events in send order
 ///  freeSlot per item
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"OOB via send_oob"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

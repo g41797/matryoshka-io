@@ -14,7 +14,7 @@
 ///  eventSenderFn ──Event×3──► mailbox ──► workerFn (tag dispatch; close-based exit)
 ///  signalSenderFn ──ShutdownCommand──►
 ///  senders await → mailbox.close → workerFn exits → fut_worker.await
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Multiple event sources, one mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

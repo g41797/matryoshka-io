@@ -21,7 +21,7 @@
 ///  .pool_ev .item──► pool.put             (count pool)
 ///  .timer        ──► re-spawn timer       (count ticks)
 ///  exit when inbox_target + pool_target reached ──► sel.cancelDiscard()
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn @"Multiple event source types in one Select"(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
