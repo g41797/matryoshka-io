@@ -1,31 +1,18 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  main ──Event(code=42)──► req_mbh ──► worker
-//                                          │ code += 1000
-//                                          ▼
-//  main ◄──Event(code=1042)── resp_mbh ◄── worker
-
-const WorkerCtx = struct {
-    req_mbh: MailboxHandle,
-    resp_mbh: MailboxHandle,
-    alloc: std.mem.Allocator,
-};
-
-fn workerFn(ctx: *WorkerCtx) void {
-    while (true) {
-        var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
-        mailbox.receive(ctx.req_mbh, &slot, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse continue;
-        std.log.debug("worker: request code={d}", .{ev.*.code});
-        ev.*.code += 1000;
-        mailbox.send(ctx.resp_mbh, &slot) catch {};
-    }
-}
-
+/// Request-response.
+///
+/// - Main sends an Event (code=42) to the worker's request mailbox.
+/// - Worker adds 1000 to the code, sends it to the response mailbox.
+/// - Main receives the response, verifies the value.
+///
+/// Ownership:
+///
+///  main ──Event(code=42)──► req_mbh ──► worker
+///                                          │ code += 1000
+///                                          ▼
+///  main ◄──Event(code=1042)── resp_mbh ◄── worker
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const req_mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(req_mbh, allocator);
@@ -59,6 +46,24 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     var rem_resp: std.DoublyLinkedList = mailbox.close(resp_mbh);
     helpers.freeList(&rem_resp, allocator);
+}
+
+const WorkerCtx = struct {
+    req_mbh: MailboxHandle,
+    resp_mbh: MailboxHandle,
+    alloc: std.mem.Allocator,
+};
+
+fn workerFn(ctx: *WorkerCtx) void {
+    while (true) {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.req_mbh, &slot, null) catch return;
+        const ev: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse continue;
+        std.log.debug("worker: request code={d}", .{ev.*.code});
+        ev.*.code += 1000;
+        mailbox.send(ctx.resp_mbh, &slot) catch {};
+    }
 }
 
 const helpers = @import("helpers");

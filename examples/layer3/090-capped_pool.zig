@@ -1,34 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  CappedPool (cap=2)
-//       │ pool.get (available_or_new) — 4 threads concurrently
-//       ▼
-//  worker thread (processes)
-//       │ pool.put (defer) — on_put destroys excess above cap
-//       ▼
-//  CappedPool (≤ cap items retained)
-
-const thread_count = 4;
-const iterations = 8;
-
-const WorkerCtx = struct {
-    ph: PoolHandle,
-    alloc: std.mem.Allocator,
-};
-
-fn workerFn(ctx: *WorkerCtx) void {
-    var i: usize = 0;
-    while (i < iterations) : (i += 1) {
-        var slot: Slot = null;
-        defer pool.put(ctx.ph, &slot);
-        pool.get(ctx.ph, types.EventPolyHelper.TAG, .available_or_new, &slot) catch return;
-        std.log.debug("worker: got item", .{});
-    }
-}
-
+/// Backpressure pool.
+///
+/// - 4 threads concurrently pool.get and pool.put, 8 iterations each.
+/// - on_put caps the pool at 2 items, destroys anything past the cap.
+/// - After all threads join, empty the pool and count what remains.
+/// - Verify the remaining count never exceeds the cap.
+///
+/// Ownership:
+///
+///  CappedPool (cap=2)
+///       │ pool.get (available_or_new) — 4 threads concurrently
+///       ▼
+///  worker thread (processes)
+///       │ pool.put (defer) — on_put destroys excess above cap
+///       ▼
+///  CappedPool (≤ cap items retained)
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const cap: usize = 2;
     var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = cap, .io = io };
@@ -64,6 +52,24 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         cap, in_pool, thread_count, iterations,
     });
     try helpers.expect(error.CappedPoolFailed, in_pool <= cap, "pool exceeded cap");
+}
+
+const thread_count = 4;
+const iterations = 8;
+
+const WorkerCtx = struct {
+    ph: PoolHandle,
+    alloc: std.mem.Allocator,
+};
+
+fn workerFn(ctx: *WorkerCtx) void {
+    var i: usize = 0;
+    while (i < iterations) : (i += 1) {
+        var slot: Slot = null;
+        defer pool.put(ctx.ph, &slot);
+        pool.get(ctx.ph, types.EventPolyHelper.TAG, .available_or_new, &slot) catch return;
+        std.log.debug("worker: got item", .{});
+    }
 }
 
 const helpers = @import("helpers");

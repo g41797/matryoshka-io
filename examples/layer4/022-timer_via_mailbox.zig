@@ -1,12 +1,44 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  main ──Event×2──►
-//  timerFn ──Timer×2──► mailbox ──► workerFn (tag dispatch; fixed count)
-//  (workerFn exits after receiving N_EVENTS + N_TICKS items)
-//  fut_timer.await → fut_worker.await
+/// Timer via mailbox.
+///
+/// - Separate timer task sends 2 Timer ticks into the master's inbox.
+/// - Main sends 2 Events into the same inbox.
+/// - Worker dispatches on tag: counts Events separately from Timer ticks.
+/// - Worker exits after receiving the expected total — no Select needed.
+///
+/// Ownership:
+///
+///  main ──Event×2──►
+///  timerFn ──Timer×2──► mailbox ──► workerFn (tag dispatch; fixed count)
+///  (workerFn exits after receiving N_EVENTS + N_TICKS items)
+///  fut_timer.await → fut_worker.await
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    try sendEvents(mbh, allocator, N_EVENTS);
+
+    var worker_ctx: WorkerCtx = .{
+        .mbh = mbh,
+        .alloc = allocator,
+        .expected = N_EVENTS + N_TICKS,
+    };
+    try spawnAndAwait(mbh, allocator, io, &worker_ctx);
+
+    try helpers.expect(error.TimerViaMailboxFailed, worker_ctx.event_count == N_EVENTS, "expected 2 Events");
+    try helpers.expect(error.TimerViaMailboxFailed, worker_ctx.timer_count == N_TICKS, "expected 2 timer ticks");
+
+    std.log.info("done: {d} events, {d} timer ticks — tag dispatch via single mailbox", .{
+        worker_ctx.event_count,
+        worker_ctx.timer_count,
+    });
+}
 
 const TICK_NS: i96 = 50_000_000; // 50 ms
 const N_EVENTS: usize = 2;
@@ -76,32 +108,6 @@ fn spawnAndAwait(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, worke
     errdefer fut_worker.cancel(io) catch {};
     try fut_timer.await(io);
     try fut_worker.await(io);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    try sendEvents(mbh, allocator, N_EVENTS);
-
-    var worker_ctx: WorkerCtx = .{
-        .mbh = mbh,
-        .alloc = allocator,
-        .expected = N_EVENTS + N_TICKS,
-    };
-    try spawnAndAwait(mbh, allocator, io, &worker_ctx);
-
-    try helpers.expect(error.TimerViaMailboxFailed, worker_ctx.event_count == N_EVENTS, "expected 2 Events");
-    try helpers.expect(error.TimerViaMailboxFailed, worker_ctx.timer_count == N_TICKS, "expected 2 timer ticks");
-
-    std.log.info("done: {d} events, {d} timer ticks — tag dispatch via single mailbox", .{
-        worker_ctx.event_count,
-        worker_ctx.timer_count,
-    });
 }
 
 const helpers = @import("helpers");

@@ -1,14 +1,19 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  pool.get (new_only) × 5 ──► pool.put × 5
-//  (pool holds 5 items)
-//       │ pool.get (available_only) × 5
-//       ▼
-//  slot ──► SensorPolyHelper.destroy per item
-
+/// Pool seeding.
+///
+/// - Seed the pool with 5 Sensor items via pool.get(new_only) + pool.put.
+/// - Consume all 5 with pool.get(available_only) — no allocation.
+/// - Free each consumed item, verify the count.
+///
+/// Ownership:
+///
+///  pool.get (new_only) × 5 ──► pool.put × 5
+///  (pool holds 5 items)
+///       │ pool.get (available_only) × 5
+///       ▼
+///  slot ──► SensorPolyHelper.destroy per item
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.SensorPolyHelper.TAG};

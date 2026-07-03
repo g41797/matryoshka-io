@@ -242,3 +242,17 @@ test "56 - job pool circular flow" {
         return err;
     };
 }
+
+// test "STRESS - pool fan-in race repro (temporary)" {
+//     std.testing.log_level = .warn;
+//     var i: usize = 0;
+//     while (i < 500) : (i += 1) {
+//         var threaded: Io.Threaded = Io.Threaded.init(testing.allocator, .{});
+//         defer threaded.deinit();
+//         const tio: Io = threaded.io();
+//         layer4.pool_fan_in.run(testing.allocator, tio) catch |err| {
+//             std.log.err("STRESS iteration {d} failed: {s}", .{ i, @errorName(err) });
+//             return err;
+//         };
+//     }
+// }

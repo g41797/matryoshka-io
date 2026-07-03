@@ -1,19 +1,56 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (Event items)    pool (Sensor items)    timer
-//  │ receiveResult           │ getWaitResult         │ sleepFn
-//  └──────────────────┬──────┘                        │
-//                     ▼                               │
-//             Select(MasterEvent) ◄───────────────────┘
-//                     │ sel.await() loop
-//                     ▼
-//  .inbox .item  ──► freeSlot             (count inbox)
-//  .pool_ev .item──► pool.put             (count pool)
-//  .timer        ──► re-spawn timer       (count ticks)
-//  exit when inbox_target + pool_target reached ──► sel.cancelDiscard()
+/// Multiple event source types in one Select.
+///
+/// - Inbox uses mailbox.receiveResult, job pool uses pool.getWaitResult, timer uses Io.sleep.
+/// - All three are event sources with uniform result handling in one switch.
+/// - Loop re-spawns each source after handling it, exits once both targets are met.
+/// - Timer just counts ticks; it drives no work in this example.
+///
+/// Ownership:
+///
+///  mailbox (Event items)    pool (Sensor items)    timer
+///  │ receiveResult           │ getWaitResult         │ sleepFn
+///  └──────────────────┬──────┘                        │
+///                     ▼                               │
+///             Select(MasterEvent) ◄───────────────────┘
+///                     │ sel.await() loop
+///                     ▼
+///  .inbox .item  ──► freeSlot             (count inbox)
+///  .pool_ev .item──► pool.put             (count pool)
+///  .timer        ──► re-spawn timer       (count ticks)
+///  exit when inbox_target + pool_target reached ──► sel.cancelDiscard()
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.SensorPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedMailbox(mbh, allocator, INBOX_TARGET);
+    try seedPool(ph, POOL_TARGET);
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    var ctx: Ctx = .{ .mbh = mbh, .ph = ph, .alloc = allocator, .io = io };
+    try ctx.setupSelect(&sel);
+    try ctx.runEventLoop(&sel);
+
+    try helpers.expect(error.SelectMixedSourcesFailed, ctx.inbox_count == INBOX_TARGET, "inbox count mismatch");
+    try helpers.expect(error.SelectMixedSourcesFailed, ctx.pool_count == POOL_TARGET, "pool count mismatch");
+    std.log.info("done: inbox={d}, pool={d}, ticks={d}", .{ ctx.inbox_count, ctx.pool_count, ctx.ticks });
+}
 
 const TIMER_NS: i96 = 25_000_000; // 25 ms
 const INBOX_TARGET: usize = 2;
@@ -115,37 +152,6 @@ const Ctx = struct {
         sel.cancelDiscard();
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.SensorPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    try seedMailbox(mbh, allocator, INBOX_TARGET);
-    try seedPool(ph, POOL_TARGET);
-
-    var buf: [8]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    var ctx: Ctx = .{ .mbh = mbh, .ph = ph, .alloc = allocator, .io = io };
-    try ctx.setupSelect(&sel);
-    try ctx.runEventLoop(&sel);
-
-    try helpers.expect(error.SelectMixedSourcesFailed, ctx.inbox_count == INBOX_TARGET, "inbox count mismatch");
-    try helpers.expect(error.SelectMixedSourcesFailed, ctx.pool_count == POOL_TARGET, "pool count mismatch");
-    std.log.info("done: inbox={d}, pool={d}, ticks={d}", .{ ctx.inbox_count, ctx.pool_count, ctx.ticks });
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

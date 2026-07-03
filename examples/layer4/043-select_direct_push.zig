@@ -1,14 +1,34 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  wild thread ──sel.queue.putOneUncancelable──► Select queue
-//               (bypasses concurrent fn mechanism)
-//  │
-//  sel.await() ──► .direct u32 value
-//  │
-//  sel.cancelDiscard() ──► cancels blocking .inbox source
+/// Select direct queue push.
+///
+/// - A separate thread pushes a value directly into the Select queue via putOneUncancelable.
+/// - This bypasses the usual sel.concurrent path — it's a raw queue push.
+/// - sel.await() receives the .direct value directly, then cancels the blocked inbox source.
+///
+/// Ownership:
+///
+///  wild thread ──sel.queue.putOneUncancelable──► Select queue
+///               (bypasses concurrent fn mechanism)
+///  │
+///  sel.await() ──► .direct u32 value
+///  │
+///  sel.cancelDiscard() ──► cancels blocking .inbox source
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var buf: [4]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    var pusher_fut = try setupSourcesAndPusher(mbh, io, &sel);
+    try awaitDirectPushAndShutdown(&sel, &pusher_fut, io);
+    std.log.info("done: direct push bypassed concurrent fn path", .{});
+}
 
 const MasterEvent = union(enum) {
     inbox: mailbox.ReceiveResult,
@@ -35,21 +55,6 @@ fn awaitDirectPushAndShutdown(sel: *std.Io.Select(MasterEvent), pusher_fut: *std
     }
     pusher_fut.await(io);
     sel.cancelDiscard();
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var buf: [4]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    var pusher_fut = try setupSourcesAndPusher(mbh, io, &sel);
-    try awaitDirectPushAndShutdown(&sel, &pusher_fut, io);
-    std.log.info("done: direct push bypassed concurrent fn path", .{});
 }
 
 const helpers = @import("helpers");

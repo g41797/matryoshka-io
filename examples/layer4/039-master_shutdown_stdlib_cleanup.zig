@@ -1,14 +1,43 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  pool (2 items)    mailbox (2 items)
-//  │
-//  mailbox.close ──► std.DoublyLinkedList ──► popFirst ──► freeItem (×2)
-//  pool.close   ──► on_close ──► freeList (×2)
-//  │
-//  Entire shutdown: standard Zig stdlib — no Matryoshka-specific cleanup API.
+/// Master shutdown: close → stdlib walk → free.
+///
+/// - Seed both mailbox and pool with 2 items each.
+/// - closeMailbox: mailbox.close, walk the returned list with popFirst, free each item.
+/// - closePool: pool.close, on_close frees the pool items.
+/// - Entire cleanup is standard Zig stdlib — no Matryoshka-specific cleanup API.
+///
+/// Ownership:
+///
+///  pool (2 items)    mailbox (2 items)
+///  │
+///  mailbox.close ──► std.DoublyLinkedList ──► popFirst ──► freeItem (×2)
+///  pool.close   ──► on_close ──► freeList (×2)
+///  │
+///  Entire shutdown: standard Zig stdlib — no Matryoshka-specific cleanup API.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+
+    try seedMailbox(mbh, allocator, N_ITEMS);
+    try seedPool(ph, N_ITEMS);
+
+    std.log.info("master: shutdown initiated — {d} in mailbox, {d} in pool", .{ N_ITEMS, N_ITEMS });
+
+    const mbx_freed = closeMailbox(mbh, allocator);
+    std.log.info("mailbox.close: freed {d} items via stdlib popFirst", .{mbx_freed});
+
+    closePool(ph, allocator);
+    std.log.info("pool.close: on_close freed {d} pool items", .{N_ITEMS});
+
+    try helpers.expect(error.MasterShutdownFailed, mbx_freed == N_ITEMS, "mailbox freed count mismatch");
+    std.log.info("done: master shutdown — stdlib walk, no Matryoshka-specific cleanup API", .{});
+}
 
 const N_ITEMS: usize = 2;
 
@@ -47,29 +76,6 @@ fn closeMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator) usize {
 fn closePool(ph: PoolHandle, alloc: std.mem.Allocator) void {
     pool.close(ph);
     pool.destroy(ph, alloc);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-
-    try seedMailbox(mbh, allocator, N_ITEMS);
-    try seedPool(ph, N_ITEMS);
-
-    std.log.info("master: shutdown initiated — {d} in mailbox, {d} in pool", .{ N_ITEMS, N_ITEMS });
-
-    const mbx_freed = closeMailbox(mbh, allocator);
-    std.log.info("mailbox.close: freed {d} items via stdlib popFirst", .{mbx_freed});
-
-    closePool(ph, allocator);
-    std.log.info("pool.close: on_close freed {d} pool items", .{N_ITEMS});
-
-    try helpers.expect(error.MasterShutdownFailed, mbx_freed == N_ITEMS, "mailbox freed count mismatch");
-    std.log.info("done: master shutdown — stdlib walk, no Matryoshka-specific cleanup API", .{});
 }
 
 const helpers = @import("helpers");

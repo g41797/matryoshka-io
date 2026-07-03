@@ -1,48 +1,20 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  main ──Event×10 + ShutdownCommand──► mailbox
-//       │
-//  worker: receive (first item) ──► freeSlot
-//          receive_batch (rest) ──► walk + freeItem
-//          (ShutdownCommand in batch → exit)
-
-const WorkerCtx = struct {
-    mbh: MailboxHandle,
-    alloc: std.mem.Allocator,
-    first_count: usize = 0,
-    batch_count: usize = 0,
-};
-
-fn batchWorkerFn(ctx: *WorkerCtx) void {
-    while (true) {
-        var slot: Slot = null;
-        mailbox.receive(ctx.mbh, &slot, null) catch return;
-        const poly: *PolyNode = slot.?;
-
-        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
-            helpers.freeSlot(&slot, ctx.alloc);
-            return;
-        }
-
-        helpers.freeSlot(&slot, ctx.alloc);
-        ctx.first_count += 1;
-
-        var batch: std.DoublyLinkedList = mailbox.receive_batch(ctx.mbh) catch return;
-        while (batch.popFirst()) |node| {
-            const bpoly: *PolyNode = @fieldParentPtr("node", node);
-            if (types.ShutdownCommandPolyHelper.identifyNodeAs(bpoly)) |_| {
-                helpers.freeItem(bpoly, ctx.alloc);
-                return;
-            }
-            helpers.freeItem(bpoly, ctx.alloc);
-            ctx.batch_count += 1;
-        }
-    }
-}
-
+/// Batch processing.
+///
+/// - Main sends 10 Events, then a ShutdownCommand sentinel.
+/// - Worker blocks on the first item via mailbox.receive.
+/// - Worker then drains the rest with mailbox.receive_batch.
+/// - Sentinel found in either place ends the worker.
+///
+/// Ownership:
+///
+///  main ──Event×10 + ShutdownCommand──► mailbox
+///       │
+///  worker: receive (first item) ──► freeSlot
+///          receive_batch (rest) ──► walk + freeItem
+///          (ShutdownCommand in batch → exit)
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
@@ -78,6 +50,40 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     std.log.info("batch: first={d} batch={d} total={d}", .{ ctx.first_count, ctx.batch_count, total });
     try helpers.expect(error.BatchProcessingFailed, total == n, "wrong total");
     try helpers.expect(error.BatchProcessingFailed, ctx.first_count > 0, "no items received as first");
+}
+
+const WorkerCtx = struct {
+    mbh: MailboxHandle,
+    alloc: std.mem.Allocator,
+    first_count: usize = 0,
+    batch_count: usize = 0,
+};
+
+fn batchWorkerFn(ctx: *WorkerCtx) void {
+    while (true) {
+        var slot: Slot = null;
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
+        const poly: *PolyNode = slot.?;
+
+        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+            helpers.freeSlot(&slot, ctx.alloc);
+            return;
+        }
+
+        helpers.freeSlot(&slot, ctx.alloc);
+        ctx.first_count += 1;
+
+        var batch: std.DoublyLinkedList = mailbox.receive_batch(ctx.mbh) catch return;
+        while (batch.popFirst()) |node| {
+            const bpoly: *PolyNode = @fieldParentPtr("node", node);
+            if (types.ShutdownCommandPolyHelper.identifyNodeAs(bpoly)) |_| {
+                helpers.freeItem(bpoly, ctx.alloc);
+                return;
+            }
+            helpers.freeItem(bpoly, ctx.alloc);
+            ctx.batch_count += 1;
+        }
+    }
 }
 
 const helpers = @import("helpers");

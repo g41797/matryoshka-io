@@ -1,12 +1,37 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  pool.new × 2 ──► pool.put ──► carrier pool (holds inner pools as items)
-//       │ pool.close (carrier)
-//       ▼
-//  on_close ──► pool.close + pool.destroy per inner pool
+/// Pool holds pools at teardown.
+///
+/// - A carrier pool's hooks accept PoolHandle items (PoolPolyHelper.TAG).
+/// - Two inner pools are stored in the carrier via pool.put.
+/// - pool.close on the carrier walks the returned list, closes and destroys each inner pool.
+/// - Shows uniform cleanup of infra handles — no per-instance role discrimination needed.
+///
+/// Ownership:
+///
+///  pool.new × 2 ──► pool.put ──► carrier pool (holds inner pools as items)
+///       │ pool.close (carrier)
+///       ▼
+///  on_close ──► pool.close + pool.destroy per inner pool
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    // Carrier pool — holds inner PoolHandles as items.
+    const carrier: PoolHandle = try pool.new(io, allocator);
+    var carrier_ctx: CarrierCtx = .{ .alloc = allocator };
+    const carrier_tags = [_]*const anyopaque{PoolPolyHelper.TAG};
+    try pool.init(carrier, .{
+        .ctx = &carrier_ctx,
+        .tags = &carrier_tags,
+        .on_get = onGet,
+        .on_put = onPut,
+        .on_close = onClose,
+    });
+
+    const n: usize = 2;
+    var ctx: Ctx = .{ .carrier = carrier, .alloc = allocator, .io = io };
+    try ctx.createAndStoreInnerPools(n);
+    try ctx.closeCarrier(&carrier_ctx, n);
+}
 
 const CarrierCtx = struct {
     alloc: std.mem.Allocator,
@@ -53,25 +78,6 @@ const Ctx = struct {
         pool.destroy(self.carrier, self.alloc);
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    // Carrier pool — holds inner PoolHandles as items.
-    const carrier: PoolHandle = try pool.new(io, allocator);
-    var carrier_ctx: CarrierCtx = .{ .alloc = allocator };
-    const carrier_tags = [_]*const anyopaque{PoolPolyHelper.TAG};
-    try pool.init(carrier, .{
-        .ctx = &carrier_ctx,
-        .tags = &carrier_tags,
-        .on_get = onGet,
-        .on_put = onPut,
-        .on_close = onClose,
-    });
-
-    const n: usize = 2;
-    var ctx: Ctx = .{ .carrier = carrier, .alloc = allocator, .io = io };
-    try ctx.createAndStoreInnerPools(n);
-    try ctx.closeCarrier(&carrier_ctx, n);
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

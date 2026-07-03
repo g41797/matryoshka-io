@@ -1,14 +1,40 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
-//                                                           │ process
-//                                                           │ send worker_mbh ──► master_inbox
-//                                                           ▼ exit
-//  master ◄──worker_mbh (as NodeHandle)── master_inbox
-//  master: close + destroy worker_mbh (tag+pointer verified first)
+/// Worker finish signal via mailbox return.
+///
+/// - Master spawns a worker thread, sends 3 Events + a ShutdownCommand sentinel.
+/// - On the sentinel, the worker sends its own mailbox handle back to the master's inbox.
+/// - Master confirms the returned item is a MailboxHandle and the expected instance.
+/// - Master closes and destroys the worker's mailbox, then joins the thread.
+///
+/// Ownership:
+///
+///  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
+///                                                           │ process
+///                                                           │ send worker_mbh ──► master_inbox
+///                                                           ▼ exit
+///  master ◄──worker_mbh (as NodeHandle)── master_inbox
+///  master: close + destroy worker_mbh (tag+pointer verified first)
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master_inbox: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        _ = mailbox.close(master_inbox);
+        mailbox.destroy(master_inbox, allocator);
+    }
+
+    const worker_mbh: MailboxHandle = try mailbox.new(io, allocator);
+
+    try sendJobsAndShutdown(worker_mbh, allocator);
+
+    var worker_ctx: WorkerCtx = undefined;
+    const t = try spawnWorker(master_inbox, worker_mbh, &worker_ctx, allocator);
+
+    try receiveAndVerify(master_inbox, worker_mbh, allocator);
+    std.log.info("master: received worker_mbh back — worker finished (processed={d})", .{worker_ctx.processed});
+
+    t.join();
+}
 
 const WorkerCtx = struct {
     master_inbox: MailboxHandle,
@@ -80,26 +106,6 @@ fn receiveAndVerify(master_inbox: MailboxHandle, worker_mbh: MailboxHandle, allo
     try helpers.expect(error.WorkerFinishFailed, mailbox.is_it_you(slot.?.*.tag), "expected a MailboxHandle");
     try helpers.expect(error.WorkerFinishFailed, slot.? == worker_mbh, "wrong mailbox returned");
     cleanupReturnedMailbox(&slot, alloc);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master_inbox: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        _ = mailbox.close(master_inbox);
-        mailbox.destroy(master_inbox, allocator);
-    }
-
-    const worker_mbh: MailboxHandle = try mailbox.new(io, allocator);
-
-    try sendJobsAndShutdown(worker_mbh, allocator);
-
-    var worker_ctx: WorkerCtx = undefined;
-    const t = try spawnWorker(master_inbox, worker_mbh, &worker_ctx, allocator);
-
-    try receiveAndVerify(master_inbox, worker_mbh, allocator);
-    std.log.info("master: received worker_mbh back — worker finished (processed={d})", .{worker_ctx.processed});
-
-    t.join();
 }
 
 const helpers = @import("helpers");

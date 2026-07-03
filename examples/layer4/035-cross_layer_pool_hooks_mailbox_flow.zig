@@ -1,20 +1,49 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  pool.get (new_only) ──► on_get creates ──► slot (code=1)
-//  mailbox.send ──► mailbox owns item
-//  mailbox.receive ──► slot (same item)
-//  pool.put ──► on_put: count<cap → keep ──► pool free-list
-//  │
-//  pool.get (new_only) ──► on_get creates fresh ──► slot (code=2)
-//  mailbox.send ──► mailbox owns item
-//  mailbox.receive ──► slot (same item)
-//  pool.put ──► on_put: count>=cap → destroy ──► freed
-//  │
-//  pool.get (.available_only) ──► recycled (code=1) ──► verify
-//  pool.close ──► on_close ──► freeList
+/// Pool hooks + mailbox flow.
+///
+/// - round1: on_get creates an item, mailbox carries it, on_put keeps it (cap not yet reached).
+/// - round2: on_get creates a fresh item, mailbox carries it, on_put destroys it (cap reached).
+/// - verifyRecycled confirms the kept item (code=1) is the one still in the pool.
+///
+/// Ownership:
+///
+///  pool.get (new_only) ──► on_get creates ──► slot (code=1)
+///  mailbox.send ──► mailbox owns item
+///  mailbox.receive ──► slot (same item)
+///  pool.put ──► on_put: count<cap → keep ──► pool free-list
+///  │
+///  pool.get (new_only) ──► on_get creates fresh ──► slot (code=2)
+///  mailbox.send ──► mailbox owns item
+///  mailbox.receive ──► slot (same item)
+///  pool.put ──► on_put: count>=cap → destroy ──► freed
+///  │
+///  pool.get (.available_only) ──► recycled (code=1) ──► verify
+///  pool.close ──► on_close ──► freeList
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    // CappedPoolCtx: cap=1 — first put keeps, second put destroys.
+    var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = 1, .io = io };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var ctx: Ctx = .{ .ph = ph, .mbh = mbh, .alloc = allocator };
+    try ctx.round1();
+    try ctx.round2();
+    try ctx.verifyRecycled();
+}
 
 const Ctx = struct {
     ph: PoolHandle,
@@ -66,30 +95,6 @@ const Ctx = struct {
         std.log.info("recycled item: code={d} — hooks decided keep/destroy correctly", .{ev.code});
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    // CappedPoolCtx: cap=1 — first put keeps, second put destroys.
-    var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = 1, .io = io };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var ctx: Ctx = .{ .ph = ph, .mbh = mbh, .alloc = allocator };
-    try ctx.round1();
-    try ctx.round2();
-    try ctx.verifyRecycled();
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

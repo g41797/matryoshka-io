@@ -1,16 +1,36 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (initially empty)
-//  │
-//  master: receive(50ms) ──► error.Timeout ──► Io.sleep retry
-//          receive(50ms) ──► error.Timeout ──► (second retry)
-//  │
-//  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
-//  │
-//  master: receive(50ms) ──► slot ──► freeSlot
+/// Timeout on mailbox.
+///
+/// - receiveTimeouts calls mailbox.receive with a non-null timeout, twice, on an empty mailbox.
+/// - Each call returns error.Timeout; Io.sleep runs between retries.
+/// - sendAndReceive sends one Event, then receives it back within the same timeout.
+///
+/// Ownership:
+///
+///  mailbox (initially empty)
+///  │
+///  master: receive(50ms) ──► error.Timeout ──► Io.sleep retry
+///          receive(50ms) ──► error.Timeout ──► (second retry)
+///  │
+///  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
+///  │
+///  master: receive(50ms) ──► slot ──► freeSlot
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    const retries = try ctx.receiveTimeouts();
+    try helpers.expect(error.MailboxTimeoutFailed, retries == 2, "expected 2 timeouts");
+    try ctx.sendAndReceive();
+    std.log.info("done: {d} timeouts then 1 successful receive", .{retries});
+}
 
 const TIMEOUT_NS: u64 = 50_000_000; // 50 ms
 const SLEEP_NS: i96 = 10_000_000; // 10 ms between retries
@@ -56,21 +76,6 @@ const Ctx = struct {
         std.log.info("receive after send: code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    const retries = try ctx.receiveTimeouts();
-    try helpers.expect(error.MailboxTimeoutFailed, retries == 2, "expected 2 timeouts");
-    try ctx.sendAndReceive();
-    std.log.info("done: {d} timeouts then 1 successful receive", .{retries});
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

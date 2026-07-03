@@ -1,14 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  producer ──Event──► transformer_mbh ──► transformer
-//                                              │ Event→Sensor conversion
-//                                              ▼
-//  consumer ◄──Sensor── consumer_mbh ◄── transformer
-//  (ShutdownCommand sentinel propagates: producer→transformer→consumer)
-//  fut_prod.await → fut_trans.await → fut_cons.await
+/// Pipeline of Masters.
+///
+/// - 3 Masters chained: producer, transformer, consumer.
+/// - Producer sends Events, then a ShutdownCommand sentinel.
+/// - Transformer converts each Event to a Sensor, forwards the sentinel, exits.
+/// - Consumer sums received Sensors, exits on the sentinel.
+///
+/// Ownership:
+///
+///  producer ──Event──► transformer_mbh ──► transformer
+///                                              │ Event→Sensor conversion
+///                                              ▼
+///  consumer ◄──Sensor── consumer_mbh ◄── transformer
+///  (ShutdownCommand sentinel propagates: producer→transformer→consumer)
+///  fut_prod.await → fut_trans.await → fut_cons.await
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master = try PipelineMaster.init(allocator, io);
+    defer master.destroy();
+    try master.run();
+}
 
 const ProducerCtx = struct {
     out_mbh: MailboxHandle,
@@ -93,6 +105,21 @@ fn consumerFn(ctx: *ConsumerCtx) anyerror!void {
 }
 
 const PipelineMaster = struct {
+    fn run(self: *PipelineMaster) !void {
+        try self.runWorkers();
+        try helpers.expect(error.PipelineFailed, self.cons_ctx.count == 3, "expected consumer to receive 3 Sensors");
+        std.log.info("pipeline done: consumer received {d} items", .{self.cons_ctx.count});
+    }
+
+    fn runWorkers(self: *PipelineMaster) !void {
+        var fut_prod: std.Io.Future(anyerror!void) = try self.io.concurrent(producerFn, .{&self.prod_ctx});
+        var fut_trans: std.Io.Future(anyerror!void) = try self.io.concurrent(transformerFn, .{&self.trans_ctx});
+        var fut_cons: std.Io.Future(anyerror!void) = try self.io.concurrent(consumerFn, .{&self.cons_ctx});
+        try fut_prod.await(self.io);
+        try fut_trans.await(self.io);
+        try fut_cons.await(self.io);
+    }
+
     allocator: std.mem.Allocator,
     io: std.Io,
     transformer_mbh: MailboxHandle,
@@ -128,28 +155,7 @@ const PipelineMaster = struct {
         mailbox.destroy(self.consumer_mbh, self.allocator);
         self.allocator.destroy(self);
     }
-
-    fn run(self: *PipelineMaster) !void {
-        try self.runWorkers();
-        try helpers.expect(error.PipelineFailed, self.cons_ctx.count == 3, "expected consumer to receive 3 Sensors");
-        std.log.info("pipeline done: consumer received {d} items", .{self.cons_ctx.count});
-    }
-
-    fn runWorkers(self: *PipelineMaster) !void {
-        var fut_prod: std.Io.Future(anyerror!void) = try self.io.concurrent(producerFn, .{&self.prod_ctx});
-        var fut_trans: std.Io.Future(anyerror!void) = try self.io.concurrent(transformerFn, .{&self.trans_ctx});
-        var fut_cons: std.Io.Future(anyerror!void) = try self.io.concurrent(consumerFn, .{&self.cons_ctx});
-        try fut_prod.await(self.io);
-        try fut_trans.await(self.io);
-        try fut_cons.await(self.io);
-    }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master = try PipelineMaster.init(allocator, io);
-    defer master.destroy();
-    try master.run();
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

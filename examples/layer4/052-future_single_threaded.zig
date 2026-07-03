@@ -1,14 +1,31 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (single-threaded io)
-//  │
-//  receive_future ──► error.ConcurrencyUnavailable
-//  (no concurrent task can be spawned on single-threaded backend)
-//  │
-//  mailbox.receive (synchronous) still works
+/// ConcurrencyUnavailable on single-threaded.
+///
+/// - On a single-threaded Io backend, mailbox.receive_future returns error.ConcurrencyUnavailable.
+/// - No concurrent task can be spawned to service the future.
+/// - Synchronous mailbox.receive still works — it needs no concurrency.
+///
+/// Ownership:
+///
+///  mailbox (single-threaded io)
+///  │
+///  receive_future ──► error.ConcurrencyUnavailable
+///  (no concurrent task can be spawned on single-threaded backend)
+///  │
+///  mailbox.receive (synchronous) still works
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    try testFutureUnavailable(mbh);
+    try testSynchronousReceive(mbh, allocator);
+}
 
 fn testFutureUnavailable(mbh: MailboxHandle) !void {
     if (mailbox.receive_future(mbh, null)) |_| {
@@ -28,18 +45,6 @@ fn testSynchronousReceive(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     defer helpers.freeSlot(&received, alloc);
     try mailbox.receive(mbh, &received, null);
     std.log.info("synchronous receive still works: code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    try testFutureUnavailable(mbh);
-    try testSynchronousReceive(mbh, allocator);
 }
 
 const helpers = @import("helpers");

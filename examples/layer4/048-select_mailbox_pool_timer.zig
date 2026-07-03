@@ -1,19 +1,30 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (pre-loaded: Event×2)   pool (seeded: Event×1)
-//     │ receiveResult                  │ getWaitResult
-//     └────────────┬───────────────────┘
-//                  ▼
-//         Select(MasterEvent) ◄── sleepFn (timer)
-//                  │ sel.await()
-//                  ▼
-//  .inbox .item ──► freeSlot
-//  .pool_ev .item ──► pool.put
-//  .timer         ──► log tick, re-spawn
-//  done when inbox×2 + pool×1 received ──► sel.cancelDiscard()
+/// Mixed mailbox + pool event sources in Select.
+///
+/// - Mailbox pre-loaded with 2 Events, pool seeded with 1 Event, both are Select sources.
+/// - eventLoop handles each with a uniform switch, re-spawning after mailbox items.
+/// - Timer ticks independently; the loop exits once both targets are met.
+///
+/// Ownership:
+///
+///  mailbox (pre-loaded: Event×2)   pool (seeded: Event×1)
+///     │ receiveResult                  │ getWaitResult
+///     └────────────┬───────────────────┘
+///                  ▼
+///         Select(MasterEvent) ◄── sleepFn (timer)
+///                  │ sel.await()
+///                  ▼
+///  .inbox .item ──► freeSlot
+///  .pool_ev .item ──► pool.put
+///  .timer         ──► log tick, re-spawn
+///  done when inbox×2 + pool×1 received ──► sel.cancelDiscard()
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master = try MailboxPoolTimerMaster.init(allocator, io);
+    defer master.destroy();
+    try master.run();
+}
 
 const TIMER_NS: i96 = 20_000_000; // 20 ms
 
@@ -28,6 +39,61 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
 }
 
 const MailboxPoolTimerMaster = struct {
+    fn timerTimeout() std.Io.Timeout {
+        return .{ .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real } };
+    }
+
+    fn run(self: *MailboxPoolTimerMaster) !void {
+        try self.setupSelect();
+        try self.eventLoop();
+        try helpers.expect(error.SelectMailboxPoolTimerFailed, self.inbox_count == 2, "mailbox items mismatch");
+        try helpers.expect(error.SelectMailboxPoolTimerFailed, self.pool_count == 1, "pool items mismatch");
+        std.log.info("done: inbox={d}, pool={d}, ticks={d}", .{ self.inbox_count, self.pool_count, self.ticks });
+    }
+
+    fn setupSelect(self: *MailboxPoolTimerMaster) !void {
+        try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
+        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.EventPolyHelper.TAG, null });
+        try self.sel.concurrent(.timer, sleepFn, .{ timerTimeout(), self.io });
+    }
+
+    fn eventLoop(self: *MailboxPoolTimerMaster) !void {
+        while (self.inbox_count < 2 or self.pool_count < 1) {
+            const event: MasterEvent = try self.sel.await();
+            switch (event) {
+                .inbox => |r| switch (r) {
+                    .item => |handle| {
+                        var slot: Slot = handle;
+                        defer helpers.freeSlot(&slot, self.allocator);
+                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                        self.inbox_count += 1;
+                        std.log.info("inbox: Event code={d} ({d}/2)", .{ ev.code, self.inbox_count });
+                        if (self.inbox_count < 2) {
+                            try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
+                        }
+                    },
+                    .closed, .canceled, .timeout => break,
+                },
+                .pool_ev => |r| switch (r) {
+                    .item => |handle| {
+                        var slot: Slot = handle;
+                        defer pool.put(self.ph, &slot);
+                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                        self.pool_count += 1;
+                        std.log.info("pool_ev: Event code={d} ({d}/1)", .{ ev.code, self.pool_count });
+                    },
+                    .closed, .canceled, .timeout, .not_created => break,
+                },
+                .timer => {
+                    self.ticks += 1;
+                    std.log.info("timer: tick {d}", .{self.ticks});
+                    try self.sel.concurrent(.timer, sleepFn, .{ timerTimeout(), self.io });
+                },
+            }
+        }
+        self.sel.cancelDiscard();
+    }
+
     allocator: std.mem.Allocator,
     io: std.Io,
     mbh: MailboxHandle,
@@ -91,68 +157,7 @@ const MailboxPoolTimerMaster = struct {
             pool.put(self.ph, &slot);
         }
     }
-
-    fn timerTimeout() std.Io.Timeout {
-        return .{ .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real } };
-    }
-
-    fn run(self: *MailboxPoolTimerMaster) !void {
-        try self.setupSelect();
-        try self.eventLoop();
-        try helpers.expect(error.SelectMailboxPoolTimerFailed, self.inbox_count == 2, "mailbox items mismatch");
-        try helpers.expect(error.SelectMailboxPoolTimerFailed, self.pool_count == 1, "pool items mismatch");
-        std.log.info("done: inbox={d}, pool={d}, ticks={d}", .{ self.inbox_count, self.pool_count, self.ticks });
-    }
-
-    fn setupSelect(self: *MailboxPoolTimerMaster) !void {
-        try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.EventPolyHelper.TAG, null });
-        try self.sel.concurrent(.timer, sleepFn, .{ timerTimeout(), self.io });
-    }
-
-    fn eventLoop(self: *MailboxPoolTimerMaster) !void {
-        while (self.inbox_count < 2 or self.pool_count < 1) {
-            const event: MasterEvent = try self.sel.await();
-            switch (event) {
-                .inbox => |r| switch (r) {
-                    .item => |handle| {
-                        var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.allocator);
-                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
-                        self.inbox_count += 1;
-                        std.log.info("inbox: Event code={d} ({d}/2)", .{ ev.code, self.inbox_count });
-                        if (self.inbox_count < 2) {
-                            try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-                        }
-                    },
-                    .closed, .canceled, .timeout => break,
-                },
-                .pool_ev => |r| switch (r) {
-                    .item => |handle| {
-                        var slot: Slot = handle;
-                        defer pool.put(self.ph, &slot);
-                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
-                        self.pool_count += 1;
-                        std.log.info("pool_ev: Event code={d} ({d}/1)", .{ ev.code, self.pool_count });
-                    },
-                    .closed, .canceled, .timeout, .not_created => break,
-                },
-                .timer => {
-                    self.ticks += 1;
-                    std.log.info("timer: tick {d}", .{self.ticks});
-                    try self.sel.concurrent(.timer, sleepFn, .{ timerTimeout(), self.io });
-                },
-            }
-        }
-        self.sel.cancelDiscard();
-    }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master = try MailboxPoolTimerMaster.init(allocator, io);
-    defer master.destroy();
-    try master.run();
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

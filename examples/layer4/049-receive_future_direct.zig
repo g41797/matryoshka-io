@@ -1,15 +1,32 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  master ──EventPolyHelper.create──► slot
-//          ──mailbox.send──► mailbox
-//          │
-//  receive_future ──► Future(ReceiveResult)
-//  fut.await ──► ReceiveResult .item ──► slot (master owns)
-//          │
-//  freeSlot
+/// receive_future awaited directly.
+///
+/// - Send one Event into the mailbox.
+/// - mailbox.receive_future returns an Io.Future(ReceiveResult), no Select needed.
+/// - fut.await blocks until the item arrives, then it's freed.
+///
+/// Ownership:
+///
+///  master ──EventPolyHelper.create──► slot
+///          ──mailbox.send──► mailbox
+///          │
+///  receive_future ──► Future(ReceiveResult)
+///  fut.await ──► ReceiveResult .item ──► slot (master owns)
+///          │
+///  freeSlot
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    try sendItem(mbh, allocator);
+    try receiveAndVerify(mbh, allocator, io);
+}
 
 fn sendItem(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
@@ -33,18 +50,6 @@ fn receiveAndVerify(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io) !v
         },
         else => return error.ReceiveFutureDirectFailed,
     }
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    try sendItem(mbh, allocator);
-    try receiveAndVerify(mbh, allocator, io);
 }
 
 const helpers = @import("helpers");

@@ -1,12 +1,39 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  timerSenderFn ──Timer×2──►
-//  eventSenderFn ──Event×3──► mailbox ──► workerFn (tag dispatch; close-based exit)
-//  signalSenderFn ──ShutdownCommand──►
-//  senders await → mailbox.close → workerFn exits → fut_worker.await
+/// Multiple event sources, one mailbox.
+///
+/// - Timer task, event sender, and signal sender all send into one mailbox.
+/// - Worker has a single receive loop, dispatches on tag.
+/// - Senders finish, then the mailbox is closed to end the worker.
+/// - Ctx groups the flow: spawnSenders, then awaitSendersAndClose.
+///
+/// Ownership:
+///
+///  timerSenderFn ──Timer×2──►
+///  eventSenderFn ──Event×3──► mailbox ──► workerFn (tag dispatch; close-based exit)
+///  signalSenderFn ──ShutdownCommand──►
+///  senders await → mailbox.close → workerFn exits → fut_worker.await
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var sender_ctx: SenderCtx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    var worker_ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    var futs = try ctx.spawnSenders(&sender_ctx, &worker_ctx);
+    ctx.awaitSendersAndClose(&futs);
+
+    std.log.info("done: {d} events, {d} timer ticks, {d} signals — fan-in to one mailbox", .{
+        worker_ctx.event_count,
+        worker_ctx.timer_count,
+        worker_ctx.signal_count,
+    });
+}
 
 const TICK_NS: i96 = 20_000_000; // 20 ms
 const N_EVENTS: usize = 3;
@@ -110,27 +137,6 @@ const Ctx = struct {
         futs.worker.await(self.io) catch {};
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var sender_ctx: SenderCtx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    var worker_ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    var futs = try ctx.spawnSenders(&sender_ctx, &worker_ctx);
-    ctx.awaitSendersAndClose(&futs);
-
-    std.log.info("done: {d} events, {d} timer ticks, {d} signals — fan-in to one mailbox", .{
-        worker_ctx.event_count,
-        worker_ctx.timer_count,
-        worker_ctx.signal_count,
-    });
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

@@ -1,16 +1,36 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  master: pool.get (×3, new_only) ──► pool (3 items seeded)
-//  │
-//  worker1 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
-//  worker2 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
-//  worker3 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
-//  │
-//  fut1.await + fut2.await + fut3.await
-//  pool.close ──► on_close ──► freeList
+/// Pool fan-out: many workers acquire.
+///
+/// - Seed the pool with 3 items.
+/// - Spawn 3 workers, each calls pool.get(available_only) — no item is shared.
+/// - Verify all 3 workers got a distinct item, then all 3 put it back.
+///
+/// Ownership:
+///
+///  master: pool.get (×3, new_only) ──► pool (3 items seeded)
+///  │
+///  worker1 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
+///  worker2 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
+///  worker3 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
+///  │
+///  fut1.await + fut2.await + fut3.await
+///  pool.close ──► on_close ──► freeList
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedPool(ph);
+    try spawnAndAwaitWorkers(ph, allocator, io);
+    std.log.info("fan-out: 1 pool seeded with 3 items → 3 workers each got 1", .{});
+}
 
 const WorkerCtx = struct {
     ph: PoolHandle,
@@ -48,21 +68,6 @@ fn spawnAndAwaitWorkers(ph: PoolHandle, alloc: std.mem.Allocator, io: std.Io) !v
     try fut3.await(io);
     const all_got = ctx1.got and ctx2.got and ctx3.got;
     try helpers.expect(error.PoolFanOutFailed, all_got, "not all workers got an item");
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    try seedPool(ph);
-    try spawnAndAwaitWorkers(ph, allocator, io);
-    std.log.info("fan-out: 1 pool seeded with 3 items → 3 workers each got 1", .{});
 }
 
 const helpers = @import("helpers");

@@ -1,20 +1,50 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership (mailbox-less):
-//
-//  pool (seeded)            mock network (sleepFn)
-//  │ getWaitResult           │ networkReadFn
-//  └──────────┬──────────────┘
-//             ▼
-//  Select(MasterEvent)
-//  │
-//  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
-//  .network       ──► log receipt ──► re-spawn (until targets met)
-//  │
-//  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
-//
-//  No mailbox. Pool + Select + external Io: two independent event sources.
+/// Pool + Select + Network.
+///
+/// - Pool seeded with items, a mock network read runs alongside it in Select.
+/// - Two independent event sources: pool availability and simulated network data.
+/// - Both re-spawn until their target counts are met; no mailbox anywhere.
+///
+/// Ownership (mailbox-less):
+///
+///  pool (seeded)            mock network (sleepFn)
+///  │ getWaitResult           │ networkReadFn
+///  └──────────┬──────────────┘
+///             ▼
+///  Select(MasterEvent)
+///  │
+///  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
+///  .network       ──► log receipt ──► re-spawn (until targets met)
+///  │
+///  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
+///
+///  No mailbox. Pool + Select + external Io: two independent event sources.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedPool(ph);
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    try setupSelect(ph, io, &sel);
+
+    var pool_done: usize = 0;
+    var net_done: usize = 0;
+    try runEventLoop(ph, io, &sel, &pool_done, &net_done);
+
+    try helpers.expect(error.MailboxLessNetworkFailed, pool_done == N_POOL_ITEMS, "pool items not all processed");
+    try helpers.expect(error.MailboxLessNetworkFailed, net_done == N_NET_ROUNDS, "network rounds not complete");
+    std.log.info("done: pool={d} net={d} — Pool+Select+Network, no mailbox", .{ pool_done, net_done });
+}
 
 const NET_DELAY_NS: i96 = 15_000_000; // 15 ms simulated network latency
 const N_POOL_ITEMS: usize = 2;
@@ -80,31 +110,6 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent), po
         }
     }
     sel.cancelDiscard();
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    try seedPool(ph);
-
-    var buf: [8]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    try setupSelect(ph, io, &sel);
-
-    var pool_done: usize = 0;
-    var net_done: usize = 0;
-    try runEventLoop(ph, io, &sel, &pool_done, &net_done);
-
-    try helpers.expect(error.MailboxLessNetworkFailed, pool_done == N_POOL_ITEMS, "pool items not all processed");
-    try helpers.expect(error.MailboxLessNetworkFailed, net_done == N_NET_ROUNDS, "network rounds not complete");
-    std.log.info("done: pool={d} net={d} — Pool+Select+Network, no mailbox", .{ pool_done, net_done });
 }
 
 const helpers = @import("helpers");

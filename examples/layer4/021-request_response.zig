@@ -1,11 +1,35 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  master A ──Event(request)──► b_inbox ──► master B
-//  master A ◄──Sensor(response)── a_inbox ◄── master B
-//  (fut_a + fut_b run concurrently; fut_a.await → fut_b.await)
+/// Request-response between Masters.
+///
+/// - Master A sends an Event request to Master B's inbox.
+/// - Master B computes a response, sends a Sensor to Master A's inbox.
+/// - Both masters run concurrently; runMasters awaits both.
+///
+/// Ownership:
+///
+///  master A ──Event(request)──► b_inbox ──► master B
+///  master A ◄──Sensor(response)── a_inbox ◄── master B
+///  (fut_a + fut_b run concurrently; fut_a.await → fut_b.await)
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const a_inbox: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(a_inbox);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(a_inbox, allocator);
+    }
+
+    const b_inbox: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(b_inbox);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(b_inbox, allocator);
+    }
+
+    try runMasters(a_inbox, b_inbox, allocator, io);
+    std.log.info("request-response done: both masters completed", .{});
+}
 
 const MasterACtx = struct {
     a_inbox: MailboxHandle,
@@ -68,25 +92,6 @@ fn runMasters(a_inbox: MailboxHandle, b_inbox: MailboxHandle, alloc: std.mem.All
     var fut_b = try io.concurrent(masterBFn, .{&ctx_b});
     try fut_a.await(io);
     try fut_b.await(io);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const a_inbox: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(a_inbox);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(a_inbox, allocator);
-    }
-
-    const b_inbox: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(b_inbox);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(b_inbox, allocator);
-    }
-
-    try runMasters(a_inbox, b_inbox, allocator, io);
-    std.log.info("request-response done: both masters completed", .{});
 }
 
 const helpers = @import("helpers");

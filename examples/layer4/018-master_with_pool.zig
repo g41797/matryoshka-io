@@ -1,14 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  master ──pool.get──► slot ──mailbox.send──► mailbox
-//                                                 │ worker (io.concurrent)
-//                                                 │ mailbox.receive ──► slot
-//                                                 │ pool.put (defer) ──► pool (recycled)
-//  fut.cancel ──► worker exits at next mailbox.receive
-//  master.destroy ──► pool.close ──► mailbox.close ──► free remaining
+/// Master with Pool.
+///
+/// - Master owns a pool (with hooks) and a mailbox.
+/// - sendItems fills 3 pool items with Event data, sends each into the mailbox.
+/// - Worker loops on mailbox.receive, returns each item to the pool via pool.put.
+/// - Shutdown cancels the worker future, then destroy releases pool and mailbox in order.
+///
+/// Ownership:
+///
+///  master ──pool.get──► slot ──mailbox.send──► mailbox
+///                                                 │ worker (io.concurrent)
+///                                                 │ mailbox.receive ──► slot
+///                                                 │ pool.put (defer) ──► pool (recycled)
+///  fut.cancel ──► worker exits at next mailbox.receive
+///  master.destroy ──► pool.close ──► mailbox.close ──► free remaining
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master = try MasterWithPool.init(allocator, io);
+    defer master.destroy();
+    try master.run();
+}
 
 const WorkerCtx = struct {
     mbh: MailboxHandle,
@@ -24,6 +36,25 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
 }
 
 const MasterWithPool = struct {
+    fn run(self: *MasterWithPool) !void {
+        try self.sendItems();
+        var fut = try self.io.concurrent(workerFn, .{&self.worker_ctx});
+        fut.cancel(self.io) catch {};
+        std.log.info("master: worker stopped", .{});
+    }
+
+    fn sendItems(self: *MasterWithPool) !void {
+        for (0..3) |i| {
+            var slot: Slot = null;
+            defer pool.put(self.ph, &slot);
+            try pool.get(self.ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
+            const ev = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+            ev.code = @intCast(i + 1);
+            std.log.info("master: sending Event code={d}", .{ev.code});
+            try mailbox.send(self.mbh, &slot);
+        }
+    }
+
     allocator: std.mem.Allocator,
     io: std.Io,
     pool_ctx: helpers.AlwaysCreateCtx,
@@ -58,32 +89,7 @@ const MasterWithPool = struct {
         mailbox.destroy(self.mbh, self.allocator);
         self.allocator.destroy(self);
     }
-
-    fn run(self: *MasterWithPool) !void {
-        try self.sendItems();
-        var fut = try self.io.concurrent(workerFn, .{&self.worker_ctx});
-        fut.cancel(self.io) catch {};
-        std.log.info("master: worker stopped", .{});
-    }
-
-    fn sendItems(self: *MasterWithPool) !void {
-        for (0..3) |i| {
-            var slot: Slot = null;
-            defer pool.put(self.ph, &slot);
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-            const ev = types.EventPolyHelper.mustIdentifySlotAs(&slot);
-            ev.code = @intCast(i + 1);
-            std.log.info("master: sending Event code={d}", .{ev.code});
-            try mailbox.send(self.mbh, &slot);
-        }
-    }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master = try MasterWithPool.init(allocator, io);
-    defer master.destroy();
-    try master.run();
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

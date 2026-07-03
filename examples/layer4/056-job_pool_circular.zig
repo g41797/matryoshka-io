@@ -1,20 +1,57 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership (circular):
-//
-//  Master job list: [{code=10},{code=20},{code=30}]
-//  pool (1 empty container seeded)
-//  │ getWaitResult drives pace
-//  ▼
-//  master: fill container from job list ──► mailbox.send ──► mbh
-//                                                              │ worker
-//                                                              │ process (code *= 2) ──► pool.put ──► pool
-//  pool triggers again ──► master dispatches next job (or breaks when all N sent + last returned)
-//
-//  Container circulates: pool → master fills → mailbox → worker → pool.
-//  Work input: Master's pre-loaded job list. Pool provides the container and controls pacing.
-//  Master counter tracks completed jobs.
+/// Job pool circular flow.
+///
+/// - Master pre-loads a job list, seeds the pool with 1 container.
+/// - runEventLoop: pool availability triggers the next dispatch from the job list.
+/// - Worker doubles the value, returns the container — which triggers the next dispatch.
+/// - Loop ends once all jobs are dispatched and the last result returns.
+///
+/// Ownership (circular):
+///
+///  Master job list: [{code=10},{code=20},{code=30}]
+///  pool (1 empty container seeded)
+///  │ getWaitResult drives pace
+///  ▼
+///  master: fill container from job list ──► mailbox.send ──► mbh
+///                                                              │ worker
+///                                                              │ process (code *= 2) ──► pool.put ──► pool
+///  pool triggers again ──► master dispatches next job (or breaks when all N sent + last returned)
+///
+///  Container circulates: pool → master fills → mailbox → worker → pool.
+///  Work input: Master's pre-loaded job list. Pool provides the container and controls pacing.
+///  Master counter tracks completed jobs.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer mailbox.destroy(mbh, allocator);
+
+    try seedContainer(ph);
+
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    var worker_ctx: WorkerCtx = .{ .mbh = mbh, .ph = ph };
+    var buf: [4]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    var worker_fut = try ctx.spawnWorkerAndSetupSelect(ph, &worker_ctx, &sel);
+
+    var job_idx: usize = 0;
+    var completed: usize = 0;
+    try ctx.runEventLoop(ph, &sel, &job_idx, &completed);
+
+    try ctx.closeMailboxAndAwait(&worker_fut);
+
+    try helpers.expect(error.JobPoolCircularFailed, completed == N, "did not complete all jobs");
+    std.log.info("done: {d} jobs — Master list → pool container → mailbox → worker → pool (circular)", .{completed});
+}
 
 const N: usize = 3;
 
@@ -92,37 +129,6 @@ fn seedContainer(ph: PoolHandle) !void {
     var slot: Slot = null;
     try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
     pool.put(ph, &slot);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer mailbox.destroy(mbh, allocator);
-
-    try seedContainer(ph);
-
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    var worker_ctx: WorkerCtx = .{ .mbh = mbh, .ph = ph };
-    var buf: [4]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    var worker_fut = try ctx.spawnWorkerAndSetupSelect(ph, &worker_ctx, &sel);
-
-    var job_idx: usize = 0;
-    var completed: usize = 0;
-    try ctx.runEventLoop(ph, &sel, &job_idx, &completed);
-
-    try ctx.closeMailboxAndAwait(&worker_fut);
-
-    try helpers.expect(error.JobPoolCircularFailed, completed == N, "did not complete all jobs");
-    std.log.info("done: {d} jobs — Master list → pool container → mailbox → worker → pool (circular)", .{completed});
 }
 
 const helpers = @import("helpers");

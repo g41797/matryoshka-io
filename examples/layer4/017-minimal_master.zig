@@ -1,13 +1,34 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  master ──alloc.create──► slot ──mailbox.send──► mailbox
-//                                                      │ worker (io.concurrent)
-//                                                      │ mailbox.receive ──► freeSlot
-//  mailbox.close ──► remaining list ──► freeList
-//  fut.await ──► worker done
+/// Minimal Master.
+///
+/// - Master spawns one worker via io.concurrent.
+/// - sendItems pushes 3 Events into the shared mailbox.
+/// - awaitWorker closes the mailbox, frees anything left, awaits the worker.
+/// - Shutdown cleanup uses a plain stdlib list — no Matryoshka-specific cleanup API.
+///
+/// Ownership:
+///
+///  master ──alloc.create──► slot ──mailbox.send──► mailbox
+///                                                      │ worker (io.concurrent)
+///                                                      │ mailbox.receive ──► freeSlot
+///  mailbox.close ──► remaining list ──► freeList
+///  fut.await ──► worker done
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
+    var fut = try io.concurrent(workerFn, .{&ctx});
+    try sendItems(mbh, allocator);
+    try awaitWorker(mbh, allocator, io, &fut);
+    std.log.info("master: worker done", .{});
+}
 
 const WorkerCtx = struct {
     mbh: MailboxHandle,
@@ -37,21 +58,6 @@ fn awaitWorker(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, fut: *I
     var remaining: std.DoublyLinkedList = mailbox.close(mbh);
     helpers.freeList(&remaining, alloc);
     try fut.await(io);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
-    var fut = try io.concurrent(workerFn, .{&ctx});
-    try sendItems(mbh, allocator);
-    try awaitWorker(mbh, allocator, io, &fut);
-    std.log.info("master: worker done", .{});
 }
 
 const helpers = @import("helpers");

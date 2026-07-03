@@ -1,19 +1,44 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (pre-loaded: Event×3)
-//     │ receiveResult
-//     ▼
-//  Select(MasterEvent) ◄── sleepFn (timer, re-spawned each tick)
-//     │ sel.await()
-//     ▼
-//  .inbox .item ──► freeSlot (re-spawn receiveResult)
-//  .timer        ──► re-spawn sleepFn
-//  .inbox .closed ──► exit loop
-//  │
-//  sel.cancelDiscard()
+/// Mailbox receive as Select event source.
+///
+/// - Mailbox pre-loaded with 3 Events; a timer runs alongside it in Select.
+/// - runEventLoop re-spawns mailbox.receiveResult after each item, re-spawns the timer per tick.
+/// - Loop exits once all 3 items are received; sel.cancelDiscard cleans up the rest.
+///
+/// Ownership:
+///
+///  mailbox (pre-loaded: Event×3)
+///     │ receiveResult
+///     ▼
+///  Select(MasterEvent) ◄── sleepFn (timer, re-spawned each tick)
+///     │ sel.await()
+///     ▼
+///  .inbox .item ──► freeSlot (re-spawn receiveResult)
+///  .timer        ──► re-spawn sleepFn
+///  .inbox .closed ──► exit loop
+///  │
+///  sel.cancelDiscard()
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    try ctx.seedMailbox();
+
+    var buf: [4]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    try ctx.setupSelect(&sel);
+    try ctx.runEventLoop(&sel);
+
+    try helpers.expect(error.SelectMailboxEventFailed, ctx.received == N_ITEMS, "did not receive all items");
+    std.log.info("done: {d} items, {d} timer ticks", .{ ctx.received, ctx.ticks });
+}
 
 const TIMER_NS: i96 = 20_000_000; // 20 ms
 const N_ITEMS: usize = 3;
@@ -82,26 +107,6 @@ const Ctx = struct {
         sel.cancelDiscard();
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    try ctx.seedMailbox();
-
-    var buf: [4]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    try ctx.setupSelect(&sel);
-    try ctx.runEventLoop(&sel);
-
-    try helpers.expect(error.SelectMailboxEventFailed, ctx.received == N_ITEMS, "did not receive all items");
-    std.log.info("done: {d} items, {d} timer ticks", .{ ctx.received, ctx.ticks });
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

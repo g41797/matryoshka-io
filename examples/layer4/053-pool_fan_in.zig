@@ -1,20 +1,32 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  Master job list: [{code=1},{code=2},{code=3}]
-//  pool (3 empty containers seeded)
-//  │
-//  master: pool.get ──► fill from job list ──► mailbox.send ──► mbh[0..2]
-//                                                                    │ worker[i] (io.concurrent)
-//                                                                    │ mailbox.receive ──► process ──► pool.put ──► pool
-//  master: fut[i].await ──► all workers done
-//  master: pool.get ×3 ──► verify results
-//  pool.close ──► on_close ──► freeList
-//
-//  Ownership: Master list → pool containers → worker mailboxes → workers → pool → master.
-//  Pool items are empty containers: Master fills from job list, worker writes result back.
+/// Pool fan-in: many workers return.
+///
+/// - Seed the pool with N empty containers, one per worker mailbox.
+/// - dispatch fills each container from the Master's job list, sends it to its worker.
+/// - Each worker doubles the value, returns the container to the pool.
+/// - collectResults reads all N results back from the pool, sums them.
+///
+/// Ownership:
+///
+///  Master job list: [{code=1},{code=2},{code=3}]
+///  pool (3 empty containers seeded)
+///  │
+///  master: pool.get ──► fill from job list ──► mailbox.send ──► mbh[0..2]
+///                                                                   │ worker[i] (io.concurrent)
+///                                                                   │ mailbox.receive ──► process ──► pool.put ──► pool
+///  master: fut[i].await ──► all workers done
+///  master: pool.get ×3 ──► verify results
+///  pool.close ──► on_close ──► freeList
+///
+///  Ownership: Master list → pool containers → worker mailboxes → workers → pool → master.
+///  Pool items are empty containers: Master fills from job list, worker writes result back.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master = try PoolFanInMaster.init(allocator, io);
+    defer master.destroy();
+    try master.run();
+}
 
 const N: usize = 3;
 
@@ -36,54 +48,6 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
 }
 
 const PoolFanInMaster = struct {
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    ph: PoolHandle,
-    pool_ctx: helpers.AlwaysCreateCtx,
-    tags: [1]*const anyopaque,
-    mbhs: [N]MailboxHandle,
-    ctxs: [N]WorkerCtx,
-    futs: [N]std.Io.Future(anyerror!void),
-
-    fn init(allocator: std.mem.Allocator, io: std.Io) !*PoolFanInMaster {
-        const self = try allocator.create(PoolFanInMaster);
-        errdefer allocator.destroy(self);
-        self.allocator = allocator;
-        self.io = io;
-        self.pool_ctx = .{ .alloc = allocator };
-        self.tags = .{types.EventPolyHelper.TAG};
-        self.ph = try pool.new(io, allocator);
-        errdefer {
-            pool.close(self.ph);
-            pool.destroy(self.ph, allocator);
-        }
-        try pool.init(self.ph, self.pool_ctx.poolHooks(&self.tags));
-        var created: usize = 0;
-        errdefer for (0..created) |i| {
-            var rem: std.DoublyLinkedList = mailbox.close(self.mbhs[i]);
-            helpers.freeList(&rem, allocator);
-            mailbox.destroy(self.mbhs[i], allocator);
-        };
-        for (0..N) |i| {
-            self.mbhs[i] = try mailbox.new(io, allocator);
-            created += 1;
-            self.ctxs[i] = .{ .mbh = self.mbhs[i], .ph = self.ph };
-            self.futs[i] = try io.concurrent(workerFn, .{&self.ctxs[i]});
-        }
-        return self;
-    }
-
-    fn destroy(self: *PoolFanInMaster) void {
-        for (0..N) |i| {
-            var rem: std.DoublyLinkedList = mailbox.close(self.mbhs[i]);
-            helpers.freeList(&rem, self.allocator);
-            mailbox.destroy(self.mbhs[i], self.allocator);
-        }
-        pool.close(self.ph);
-        pool.destroy(self.ph, self.allocator);
-        self.allocator.destroy(self);
-    }
-
     fn run(self: *PoolFanInMaster) !void {
         try self.seedPool();
         try self.dispatch();
@@ -131,13 +95,55 @@ const PoolFanInMaster = struct {
         }
         return .{ total, result_sum };
     }
-};
 
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master = try PoolFanInMaster.init(allocator, io);
-    defer master.destroy();
-    try master.run();
-}
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    ph: PoolHandle,
+    pool_ctx: helpers.AlwaysCreateCtx,
+    tags: [1]*const anyopaque,
+    mbhs: [N]MailboxHandle,
+    ctxs: [N]WorkerCtx,
+    futs: [N]std.Io.Future(anyerror!void),
+
+    fn init(allocator: std.mem.Allocator, io: std.Io) !*PoolFanInMaster {
+        const self = try allocator.create(PoolFanInMaster);
+        errdefer allocator.destroy(self);
+        self.allocator = allocator;
+        self.io = io;
+        self.pool_ctx = .{ .alloc = allocator };
+        self.tags = .{types.EventPolyHelper.TAG};
+        self.ph = try pool.new(io, allocator);
+        errdefer {
+            pool.close(self.ph);
+            pool.destroy(self.ph, allocator);
+        }
+        try pool.init(self.ph, self.pool_ctx.poolHooks(&self.tags));
+        var created: usize = 0;
+        errdefer for (0..created) |i| {
+            var rem: std.DoublyLinkedList = mailbox.close(self.mbhs[i]);
+            helpers.freeList(&rem, allocator);
+            mailbox.destroy(self.mbhs[i], allocator);
+        };
+        for (0..N) |i| {
+            self.mbhs[i] = try mailbox.new(io, allocator);
+            created += 1;
+            self.ctxs[i] = .{ .mbh = self.mbhs[i], .ph = self.ph };
+            self.futs[i] = try io.concurrent(workerFn, .{&self.ctxs[i]});
+        }
+        return self;
+    }
+
+    fn destroy(self: *PoolFanInMaster) void {
+        for (0..N) |i| {
+            var rem: std.DoublyLinkedList = mailbox.close(self.mbhs[i]);
+            helpers.freeList(&rem, self.allocator);
+            mailbox.destroy(self.mbhs[i], self.allocator);
+        }
+        pool.close(self.ph);
+        pool.destroy(self.ph, self.allocator);
+        self.allocator.destroy(self);
+    }
+};
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

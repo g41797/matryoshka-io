@@ -1,24 +1,51 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  pool (seeded: Event×3, all empty — code=0)
-//  │ getWaitResult — blocks until item available
-//  ▼
-//  Select(MasterEvent) ◄── sleepFn (timer)
-//  │
-//  .pool_ev .item ──► fill ev.code from Master counter ──► put back
-//                 ──► re-spawn getWaitResult (while cycle < target)
-//                 ──► break (when cycle == target, timer still in-flight)
-//  .timer         ──► log Master counter ──► re-spawn timer
-//  │
-//  sel.cancelDiscard() ──► timer cancelled (no items in-flight at this point)
-//  pool.close ──► on_close ──► freed
-//
-//  Work input: Master's own cycle counter. Pool item is an empty container.
-//  Stop condition: cycle reaches target. getWaitResult not re-spawned at target,
-//  so cancelDiscard only cancels the timer — no items in-transit, no leak.
+/// Pool get_wait as Select event source.
+///
+/// - Pool seeded with 3 empty Event containers, used as a Select event source.
+/// - runEventLoop fills each returned container with the Master's own cycle counter.
+/// - Re-spawns getWaitResult until the target cycle count is reached, then stops.
+/// - Work input is the Master's counter; the pool item is only an empty container.
+///
+/// Ownership:
+///
+///  pool (seeded: Event×3, all empty — code=0)
+///  │ getWaitResult — blocks until item available
+///  ▼
+///  Select(MasterEvent) ◄── sleepFn (timer)
+///  │
+///  .pool_ev .item ──► fill ev.code from Master counter ──► put back
+///                 ──► re-spawn getWaitResult (while cycle < target)
+///                 ──► break (when cycle == target, timer still in-flight)
+///  .timer         ──► log Master counter ──► re-spawn timer
+///  │
+///  sel.cancelDiscard() ──► timer cancelled (no items in-flight at this point)
+///  pool.close ──► on_close ──► freed
+///
+///  Work input: Master's own cycle counter. Pool item is an empty container.
+///  Stop condition: cycle reaches target. getWaitResult not re-spawned at target,
+///  so cancelDiscard only cancels the timer — no items in-transit, no leak.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedPool(ph);
+
+    var buf: [4]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    try setupSelect(ph, io, &sel);
+    const cycle = try runEventLoop(ph, io, &sel);
+
+    try helpers.expect(error.SelectPoolEventFailed, cycle == TARGET, "wrong cycle count");
+    std.log.info("done: {d} cycles driven by Master counter — pool items were empty containers", .{cycle});
+}
 
 const N_ITEMS: usize = 3;
 const TARGET: usize = N_ITEMS * 2; // process each container twice
@@ -81,27 +108,6 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent)) !u
     }
     sel.cancelDiscard();
     return cycle;
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    try seedPool(ph);
-
-    var buf: [4]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    try setupSelect(ph, io, &sel);
-    const cycle = try runEventLoop(ph, io, &sel);
-
-    try helpers.expect(error.SelectPoolEventFailed, cycle == TARGET, "wrong cycle count");
-    std.log.info("done: {d} cycles driven by Master counter — pool items were empty containers", .{cycle});
 }
 
 const helpers = @import("helpers");

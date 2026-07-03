@@ -1,22 +1,60 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership (transition: mailbox-less → mailbox needed):
-//
-//  pool (seeded)       mock clients (io.concurrent ×N_CLIENTS → mailbox.send)
-//  │ getWaitResult      │ receiveResult
-//  └────────┬───────────┘
-//           ▼
-//  Select(MasterEvent)
-//  │
-//  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
-//  .inbox .item   ──► freeSlot               (re-spawn receiveResult)
-//  │
-//  clients finish → mailbox.close → inbox returns .closed
-//  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
-//
-//  Transition: when senders are multiple and independent, fan-in via mailbox
-//  becomes necessary. Mailbox is the third event source in Select.
+/// When to add Mailbox.
+///
+/// - Same pool + Select setup as scenario 60, plus multiple independent mock clients.
+/// - Clients are unknown and independent — fan-in requires a mailbox as a third source.
+/// - Shows the transition point: mailbox-less works until senders multiply and diverge.
+///
+/// Ownership (transition: mailbox-less → mailbox needed):
+///
+///  pool (seeded)       mock clients (io.concurrent ×N_CLIENTS → mailbox.send)
+///  │ getWaitResult      │ receiveResult
+///  └────────┬───────────┘
+///           ▼
+///  Select(MasterEvent)
+///  │
+///  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
+///  .inbox .item   ──► freeSlot               (re-spawn receiveResult)
+///  │
+///  clients finish → mailbox.close → inbox returns .closed
+///  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
+///
+///  Transition: when senders are multiple and independent, fan-in via mailbox
+///  becomes necessary. Mailbox is the third event source in Select.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer mailbox.destroy(mbh, allocator);
+
+    try seedPool(ph);
+
+    var ctxs: [N_CLIENTS]ClientCtx = undefined;
+    var futs: [N_CLIENTS]Io.Future(anyerror!void) = undefined;
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    try ctx.spawnClients(&ctxs, &futs);
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    try ctx.setupSelect(ph, &sel);
+    try ctx.runEventLoop(ph, &sel);
+
+    ctx.awaitClients(&futs);
+    ctx.closeMailboxAfterClients();
+
+    try helpers.expect(error.MailboxTransitionFailed, ctx.pool_done == N_POOL_ITEMS, "pool items mismatch");
+    try helpers.expect(error.MailboxTransitionFailed, ctx.inbox_done == N_CLIENTS, "client items mismatch");
+    std.log.info("done: {d} clients → mailbox fan-in; {d} pool items — mailbox needed for independent senders", .{ ctx.inbox_done, ctx.pool_done });
+}
 
 const NET_DELAY_NS: i96 = 10_000_000; // 10 ms per client
 const N_CLIENTS: usize = 3;
@@ -121,39 +159,6 @@ fn seedPool(ph: PoolHandle) !void {
         types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(100 + i);
         pool.put(ph, &slot);
     }
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer mailbox.destroy(mbh, allocator);
-
-    try seedPool(ph);
-
-    var ctxs: [N_CLIENTS]ClientCtx = undefined;
-    var futs: [N_CLIENTS]Io.Future(anyerror!void) = undefined;
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    try ctx.spawnClients(&ctxs, &futs);
-
-    var buf: [8]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    try ctx.setupSelect(ph, &sel);
-    try ctx.runEventLoop(ph, &sel);
-
-    ctx.awaitClients(&futs);
-    ctx.closeMailboxAfterClients();
-
-    try helpers.expect(error.MailboxTransitionFailed, ctx.pool_done == N_POOL_ITEMS, "pool items mismatch");
-    try helpers.expect(error.MailboxTransitionFailed, ctx.inbox_done == N_CLIENTS, "client items mismatch");
-    std.log.info("done: {d} clients → mailbox fan-in; {d} pool items — mailbox needed for independent senders", .{ ctx.inbox_done, ctx.pool_done });
 }
 
 const helpers = @import("helpers");

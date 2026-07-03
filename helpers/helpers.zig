@@ -69,15 +69,15 @@ pub const AlwaysCreateCtx = struct {
         };
     }
 
-    fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.Slot) void {
+    pub fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.Slot) void {
         if (slot.* != null) return;
         const self: *AlwaysCreateCtx = @ptrCast(@alignCast(ctx));
         createByTag(tag, self.alloc, slot);
     }
 
-    fn onPut(_: *anyopaque, _: usize, _: *polynode.Slot) void {}
+    pub fn onPut(_: *anyopaque, _: usize, _: *polynode.Slot) void {}
 
-    fn onClose(ctx: *anyopaque, list: *std.DoublyLinkedList) void {
+    pub fn onClose(ctx: *anyopaque, list: *std.DoublyLinkedList) void {
         const self: *AlwaysCreateCtx = @ptrCast(@alignCast(ctx));
         freeList(list, self.alloc);
     }
@@ -100,7 +100,7 @@ pub const CappedPoolCtx = struct {
         };
     }
 
-    fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.Slot) void {
+    pub fn onGet(ctx: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.Slot) void {
         const self: *CappedPoolCtx = @ptrCast(@alignCast(ctx));
         self.mutex.lockUncancelable(self.io);
         defer self.mutex.unlock(self.io);
@@ -114,7 +114,7 @@ pub const CappedPoolCtx = struct {
         createByTag(tag, self.alloc, slot);
     }
 
-    fn onPut(ctx: *anyopaque, _: usize, slot: *polynode.Slot) void {
+    pub fn onPut(ctx: *anyopaque, _: usize, slot: *polynode.Slot) void {
         if (slot.* == null) return;
         const self: *CappedPoolCtx = @ptrCast(@alignCast(ctx));
         self.mutex.lockUncancelable(self.io);
@@ -128,7 +128,7 @@ pub const CappedPoolCtx = struct {
         }
     }
 
-    fn onClose(ctx: *anyopaque, list: *std.DoublyLinkedList) void {
+    pub fn onClose(ctx: *anyopaque, list: *std.DoublyLinkedList) void {
         const self: *CappedPoolCtx = @ptrCast(@alignCast(ctx));
         freeList(list, self.alloc);
         self.count = 0;

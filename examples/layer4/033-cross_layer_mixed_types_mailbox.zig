@@ -1,17 +1,35 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  EventPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
-//  SensorPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
-//  │
-//  mailbox.receive ──► slot (Event or Sensor)
-//    dispatch on poly.tag:
-//    == EventPolyHelper.TAG  ──► identifyNodeAs ──► *Event  ──► verify code==10 ──► freeSlot
-//    == SensorPolyHelper.TAG ──► identifyNodeAs ──► *Sensor ──► verify value==3.14 ──► freeSlot
-//  │
-//  mailbox.close ──► freeList (empty: all received)
+/// Mixed types through shared mailbox.
+///
+/// - Send one Event and one Sensor into the same mailbox.
+/// - receiveAndDispatch pops both, dispatches on tag via identifyNodeAs.
+/// - Verifies each payload, frees each item.
+///
+/// Ownership:
+///
+///  EventPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
+///  SensorPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
+///  │
+///  mailbox.receive ──► slot (Event or Sensor)
+///    dispatch on poly.tag:
+///    == EventPolyHelper.TAG  ──► identifyNodeAs ──► *Event  ──► verify code==10 ──► freeSlot
+///    == SensorPolyHelper.TAG ──► identifyNodeAs ──► *Sensor ──► verify value==3.14 ──► freeSlot
+///  │
+///  mailbox.close ──► freeList (empty: all received)
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    try sendEvent(mbh, allocator);
+    try sendSensor(mbh, allocator);
+    try receiveAndDispatch(mbh, allocator);
+}
 
 fn sendEvent(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
@@ -56,19 +74,6 @@ fn receiveAndDispatch(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     try helpers.expect(error.CrossLayerMixedTypesFailed, event_ok, "Event not received");
     try helpers.expect(error.CrossLayerMixedTypesFailed, sensor_ok, "Sensor not received");
     std.log.info("done: Event + Sensor through shared mailbox, dispatched on tag", .{});
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    try sendEvent(mbh, allocator);
-    try sendSensor(mbh, allocator);
-    try receiveAndDispatch(mbh, allocator);
 }
 
 const helpers = @import("helpers");

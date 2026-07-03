@@ -1,19 +1,50 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mbh1 (empty)    mbh2 (empty)
-//  │ receiveResult  │ receiveResult
-//  └────────┬───────┘
-//           ▼
-//  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
-//  │
-//  .timer ──► send item to mbh1, send item to mbh2
-//             re-spawn timer (longer)
-//  .inbox1 .item ──► freeSlot, re-spawn inbox1
-//  .inbox2 .item ──► freeSlot
-//  sel.cancelDiscard()
+/// Two mailboxes + timer in Select.
+///
+/// - Both mailboxes use mailbox.receiveResult as Select event sources.
+/// - A short timer triggers first, before either mailbox has an item.
+/// - Timer seeds both mailboxes, re-spawns itself with a longer duration.
+/// - Loop exits once both mailboxes have delivered one item each.
+///
+/// Ownership:
+///
+///  mbh1 (empty)    mbh2 (empty)
+///  │ receiveResult  │ receiveResult
+///  └────────┬───────┘
+///           ▼
+///  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
+///  │
+///  .timer ──► send item to mbh1, send item to mbh2
+///             re-spawn timer (longer)
+///  .inbox1 .item ──► freeSlot, re-spawn inbox1
+///  .inbox2 .item ──► freeSlot
+///  sel.cancelDiscard()
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh1: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh1);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh1, allocator);
+    }
+
+    const mbh2: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh2);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh2, allocator);
+    }
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    var ctx: Ctx = .{ .mbh1 = mbh1, .mbh2 = mbh2, .alloc = allocator, .io = io };
+    try ctx.setupSelect(&sel);
+    try ctx.runEventLoop(&sel);
+
+    try helpers.expect(error.SelectTwoMailboxesFailed, ctx.got1 and ctx.got2, "did not receive from both mailboxes");
+    std.log.info("done: timer triggered first; then received from both mailboxes", .{});
+}
 
 const SHORT_NS: i96 = 5_000_000; // 5 ms — triggers before mailboxes have items
 const LONG_NS: i96 = 50_000_000; // 50 ms — runs while mailboxes are being emptied
@@ -69,7 +100,7 @@ const Ctx = struct {
             const event: MasterEvent = try sel.await();
             switch (event) {
                 .timer => {
-                    std.log.info("timer: fired — seeding both mailboxes and re-spawning longer timer", .{});
+                    std.log.info("timer: triggered — seeding both mailboxes and re-spawning longer timer", .{});
                     try self.seedMailboxes(sel);
                 },
                 .inbox1 => |r| switch (r) {
@@ -99,31 +130,6 @@ const Ctx = struct {
         sel.cancelDiscard();
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh1: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh1);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh1, allocator);
-    }
-
-    const mbh2: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh2);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh2, allocator);
-    }
-
-    var buf: [8]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    var ctx: Ctx = .{ .mbh1 = mbh1, .mbh2 = mbh2, .alloc = allocator, .io = io };
-    try ctx.setupSelect(&sel);
-    try ctx.runEventLoop(&sel);
-
-    try helpers.expect(error.SelectTwoMailboxesFailed, ctx.got1 and ctx.got2, "did not receive from both mailboxes");
-    std.log.info("done: timer fired first; then received from both mailboxes", .{});
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

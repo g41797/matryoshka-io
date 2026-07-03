@@ -1,20 +1,49 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mbh1 (empty)    mbh2 (empty)
-//  │ receiveResult  │ receiveResult
-//  └────────┬───────┘
-//           ▼
-//  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
-//  │
-//  .timer ──► sel.cancel() loop
-//             .inbox1 .canceled ──► log
-//             .inbox2 .canceled ──► log
-//  │
-//  mailbox.close(mbh1) ──► freeList
-//  mailbox.close(mbh2) ──► freeList
+/// Timer cancel → close → walk remaining.
+///
+/// - Two mailboxes + timer in Select, both mailboxes empty.
+/// - Timer triggers first, calls sel.cancel() on both mailbox sources.
+/// - Both return .canceled; cancel and close are kept as separate operations.
+/// - Both mailboxes are then closed, remaining items freed via freeList.
+///
+/// Ownership:
+///
+///  mbh1 (empty)    mbh2 (empty)
+///  │ receiveResult  │ receiveResult
+///  └────────┬───────┘
+///           ▼
+///  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
+///  │
+///  .timer ──► sel.cancel() loop
+///             .inbox1 .canceled ──► log
+///             .inbox2 .canceled ──► log
+///  │
+///  mailbox.close(mbh1) ──► freeList
+///  mailbox.close(mbh2) ──► freeList
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh1: MailboxHandle = try mailbox.new(io, allocator);
+    const mbh2: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem1: std.DoublyLinkedList = mailbox.close(mbh1);
+        helpers.freeList(&rem1, allocator);
+        mailbox.destroy(mbh1, allocator);
+        var rem2: std.DoublyLinkedList = mailbox.close(mbh2);
+        helpers.freeList(&rem2, allocator);
+        mailbox.destroy(mbh2, allocator);
+    }
+
+    var buf: [8]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    var ctx: Ctx = .{ .mbh1 = mbh1, .mbh2 = mbh2, .alloc = allocator, .io = io };
+    try ctx.setupSelect(&sel);
+    try Ctx.awaitTimerFirst(&sel);
+    ctx.clearCanceled(&sel);
+
+    try helpers.expect(error.SelectCancelCloseFailed, ctx.canceled1 and ctx.canceled2, "expected both inboxes canceled");
+    std.log.info("done: timer triggered, sel.cancel() stopped both inbox sources", .{});
+}
 
 const TIMER_NS: i96 = 8_000_000; // 8 ms
 
@@ -83,29 +112,6 @@ const Ctx = struct {
         }
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh1: MailboxHandle = try mailbox.new(io, allocator);
-    const mbh2: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem1: std.DoublyLinkedList = mailbox.close(mbh1);
-        helpers.freeList(&rem1, allocator);
-        mailbox.destroy(mbh1, allocator);
-        var rem2: std.DoublyLinkedList = mailbox.close(mbh2);
-        helpers.freeList(&rem2, allocator);
-        mailbox.destroy(mbh2, allocator);
-    }
-
-    var buf: [8]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    var ctx: Ctx = .{ .mbh1 = mbh1, .mbh2 = mbh2, .alloc = allocator, .io = io };
-    try ctx.setupSelect(&sel);
-    try Ctx.awaitTimerFirst(&sel);
-    ctx.clearCanceled(&sel);
-
-    try helpers.expect(error.SelectCancelCloseFailed, ctx.canceled1 and ctx.canceled2, "expected both inboxes canceled");
-    std.log.info("done: timer triggered, sel.cancel() stopped both inbox sources", .{});
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

@@ -1,19 +1,41 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership (mailbox-less):
-//
-//  pool (N_WORKERS empty containers seeded — code=0)
-//  │ Io.Group (N_WORKERS workers, each with own task index at spawn time)
-//  ├──► worker 0 ──pool.get──► slot (empty) ──► ev.code = 0 ──► pool.put ──► pool
-//  ├──► worker 1 ──pool.get──► slot (empty) ──► ev.code = 1 ──► pool.put ──► pool
-//  └──► worker 2 ──pool.get──► slot (empty) ──► ev.code = 2 ──► pool.put ──► pool
-//  │
-//  group.cancel ──► any worker that has not yet returned exits (all likely done)
-//  pool.close ──► on_close ──► freeList (remaining items freed)
-//
-//  Work input: task index passed at spawn time. Pool item is an empty container.
-//  Each worker gets its own container, writes its index, returns it. No mailbox needed.
+/// Pool + Group: worker pool.
+///
+/// - Pool seeded with N empty containers, N workers spawned via Io.Group with a task index each.
+/// - Each worker gets its own container, writes its index, returns it.
+/// - group.cancel stops any workers still running, then pool.close frees the rest.
+/// - No mailbox — each worker's own container is the coordination surface.
+///
+/// Ownership (mailbox-less):
+///
+///  pool (N_WORKERS empty containers seeded — code=0)
+///  │ Io.Group (N_WORKERS workers, each with own task index at spawn time)
+///  ├──► worker 0 ──pool.get──► slot (empty) ──► ev.code = 0 ──► pool.put ──► pool
+///  ├──► worker 1 ──pool.get──► slot (empty) ──► ev.code = 1 ──► pool.put ──► pool
+///  └──► worker 2 ──pool.get──► slot (empty) ──► ev.code = 2 ──► pool.put ──► pool
+///  │
+///  group.cancel ──► any worker that has not yet returned exits (all likely done)
+///  pool.close ──► on_close ──► freeList (remaining items freed)
+///
+///  Work input: task index passed at spawn time. Pool item is an empty container.
+///  Each worker gets its own container, writes its index, returns it. No mailbox needed.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+
+    try seedContainers(ph);
+
+    var worker_ctxs: [N_WORKERS]WorkerCtx = undefined;
+    var group: Io.Group = .init;
+    try spawnWorkers(ph, io, &group, &worker_ctxs);
+
+    std.log.info("master: {d} workers running, {d} empty containers in pool", .{ N_WORKERS, N_WORKERS });
+    stopAndClosePool(ph, allocator, io, &group);
+}
 
 const N_WORKERS: usize = 3;
 
@@ -52,22 +74,6 @@ fn stopAndClosePool(ph: PoolHandle, alloc: std.mem.Allocator, io: std.Io, group:
     pool.close(ph);
     pool.destroy(ph, alloc);
     std.log.info("pool closed: on_close freed any remaining containers — no mailbox needed", .{});
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-
-    try seedContainers(ph);
-
-    var worker_ctxs: [N_WORKERS]WorkerCtx = undefined;
-    var group: Io.Group = .init;
-    try spawnWorkers(ph, io, &group, &worker_ctxs);
-
-    std.log.info("master: {d} workers running, {d} empty containers in pool", .{ N_WORKERS, N_WORKERS });
-    stopAndClosePool(ph, allocator, io, &group);
 }
 
 const helpers = @import("helpers");

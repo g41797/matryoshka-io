@@ -27,13 +27,13 @@
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
 - Tests: task1-tests-001.md (73 scenarios, Layers 1-3), task2-tests-001.md (16 scenarios, Layer 4)
-- Examples: task1-examples-002.md, task2-examples-002.md
+- Examples: task1-examples-003.md, task2-examples-003.md (index only; full description lives in each source file's `///` doc comment)
 - Scenarios (historical): task1-scenarios-001.md (92), task2-scenarios-001.md (61)
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-029.md (slim, state-only)
-- Rules: rules-008.md
+- Plan: matryoshka-io-implementation-plan-030.md (slim, state-only)
+- Rules: rules-009.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-007.md
 - Docs plan: matryoshka-io-docs-plan-001.md
@@ -85,6 +85,7 @@ matryoshka-io/
 - 10 which Layer 2-3 examples need real threads
 - 11 panic test style in Zig
 - 12 real-Io examples are integration tests, gate by platform
+- 13 rare ReleaseSmall race in pool_fan_in (053) — see Session Log 2026-07-03 for full trace. Suspected upstream Zig 0.16 `Io.Threaded` bug, not app code. Not reproducible outside stress loop.
 
 ## Stages
 Stage 0 — Infrastructure. DONE.
@@ -118,10 +119,137 @@ EXMPL 3c — Observable by human rule + 3 Master fixes. DONE. Plan version 026 c
 EXMPL 3d — Observable: extract steps in 31 flat examples. DONE. Plan version 027 created.
 EXMPL 3e — Observable: structural extraction signals + fix 24 violating examples. DONE. Plan version 028 created.
 API 2 — PolyHelper Slot-aware identification API. DONE. 161/161 tests.
+EXMPL 4 — Description as code: staccato descriptions moved into source `///` comments, layer1-3 NNN- renaming, catalog docs as index. DONE. Plan version 030 created.
 Stage 9 — Docs + README + autodocs. PLANNED.
-Current: 161/161 tests. API 2 DONE.
+Current: 161/161 tests. EXMPL 4 DONE.
 
 ## Session Log
+
+### 2026-07-03 — EXMPL 4 (Description as code: staccato descriptions in source, layer1-3 renaming)
+**Participants**: human + Claude
+
+**Summary**
+Catalog docs (`task1-examples-002.md`, `task2-examples-002.md`) wrote every scenario as a
+single long prose line — a staccato-rhythm violation of the existing Documentation Rules.
+Root cause discussed with owner: an example's description should be treated as code —
+Observable-by-human structure (one-line intent + named steps) applied to prose. New rule
+added to `rules-008.md` → `rules-009.md`. Full staccato description now lives in each
+example's source file as a `///` doc comment (autodoc-extractable, feeds Stage 9), not
+duplicated in the catalog `.md`. Catalog docs become thin indexes: number, name, one-line
+hook, link to source.
+
+`pub fn run` (and, for Master-pattern examples, the Master's own `run` method) moved to the
+top of each file, directly after the `///` description + ASCII diagram — the file's "flow
+descriptors" read first.
+
+`examples/layer1/` and `examples/layer2/` and `examples/layer3/` never received the `NNN-`
+scenario-number prefix that `examples/layer4/` got in EXMPL 3b. Brought in line: 5 layer1
+files → 021-025, 10 layer2 files → 053-062, 4 layer3 files → 089-092. `layer1.zig` /
+`layer2.zig` / `layer3.zig` import paths updated. Old-named files left in place (unreferenced,
+non-compiling) — owner will remove them later, per owner instruction.
+
+All 47 `examples/layer4/*.zig` files (already numbered from EXMPL 3b) rewritten with the
+same `///` doc-comment + flow-descriptor-placement treatment; no renaming needed there.
+
+**Changes**
+- `design/rules-008.md` → `rules-009.md` — new "Description as code" rule section; Coding
+  Rules — Examples/Stories updated for `///` placement and catalog-as-index; comment rules
+  exception for examples/stories `///`.
+- `examples/layer1/021-*.zig` .. `025-*.zig` (5 new files, renamed + rewritten);
+  `examples/layer1/layer1.zig` import paths updated.
+- `examples/layer2/053-*.zig` .. `062-*.zig` (10 new files, renamed + rewritten);
+  `examples/layer2/layer2.zig` import paths updated.
+- `examples/layer3/089-*.zig` .. `092-*.zig` (4 new files, renamed + rewritten);
+  `examples/layer3/layer3.zig` import paths updated.
+- `examples/layer4/017-*.zig` .. `061-*.zig`, `095-*.zig`, `096-*.zig` (47 files rewritten
+  in place — doc comment + flow-descriptor placement only, no rename).
+- `design/task1-examples-002.md` → `-003.md` — new version; index only.
+- `design/task2-examples-002.md` → `-003.md` — new version; index only.
+- `design/STATUS.md` — sources updated; EXMPL 4 stage line; this entry.
+- `design/matryoshka-io-implementation-plan-029.md` → `-030.md` — new plan version.
+- `design/context.md` — rules → 009, examples → 003, plan → 030.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| build_and_test_debug.sh | PASS (161/161), run after each file-group checkpoint |
+| build_and_test_all.sh | PASS (161/161 × 4 modes) |
+| build_cross_debug.sh | PASS (x86_64-macos, aarch64-macos, x86_64-windows) |
+| Post-stage cleanup | done — see below |
+| AI-sh + banned words scan | 1 pre-existing hit found and fixed (see below) |
+| Rules audit (rules-009.md) | CLEAN on changed files; 2 pre-existing findings reported (see below) |
+
+**Post-stage cleanup**
+- `090-capped_pool.zig`: new `///` comment introduced `drain` — fixed to "empty the pool".
+- `025-select_two_mailboxes.zig`: two `fired` occurrences (in log message and doc comment)
+  fixed to `triggered`, consistent with prior EXMPL 3e fixes elsewhere.
+- Scenario 40 ("Master batch drain: receive_batch → put_all") — pre-existing name unchanged
+  since `task2-scenarios-001.md`, contains `drain`. Owner approved fix during this pass:
+  renamed to "Master batch collect" in doc comment and `task2-examples-003.md` index entry;
+  filename renamed `040-master_batch_drain_receive_to_pool.zig` →
+  `040-master_batch_collect_receive_to_pool.zig`, `layer4.zig` import updated.
+
+**Rules audit (rules-009.md)** — all 66 files touched by this stage (`examples/layer1/021-025`,
+`layer2/053-062`, `layer3/089-092`, `layer4/017-061`+`095-096`) checked against every rule.
+- LE import order: `std` last in every file. CLEAN.
+- Description as code: `///` doc comment present and first in every file. CLEAN.
+- File layout: `pub fn run` is the first top-level declaration in every file; Master `run`
+  methods precede `init`/`destroy` in every Master struct. CLEAN.
+- Banned words: clean in all 66 changed files (see AI-sh scan above).
+- Slot Rule / example completeness: not re-verified logically this pass — only code position
+  and comments changed, no program logic touched; both passed before the rewrite.
+
+**Pre-existing findings (not introduced by this stage, reported per rule)**
+- `patterns-008.md:960` — "Drain an entire mailbox" (banned word `drain`), carried unchanged
+  since `patterns-002.md`/`patterns-003.md` (flagged in EXMPL 3b, never fixed). Owner approved
+  fix: "Empty an entire mailbox."
+- `src/polynode.zig`, `src/internal/cond_timeout.zig` — `///` doc comments in `src/`,
+  contradicting the "no `///` in `src/`" rule. Already reported in the API 2 session log
+  entry (2026-07-02); owner decided not to fix now, unchanged, out of scope for this stage.
+
+**Next**: Stage 9 — Docs + README + autodocs. Owner to decide on removing old-named
+layer1-3 example files (currently unreferenced, left in place per owner instruction).
+
+---
+
+### 2026-07-03 — CI investigation: rare ReleaseSmall race in pool_fan_in (053)
+**Participants**: human + Claude
+
+**Summary**
+CI (Linux, `ReleaseSmall`, seed `0xa049e5bb`) failed `053-pool_fan_in.zig` with `PoolFanInFailed` — "wrong result sum". Master dispatched jobs 10/20/30 to 3 workers via 3 mailboxes; workers correctly doubled them to 20/40/60 (confirmed by worker log lines); but `collectResults()` read back 60, 40, and a stray 0 instead of 60, 40, 20 (sum 100 instead of 120). No code changes made — investigation only, per STATUS.md rule "Show intent before code changes. Get owner approval."
+
+**Ruled out (by code audit)**
+- Example logic (`053-pool_fan_in.zig`): `seedPool()` → `dispatch()` run synchronously on the master thread before any worker can touch the pool (workers block on `mailbox.receive` until `dispatch` sends). `awaitWorkers()` calls `futs[i].await(io)` for all 3 workers before `collectResults()` runs — a real synchronization point, so `collectResults()` is never concurrent with a worker.
+- `pool.zig` `put()`/`get`: list mutation (`list.prepend`, `counts += 1`) is entirely inside `p.mutex` lock/unlock; 3 concurrent worker `put()` calls should serialize correctly. `AlwaysCreateCtx.onPut` is a no-op, so the hook-call-outside-lock window in `put()` does nothing here. Total item count is fixed at 3 (only `seedPool` creates items, since `.available_only` never invokes `on_get`), so this is in-place corruption of one of 3 existing heap objects, not a phantom extra item.
+- `polynode.reset()` only clears `prev`/`next` list pointers, never touches payload fields (e.g. `Event.code`).
+- `src/internal/cond_timeout.zig` (`condition_waitTimeout`, Open Item 5 workaround): compared line-by-line against Zig 0.17 stdlib's `Condition.waitTimeout` (owner pasted in for comparison) — semantically identical, same atomics/ordering. Also: the worker's actual call site (`mailbox.receive(ctx.mbh, &slot, null)`) passes `timeout_ns = null` → `deadline = .none`, so the timeout-differentiation branch (`switch (deadline) { .deadline => ... }`) is never exercised on this path at all — ruled out as the direct cause.
+- `Io.Mutex`/`Io.Condition` (Zig 0.16 stdlib, `lib/std/Io.zig`): correct acquire/release pairing on lock/unlock and signal/wait; `cond_timeout.zig` is a faithful reimplementation of the same pattern with timeout support added.
+- `Io.Threaded`'s raw futex backend (`lib/std/Io/Threaded.zig`): on Linux, `use_parking_futex = false`, so `futexWaitInner`/`futexWake` call the raw `linux.futex_4arg`/`futex_3arg` syscalls directly — standard kernel primitive, no custom logic.
+- `Future.await()` (`Threaded.zig:2417`): uses `fetchOr(..., .acq_rel)` (commented "acquire results if complete") and `num_completed.load(.acquire)` (commented "acquire task results") — correct acquire/release pairing, so a worker's writes should be visible to the master after `await` returns.
+
+**Reproduction**
+- 28 local runs (20 random-seed, 8 with CI's exact seed `0xa049e5bb`) via `zig build test -Doptimize=ReleaseSmall` all passed — not reproducible via `zig build test`'s `--seed` alone (it controls test/fuzz ordering, not thread scheduling).
+- Added a temporary in-process stress test to `tests/layer4_select.zig` (500 iterations of `layer4.pool_fan_in.run()` in one `Io.Threaded` instance per iteration, one test binary). Reproduced `PoolFanInFailed` at iteration 132/500 — roughly **1-in-500** failure rate. Confirms a genuine, rare, timing-dependent race, not a deterministic logic bug. Log level was `.warn` during the stress run, so exact corrupted values for iteration 132 were not captured.
+
+**Conclusion**
+No defect found in `matryoshka-io` source by static audit, from the example down through `pool.zig`/`mailbox.zig`, `cond_timeout.zig`, Zig 0.16 stdlib `Io.Mutex`/`Io.Condition`, to the raw Linux futex syscalls and `Future.await()`. Suspected upstream Zig 0.16 `Io.Threaded` internals bug (thread-pool/task-scheduling, adjacent to the already-tracked workaround at Open Item 5, `https://codeberg.org/ziglang/zig/issues/31278`) or a ReleaseSmall-specific codegen issue. Confirming further would require dynamic tooling (e.g. ThreadSanitizer) or a minimal standalone repro outside this codebase to file upstream — out of scope for this session.
+
+**Changes**
+- `design/STATUS.md` — this entry; Open Item 13 added
+- `tests/layer4_select.zig` — temporary `"STRESS - pool fan-in race repro (temporary)"` test added (500-iteration loop); not yet removed, owner to decide
+- `src/internal/cond_timeout.zig` — owner added a Zig 0.17 stdlib `waitTimeout` for comparison (unused, dead code, left in place)
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| Kitchen scripts | not run — investigation only, no fix made |
+| Reproduction | confirmed, ~1/500 under ReleaseSmall via in-process stress loop |
+
+**Next**: owner to decide — remove/keep temporary stress test; pursue standalone minimal repro for upstream Zig issue, or accept as known flaky/rare CI failure for now. Stage 9 (Docs + README + autodocs) still next for planned work.
+
+---
 
 ### 2026-07-02 — API 2 (PolyHelper Slot-aware identification API)
 **Participants**: human + Claude

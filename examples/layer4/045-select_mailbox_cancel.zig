@@ -1,17 +1,41 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (empty)
-//  │ receiveResult (blocking)
-//  ▼
-//  Select(MasterEvent) ◄── sleepFn (timer)
-//  │
-//  .timer ──► sel.cancel() loop ──► .inbox .canceled
-//             (group.cancel signals receiveResult to stop)
-//  │
-//  mailbox.close ──► freeList ──► mailbox.destroy
+/// Select cancel propagation.
+///
+/// - Mailbox is empty; receiveResult blocks as a Select event source.
+/// - A timer triggers first, calls sel.cancel().
+/// - The blocked receive reports .canceled, propagated through the cancel loop.
+///
+/// Ownership:
+///
+///  mailbox (empty)
+///  │ receiveResult (blocking)
+///  ▼
+///  Select(MasterEvent) ◄── sleepFn (timer)
+///  │
+///  .timer ──► sel.cancel() loop ──► .inbox .canceled
+///             (group.cancel signals receiveResult to stop)
+///  │
+///  mailbox.close ──► freeList ──► mailbox.destroy
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.freeList(&rem, allocator);
+        mailbox.destroy(mbh, allocator);
+    }
+
+    var buf: [4]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    try ctx.setupSelect(&sel);
+    try Ctx.awaitTimerFirst(&sel);
+    ctx.clearCanceled(&sel);
+
+    try helpers.expect(error.SelectMailboxCancelFailed, ctx.got_canceled, "expected .canceled from inbox");
+    std.log.info("done: sel.cancel() propagated .canceled through mailbox.receiveResult", .{});
+}
 
 const TIMER_NS: i96 = 10_000_000; // 10 ms
 
@@ -65,25 +89,6 @@ const Ctx = struct {
         }
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    defer {
-        var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
-        mailbox.destroy(mbh, allocator);
-    }
-
-    var buf: [4]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    try ctx.setupSelect(&sel);
-    try Ctx.awaitTimerFirst(&sel);
-    ctx.clearCanceled(&sel);
-
-    try helpers.expect(error.SelectMailboxCancelFailed, ctx.got_canceled, "expected .canceled from inbox");
-    std.log.info("done: sel.cancel() propagated .canceled through mailbox.receiveResult", .{});
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

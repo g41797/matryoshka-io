@@ -1,20 +1,46 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership (mailbox-less):
-//
-//  pool (1 empty container seeded — code=0)
-//  │ io.concurrent (n=3 passed at spawn time)
-//  ▼
-//  worker loop (n cycles):
-//    pool.get ──► slot (empty) ──► ev.code = worker counter ──► pool.put ──► pool
-//  │
-//  fut.await ──► master reads ctx.counter (= n after all cycles)
-//  pool.close ──► on_close ──► freed
-//
-//  Work input: spawn-time arg n + worker's own counter.
-//  Pool item is an empty container — a processing slot, not a data carrier.
-//  No mailbox needed for simple single-worker coordination.
+/// Pool + Future: simple worker.
+///
+/// - Master seeds the pool with 1 empty container, spawns one worker with N passed at spawn time.
+/// - Worker loops N times: pool.get_wait, writes its own counter into the container, pool.put.
+/// - fut.await blocks until the worker finishes all N cycles.
+/// - No mailbox needed — pool is the only coordination point.
+///
+/// Ownership (mailbox-less):
+///
+///  pool (1 empty container seeded — code=0)
+///  │ io.concurrent (n=3 passed at spawn time)
+///  ▼
+///  worker loop (n cycles):
+///    pool.get ──► slot (empty) ──► ev.code = worker counter ──► pool.put ──► pool
+///  │
+///  fut.await ──► master reads ctx.counter (= n after all cycles)
+///  pool.close ──► on_close ──► freed
+///
+///  Work input: spawn-time arg n + worker's own counter.
+///  Pool item is an empty container — a processing slot, not a data carrier.
+///  No mailbox needed for simple single-worker coordination.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedContainer(ph);
+
+    var ctx: WorkerCtx = .{ .ph = ph, .tag = types.EventPolyHelper.TAG, .n = N };
+    var fut: std.Io.Future(anyerror!void) = try io.concurrent(workerFn, .{&ctx});
+    try fut.await(io);
+
+    try helpers.expect(error.MailboxLessPoolFutureFailed, ctx.counter == N, "wrong cycle count");
+    std.log.info("done: worker completed {d} cycles — counter={d}, pool item was empty container, no mailbox needed", .{ N, ctx.counter });
+}
 
 const N: usize = 3; // iteration count passed to worker at spawn time
 
@@ -41,26 +67,6 @@ fn seedContainer(ph: PoolHandle) !void {
     var slot: Slot = null;
     try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
     pool.put(ph, &slot);
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    try seedContainer(ph);
-
-    var ctx: WorkerCtx = .{ .ph = ph, .tag = types.EventPolyHelper.TAG, .n = N };
-    var fut: std.Io.Future(anyerror!void) = try io.concurrent(workerFn, .{&ctx});
-    try fut.await(io);
-
-    try helpers.expect(error.MailboxLessPoolFutureFailed, ctx.counter == N, "wrong cycle count");
-    std.log.info("done: worker completed {d} cycles — counter={d}, pool item was empty container, no mailbox needed", .{ N, ctx.counter });
 }
 
 const helpers = @import("helpers");

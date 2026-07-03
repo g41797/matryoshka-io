@@ -153,7 +153,7 @@ They do not define it.
 
 ---
 
-## Why use Matryoshka with Zig Io?
+## Why Matryoshka-io?
 
 Think about cars.
 
@@ -169,7 +169,7 @@ Matryoshka:
 
 Start building today.
 
-If Zig Io changes tomorrow—and it will—your architecture stays the same.
+If Zig Io changes tomorrow—**and it will**—your architecture stays the same.
 
 ## Try Matryoshka without fear
 

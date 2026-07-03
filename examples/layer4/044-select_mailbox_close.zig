@@ -1,18 +1,43 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox (empty)
-//  │ receiveResult (blocking)
-//  ▼
-//  Select(MasterEvent) ◄── sleepFn (timer triggers first)
-//  │
-//  .timer ──► mailbox.close(mbh) ──► freeList(rem)
-//             (running receiveResult unblocks with .closed)
-//  │
-//  sel.await() ──► .inbox .closed
-//  sel.cancelDiscard()
+/// Select mailbox close propagation.
+///
+/// - Mailbox is empty; receiveResult blocks as a Select event source.
+/// - A timer triggers first, closes the mailbox while receiveResult is running.
+/// - The blocked receive unblocks with .closed, propagated through sel.await().
+///
+/// Ownership:
+///
+///  mailbox (empty)
+///  │ receiveResult (blocking)
+///  ▼
+///  Select(MasterEvent) ◄── sleepFn (timer triggers first)
+///  │
+///  .timer ──► mailbox.close(mbh) ──► freeList(rem)
+///             (running receiveResult unblocks with .closed)
+///  │
+///  sel.await() ──► .inbox .closed
+///  sel.cancelDiscard()
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh: MailboxHandle = try mailbox.new(io, allocator);
+    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
+    defer {
+        if (!ctx.mbh_closed) {
+            var rem: std.DoublyLinkedList = mailbox.close(ctx.mbh);
+            helpers.freeList(&rem, ctx.alloc);
+        }
+        mailbox.destroy(ctx.mbh, ctx.alloc);
+    }
+
+    var buf: [4]MasterEvent = undefined;
+    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
+    try ctx.setupSelect(&sel);
+    try ctx.runEventLoop(&sel);
+
+    try helpers.expect(error.SelectMailboxCloseFailed, ctx.got_closed, "expected .closed from Select inbox");
+    std.log.info("done: mailbox.close propagated .closed through Select", .{});
+}
 
 const TIMER_NS: i96 = 10_000_000; // 10 ms
 
@@ -67,26 +92,6 @@ const Ctx = struct {
         sel.cancelDiscard();
     }
 };
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh: MailboxHandle = try mailbox.new(io, allocator);
-    var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };
-    defer {
-        if (!ctx.mbh_closed) {
-            var rem: std.DoublyLinkedList = mailbox.close(ctx.mbh);
-            helpers.freeList(&rem, ctx.alloc);
-        }
-        mailbox.destroy(ctx.mbh, ctx.alloc);
-    }
-
-    var buf: [4]MasterEvent = undefined;
-    var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
-    try ctx.setupSelect(&sel);
-    try ctx.runEventLoop(&sel);
-
-    try helpers.expect(error.SelectMailboxCloseFailed, ctx.got_closed, "expected .closed from Select inbox");
-    std.log.info("done: mailbox.close propagated .closed through Select", .{});
-}
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

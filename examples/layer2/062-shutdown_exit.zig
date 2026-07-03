@@ -1,37 +1,17 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  main ──Event×3──► mailbox ──► worker (processes, freeSlot)
-//  main ──ShutdownCommand──► mailbox ──► worker (exits, freeSlot)
-//  (mailbox stays open; worker owns all received items)
-
-const WorkerCtx = struct {
-    mbh: MailboxHandle,
-    alloc: std.mem.Allocator,
-    processed: usize = 0,
-};
-
-fn workerFn(ctx: *WorkerCtx) void {
-    while (true) {
-        var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
-        mailbox.receive(ctx.mbh, &slot, null) catch return;
-        const poly: *PolyNode = slot.?;
-        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
-            std.log.info("worker: ShutdownCommand received, exiting cleanly", .{});
-            return;
-        } else if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
-            std.log.debug("worker: Event code={d}", .{ev.*.code});
-            ctx.processed += 1;
-        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
-            std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
-            ctx.processed += 1;
-        }
-    }
-}
-
+/// Shutdown via ShutdownCommand.
+///
+/// - Main sends 3 Events, then a ShutdownCommand PolyNode.
+/// - Worker processes each Event, exits cleanly on the sentinel.
+/// - Mailbox stays open throughout — worker owns every item it received.
+///
+/// Ownership:
+///
+///  main ──Event×3──► mailbox ──► worker (processes, freeSlot)
+///  main ──ShutdownCommand──► mailbox ──► worker (exits, freeSlot)
+///  (mailbox stays open; worker owns all received items)
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
 
@@ -65,6 +45,31 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     std.log.info("shutdown_exit: worker processed {d} items before ShutdownCommand", .{ctx.processed});
     try helpers.expect(error.ShutdownExitFailed, ctx.processed == 3, "wrong processed count");
+}
+
+const WorkerCtx = struct {
+    mbh: MailboxHandle,
+    alloc: std.mem.Allocator,
+    processed: usize = 0,
+};
+
+fn workerFn(ctx: *WorkerCtx) void {
+    while (true) {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
+        const poly: *PolyNode = slot.?;
+        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+            std.log.info("worker: ShutdownCommand received, exiting cleanly", .{});
+            return;
+        } else if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+            std.log.debug("worker: Event code={d}", .{ev.*.code});
+            ctx.processed += 1;
+        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
+            std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
+            ctx.processed += 1;
+        }
+    }
 }
 
 const helpers = @import("helpers");

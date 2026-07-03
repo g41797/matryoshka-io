@@ -1,41 +1,21 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  main ──alloc.create──► slot ──mailbox.send──► mailbox
-//                                                    │
-//                                              worker thread
-//                                              mailbox.receive
-//                                                    │ freeSlot
-//  mailbox.close ──► remaining list ──► freeList (main)
-
-const WorkerCtx = struct {
-    mbh: MailboxHandle,
-    alloc: std.mem.Allocator,
-    event_sum: i32 = 0,
-    sensor_sum: f64 = 0.0,
-    count: usize = 0,
-};
-
-fn workerFn(ctx: *WorkerCtx) void {
-    while (true) {
-        var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
-        mailbox.receive(ctx.mbh, &slot, null) catch return;
-        const poly: *PolyNode = slot.?;
-        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
-            std.log.debug("worker: Event code={d}", .{ev.*.code});
-            ctx.event_sum += ev.*.code;
-            ctx.count += 1;
-        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
-            std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
-            ctx.sensor_sum += sn.*.value;
-            ctx.count += 1;
-        }
-    }
-}
-
+/// Worker loop pattern.
+///
+/// - Main sends 3 Events and 2 Sensors into a mailbox.
+/// - Worker thread loops on mailbox.receive, dispatches on tag.
+/// - Worker exits on error.Closed.
+/// - Main closes the mailbox, frees any items left unreceived.
+///
+/// Ownership:
+///
+///  main ──alloc.create──► slot ──mailbox.send──► mailbox
+///                                                    │
+///                                              worker thread
+///                                              mailbox.receive
+///                                                    │ freeSlot
+///  mailbox.close ──► remaining list ──► freeList (main)
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
@@ -77,6 +57,32 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
         ctx.count, remaining, ctx.event_sum, ctx.sensor_sum,
     });
     try helpers.expect(error.WorkerLoopFailed, ctx.count + remaining == 5, "wrong total");
+}
+
+const WorkerCtx = struct {
+    mbh: MailboxHandle,
+    alloc: std.mem.Allocator,
+    event_sum: i32 = 0,
+    sensor_sum: f64 = 0.0,
+    count: usize = 0,
+};
+
+fn workerFn(ctx: *WorkerCtx) void {
+    while (true) {
+        var slot: Slot = null;
+        defer helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.receive(ctx.mbh, &slot, null) catch return;
+        const poly: *PolyNode = slot.?;
+        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+            std.log.debug("worker: Event code={d}", .{ev.*.code});
+            ctx.event_sum += ev.*.code;
+            ctx.count += 1;
+        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
+            std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
+            ctx.sensor_sum += sn.*.value;
+            ctx.count += 1;
+        }
+    }
 }
 
 const helpers = @import("helpers");

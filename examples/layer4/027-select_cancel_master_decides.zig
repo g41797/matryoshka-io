@@ -1,20 +1,32 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mbh1 (empty)    mbh2 (empty)
-//  │ receiveResult  │ receiveResult
-//  └────────┬───────┘
-//            ▼
-//  Select(MasterEvent) ◄── sleepFn (timer triggers first — both mailboxes empty)
-//  │
-//  .timer ──► sel.cancel() loop
-//             .inbox1 .canceled ──► master decides: close mbh1 permanently
-//             .inbox2 .canceled ──► master decides: keep mbh2, re-spawn later
-//  │
-//  Phase 2: new Select, mbh2 only
-//  send 2 items to mbh2 ──► receive them via fresh Select
+/// Cancel reports, Master decides.
+///
+/// - Phase 1: two mailboxes in Select, timer triggers first (both empty).
+/// - sel.cancel() reports both as .canceled — mailboxes stay open.
+/// - Master decides: close mbh1 permanently, keep mbh2 for phase 2.
+/// - Phase 2: fresh Select on mbh2 only, sends and receives 2 items.
+///
+/// Ownership:
+///
+///  mbh1 (empty)    mbh2 (empty)
+///  │ receiveResult  │ receiveResult
+///  └────────┬───────┘
+///            ▼
+///  Select(MasterEvent) ◄── sleepFn (timer triggers first — both mailboxes empty)
+///  │
+///  .timer ──► sel.cancel() loop
+///             .inbox1 .canceled ──► master decides: close mbh1 permanently
+///             .inbox2 .canceled ──► master decides: keep mbh2, re-spawn later
+///  │
+///  Phase 2: new Select, mbh2 only
+///  send 2 items to mbh2 ──► receive them via fresh Select
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master = try CancelDecideMaster.init(allocator, io);
+    defer master.destroy();
+    try master.run();
+}
 
 const TIMER_NS: i96 = 6_000_000; // 6 ms — triggers first (both mailboxes are empty)
 
@@ -29,40 +41,6 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
 }
 
 const CancelDecideMaster = struct {
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    mbh1: MailboxHandle,
-    mbh2: MailboxHandle,
-    mbh1_closed: bool,
-
-    fn init(allocator: std.mem.Allocator, io: std.Io) !*CancelDecideMaster {
-        const self = try allocator.create(CancelDecideMaster);
-        errdefer allocator.destroy(self);
-        self.allocator = allocator;
-        self.io = io;
-        self.mbh1_closed = false;
-        self.mbh1 = try mailbox.new(io, allocator);
-        errdefer {
-            var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
-            helpers.freeList(&rem, allocator);
-            mailbox.destroy(self.mbh1, allocator);
-        }
-        self.mbh2 = try mailbox.new(io, allocator);
-        return self;
-    }
-
-    fn destroy(self: *CancelDecideMaster) void {
-        if (!self.mbh1_closed) {
-            var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
-            helpers.freeList(&rem, self.allocator);
-        }
-        mailbox.destroy(self.mbh1, self.allocator);
-        var rem2: std.DoublyLinkedList = mailbox.close(self.mbh2);
-        helpers.freeList(&rem2, self.allocator);
-        mailbox.destroy(self.mbh2, self.allocator);
-        self.allocator.destroy(self);
-    }
-
     fn run(self: *CancelDecideMaster) !void {
         const respawn_inbox2: bool = try self.phase1Cancel();
         try helpers.expect(error.SelectCancelMasterDecidesFailed, self.mbh1_closed, "mbh1 should be closed");
@@ -85,7 +63,7 @@ const CancelDecideMaster = struct {
         try sel.concurrent(.timer, sleepFn, .{ sleep_t, self.io });
 
         const first: MasterEvent = try sel.await();
-        try helpers.expect(error.SelectCancelMasterDecidesFailed, first == .timer, "expected timer to fire first");
+        try helpers.expect(error.SelectCancelMasterDecidesFailed, first == .timer, "expected timer to trigger first");
         std.log.info("timer: making per-source decisions", .{});
 
         var respawn_inbox2: bool = false;
@@ -157,13 +135,41 @@ const CancelDecideMaster = struct {
         }
         return items_after;
     }
-};
 
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master = try CancelDecideMaster.init(allocator, io);
-    defer master.destroy();
-    try master.run();
-}
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    mbh1: MailboxHandle,
+    mbh2: MailboxHandle,
+    mbh1_closed: bool,
+
+    fn init(allocator: std.mem.Allocator, io: std.Io) !*CancelDecideMaster {
+        const self = try allocator.create(CancelDecideMaster);
+        errdefer allocator.destroy(self);
+        self.allocator = allocator;
+        self.io = io;
+        self.mbh1_closed = false;
+        self.mbh1 = try mailbox.new(io, allocator);
+        errdefer {
+            var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
+            helpers.freeList(&rem, allocator);
+            mailbox.destroy(self.mbh1, allocator);
+        }
+        self.mbh2 = try mailbox.new(io, allocator);
+        return self;
+    }
+
+    fn destroy(self: *CancelDecideMaster) void {
+        if (!self.mbh1_closed) {
+            var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
+            helpers.freeList(&rem, self.allocator);
+        }
+        mailbox.destroy(self.mbh1, self.allocator);
+        var rem2: std.DoublyLinkedList = mailbox.close(self.mbh2);
+        helpers.freeList(&rem2, self.allocator);
+        mailbox.destroy(self.mbh2, self.allocator);
+        self.allocator.destroy(self);
+    }
+};
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");

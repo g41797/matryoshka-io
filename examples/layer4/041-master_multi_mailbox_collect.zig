@@ -1,16 +1,37 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mailbox_a (2 items)    mailbox_b (3 items)
-//  │
-//  mailbox_a.close ──► list_a (std.DoublyLinkedList, 2 items)
-//  mailbox_b.close ──► list_b (std.DoublyLinkedList, 3 items)
-//  list_a.concatByMoving(&list_b) ──► combined (5 items)
-//  walk combined: popFirst ──► freeItem (×5)
-//  │
-//  One stdlib walk handles items from multiple mailboxes — no special API.
+/// Master pre-shutdown collect.
+///
+/// - Fill mailbox_a with 2 Events, mailbox_b with 3 Sensors.
+/// - closeAndMerge closes both, merges the lists with concatByMoving.
+/// - collectAndFree walks the combined list once, frees every item.
+///
+/// Ownership:
+///
+///  mailbox_a (2 items)    mailbox_b (3 items)
+///  │
+///  mailbox_a.close ──► list_a (std.DoublyLinkedList, 2 items)
+///  mailbox_b.close ──► list_b (std.DoublyLinkedList, 3 items)
+///  list_a.concatByMoving(&list_b) ──► combined (5 items)
+///  walk combined: popFirst ──► freeItem (×5)
+///  │
+///  One stdlib walk handles items from multiple mailboxes — no special API.
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const mbh_a: MailboxHandle = try mailbox.new(io, allocator);
+    const mbh_b: MailboxHandle = try mailbox.new(io, allocator);
+
+    var ctx: Ctx = .{ .mbh_a = mbh_a, .mbh_b = mbh_b, .alloc = allocator };
+    try ctx.fillMailboxA();
+    try ctx.fillMailboxB();
+    std.log.info("before collect: {d} in mailbox_a, {d} in mailbox_b", .{ N_A, N_B });
+
+    var combined: std.DoublyLinkedList = ctx.closeAndMerge();
+    const freed = collectAndFree(&combined, allocator);
+
+    try helpers.expect(error.MasterMultiMailboxFailed, freed == N_A + N_B, "freed count mismatch");
+    std.log.info("done: {d} items from {d} mailboxes — stdlib concatByMoving + popFirst walk", .{ freed, 2 });
+}
 
 const N_A: usize = 2;
 const N_B: usize = 3;
@@ -60,22 +81,6 @@ fn collectAndFree(combined: *std.DoublyLinkedList, alloc: std.mem.Allocator) usi
         freed += 1;
     }
     return freed;
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const mbh_a: MailboxHandle = try mailbox.new(io, allocator);
-    const mbh_b: MailboxHandle = try mailbox.new(io, allocator);
-
-    var ctx: Ctx = .{ .mbh_a = mbh_a, .mbh_b = mbh_b, .alloc = allocator };
-    try ctx.fillMailboxA();
-    try ctx.fillMailboxB();
-    std.log.info("before collect: {d} in mailbox_a, {d} in mailbox_b", .{ N_A, N_B });
-
-    var combined: std.DoublyLinkedList = ctx.closeAndMerge();
-    const freed = collectAndFree(&combined, allocator);
-
-    try helpers.expect(error.MasterMultiMailboxFailed, freed == N_A + N_B, "freed count mismatch");
-    std.log.info("done: {d} items from {d} mailboxes — stdlib concatByMoving + popFirst walk", .{ freed, 2 });
 }
 
 const helpers = @import("helpers");

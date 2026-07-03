@@ -1,14 +1,33 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  pool.get ──► slot ──► pool.put ──► pool
-//  │
-//  get_wait_future ──► Future(PoolResult)
-//  fut.await ──► PoolResult .item ──► slot (master owns)
-//  │
-//  pool.put ──► pool ──pool.close──► on_close ──► freeList
+/// get_wait_future awaited directly.
+///
+/// - Seed the pool with one Event.
+/// - pool.get_wait_future returns an Io.Future(PoolResult), no Select needed.
+/// - fut.await blocks until the item is available, then it's returned to the pool.
+///
+/// Ownership:
+///
+///  pool.get ──► slot ──► pool.put ──► pool
+///  │
+///  get_wait_future ──► Future(PoolResult)
+///  fut.await ──► PoolResult .item ──► slot (master owns)
+///  │
+///  pool.put ──► pool ──pool.close──► on_close ──► freeList
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const ph: PoolHandle = try pool.new(io, allocator);
+    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    try pool.init(ph, pool_ctx.poolHooks(&tags));
+    defer {
+        pool.close(ph);
+        pool.destroy(ph, allocator);
+    }
+
+    try seedPool(ph);
+    try receiveViaFuture(ph, io);
+}
 
 fn seedPool(ph: PoolHandle) !void {
     var slot: Slot = null;
@@ -31,20 +50,6 @@ fn receiveViaFuture(ph: PoolHandle, io: std.Io) !void {
         },
         else => return error.GetWaitFutureDirectFailed,
     }
-}
-
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
-    try pool.init(ph, pool_ctx.poolHooks(&tags));
-    defer {
-        pool.close(ph);
-        pool.destroy(ph, allocator);
-    }
-
-    try seedPool(ph);
-    try receiveViaFuture(ph, io);
 }
 
 const helpers = @import("helpers");

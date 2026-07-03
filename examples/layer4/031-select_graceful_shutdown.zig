@@ -1,21 +1,33 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-// Ownership:
-//
-//  mbh (Event items + ShutdownCommand)    pool (Event items)
-//  │ receiveResult                         │ getWaitResult
-//  └──────────────────────┬───────────────┘
-//                         ▼
-//                 Select(MasterEvent) ◄── sleepFn (timer)
-//                         │ event loop
-//                         ▼
-//  .inbox .item (Event)   ──► process, re-spawn inbox
-//  .inbox .item (Shutdown)──► initiate graceful shutdown:
-//                              sel.cancel() loop
-//                              .inbox  .item ──► freeSlot   (no item lost)
-//                              .pool_ev .item──► pool.put    (no item lost)
-//  sel.cancelDiscard() ──► pool.close ──► mailbox.close
+/// Graceful shutdown with in-flight items.
+///
+/// - Master has 2 event sources: mailbox (Events + ShutdownCommand) and pool.
+/// - eventLoop processes Events, then a ShutdownCommand triggers graceful shutdown.
+/// - gracefulShutdown drains sel.cancel(), frees inbox items, recycles pool items.
+/// - No item is lost across cancellation, at whatever stage each source was in.
+///
+/// Ownership:
+///
+///  mbh (Event items + ShutdownCommand)    pool (Event items)
+///  │ receiveResult                         │ getWaitResult
+///  └──────────────────────┬───────────────┘
+///                         ▼
+///                 Select(MasterEvent) ◄── sleepFn (timer)
+///                         │ event loop
+///                         ▼
+///  .inbox .item (Event)   ──► process, re-spawn inbox
+///  .inbox .item (Shutdown)──► initiate graceful shutdown:
+///                              sel.cancel() loop
+///                              .inbox  .item ──► freeSlot   (no item lost)
+///                              .pool_ev .item──► pool.put    (no item lost)
+///  sel.cancelDiscard() ──► pool.close ──► mailbox.close
+pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
+    const master = try GracefulShutdownMaster.init(allocator, io);
+    defer master.destroy();
+    try master.run();
+}
 
 const TIMER_NS: i96 = 30_000_000; // 30 ms
 const N_EVENTS: usize = 2;
@@ -31,55 +43,6 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
 }
 
 const GracefulShutdownMaster = struct {
-    allocator: std.mem.Allocator,
-    io: std.Io,
-    mbh: MailboxHandle,
-    ph: PoolHandle,
-    pool_ctx: helpers.AlwaysCreateCtx,
-    tags: [1]*const anyopaque,
-    events_processed: usize,
-    shutdown_seen: bool,
-    freed_inbox: usize,
-    recycled_pool: usize,
-    buf: [8]MasterEvent,
-    sel: std.Io.Select(MasterEvent),
-
-    fn init(allocator: std.mem.Allocator, io: std.Io) !*GracefulShutdownMaster {
-        const self = try allocator.create(GracefulShutdownMaster);
-        errdefer allocator.destroy(self);
-        self.allocator = allocator;
-        self.io = io;
-        self.events_processed = 0;
-        self.shutdown_seen = false;
-        self.freed_inbox = 0;
-        self.recycled_pool = 0;
-        self.mbh = try mailbox.new(io, allocator);
-        errdefer {
-            var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-            helpers.freeList(&rem, allocator);
-            mailbox.destroy(self.mbh, allocator);
-        }
-        self.pool_ctx = .{ .alloc = allocator };
-        self.tags = .{types.EventPolyHelper.TAG};
-        self.ph = try pool.new(io, allocator);
-        errdefer {
-            pool.close(self.ph);
-            pool.destroy(self.ph, allocator);
-        }
-        try pool.init(self.ph, self.pool_ctx.poolHooks(&self.tags));
-        self.sel = std.Io.Select(MasterEvent).init(self.io, &self.buf);
-        return self;
-    }
-
-    fn destroy(self: *GracefulShutdownMaster) void {
-        var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-        helpers.freeList(&rem, self.allocator);
-        mailbox.destroy(self.mbh, self.allocator);
-        pool.close(self.ph);
-        pool.destroy(self.ph, self.allocator);
-        self.allocator.destroy(self);
-    }
-
     fn run(self: *GracefulShutdownMaster) !void {
         try self.seedResources();
         try self.eventLoop();
@@ -185,13 +148,56 @@ const GracefulShutdownMaster = struct {
             }
         }
     }
-};
 
-pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
-    const master = try GracefulShutdownMaster.init(allocator, io);
-    defer master.destroy();
-    try master.run();
-}
+    allocator: std.mem.Allocator,
+    io: std.Io,
+    mbh: MailboxHandle,
+    ph: PoolHandle,
+    pool_ctx: helpers.AlwaysCreateCtx,
+    tags: [1]*const anyopaque,
+    events_processed: usize,
+    shutdown_seen: bool,
+    freed_inbox: usize,
+    recycled_pool: usize,
+    buf: [8]MasterEvent,
+    sel: std.Io.Select(MasterEvent),
+
+    fn init(allocator: std.mem.Allocator, io: std.Io) !*GracefulShutdownMaster {
+        const self = try allocator.create(GracefulShutdownMaster);
+        errdefer allocator.destroy(self);
+        self.allocator = allocator;
+        self.io = io;
+        self.events_processed = 0;
+        self.shutdown_seen = false;
+        self.freed_inbox = 0;
+        self.recycled_pool = 0;
+        self.mbh = try mailbox.new(io, allocator);
+        errdefer {
+            var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
+            helpers.freeList(&rem, allocator);
+            mailbox.destroy(self.mbh, allocator);
+        }
+        self.pool_ctx = .{ .alloc = allocator };
+        self.tags = .{types.EventPolyHelper.TAG};
+        self.ph = try pool.new(io, allocator);
+        errdefer {
+            pool.close(self.ph);
+            pool.destroy(self.ph, allocator);
+        }
+        try pool.init(self.ph, self.pool_ctx.poolHooks(&self.tags));
+        self.sel = std.Io.Select(MasterEvent).init(self.io, &self.buf);
+        return self;
+    }
+
+    fn destroy(self: *GracefulShutdownMaster) void {
+        var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
+        helpers.freeList(&rem, self.allocator);
+        mailbox.destroy(self.mbh, self.allocator);
+        pool.close(self.ph);
+        pool.destroy(self.ph, self.allocator);
+        self.allocator.destroy(self);
+    }
+};
 
 const helpers = @import("helpers");
 const matryoshka = @import("matryoshka");
