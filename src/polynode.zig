@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-const std = @import("std");
-
 pub const PolyTag = struct {
     _: u8 = 0,
 };
@@ -177,3 +175,6 @@ fn validatePolyType(comptime T: type) void {
     if (@FieldType(T, "poly") != PolyNode)
         @compileError(@typeName(T) ++ ": field 'poly' must have type PolyNode");
 }
+
+const std = @import("std");
+

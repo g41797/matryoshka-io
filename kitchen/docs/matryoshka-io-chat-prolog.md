@@ -1,8 +1,8 @@
-# Matryoshka-io Working Context (Prolog v4)
+# Matryoshka-Io Working Context (Prolog v4)
 
 ## Purpose of this project
 
-Matryoshka-io is an architecture model for building software systems.
+Matryoshka-Io is an architecture model for building software systems.
 
 It defines how systems are structured and how they behave at runtime.
 

@@ -9,7 +9,7 @@ The existing README (from the Odin version) reads like it is trying to *sell a p
 * Can I debug it?
 * Can I gradually adopt it?
 
-For Matryoshka-io, I think the README should read like it was written by an engineer for engineers.
+For Matryoshka-Io, I think the README should read like it was written by an engineer for engineers.
 
 ## The audience
 
@@ -49,7 +49,7 @@ For example:
 > Event loops, async I/O, channels, timers, and sockets solve execution.
 > They don't solve architecture.
 >
-> Matryoshka-io is a set of building blocks for organizing long-lived I/O-driven applications.
+> Matryoshka-Io is a set of building blocks for organizing long-lived I/O-driven applications.
 
 Now the reader knows why the project exists.
 
@@ -226,7 +226,7 @@ If the answer is "yes", then the README should point readers to the design docum
 Given what I know about your project, I would structure the README roughly like this:
 
 1. **The problem** (why another library?)
-2. **What Matryoshka-io is**
+2. **What Matryoshka-Io is**
 3. **What it is not**
 4. **The architecture in one diagram**
 5. **Core concepts** (very briefly: Story, Component, Mailbox, Message, etc.)
@@ -409,7 +409,7 @@ as its canonical first story.
 
 Something like
 
-> Matryoshka-io starts with the behavior of the system.
+> Matryoshka-Io starts with the behavior of the system.
 >
 > You describe what the system should do as one or more Stories.
 >
@@ -503,7 +503,7 @@ Start with:
 >
 > The client receives a notification.
 >
-> This is a **Field Story**. Matryoshka-io helps you implement Field Stories as cooperating Components connected by Messages.
+> This is a **Field Story**. Matryoshka-Io helps you implement Field Stories as cooperating Components connected by Messages.
 
 That gives readers an intuitive mental model before introducing any framework terminology.
 

@@ -36,7 +36,7 @@
 - Rules: rules-010.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-007.md
-- Docs plan: matryoshka-io-docs-plan-002.md
+- Docs plan: matryoshka-io-docs-plan-006.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -127,9 +127,201 @@ DOC 1 — tofu audit + docs plan skeleton. DONE. Plan version matryoshka-io-docs
 DOC 2 — confirm tofu + Odin mix decision. DONE (audit only, no implementation).
 DOC 3 — kitchen/ doc folder layout proposal + DOCS-folder claim check. DONE (analysis only).
 DOC 4 — build kitchen/ doc infra (build.zig docs step, mkdocs.yml, tools/, docs.yml fix), verify locally. DONE.
-Current: 161/161 tests. DOC 4 DONE.
+DOC 5 — top-down entry point (matryoshka-based-systems.md) + nav skeleton (Concepts/Building Blocks/Cookbook stubs). DONE.
+DOC 6 — populate Concepts with a story, top-down: print-server system page + Matryoshka-mapping page. DONE.
+DOC 7 — populate Building Blocks with one topic: Observable by human (rule + pattern). DONE.
+DOC 8 — populate Building Blocks with the four core concepts: PolyNode/Mailbox/Pool/Master. DONE.
+Current: 161/161 tests. DOC 8 DONE.
 
 ## Session Log
+
+### 2026-07-04 — DOC 8 (populate Building Blocks with the four core concepts)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: DOC 7 populated Building Blocks with its first topic (Observable by
+human). Owner picked the four core concepts — PolyNode / Mailbox / Pool / Master —
+as DOC 8's topic: the vocabulary the whole toolkit is built on. Unlike the Concepts
+doc-site section (DOC 6), which stays domain-first and defers these terms to a
+second page, Building Blocks is exactly where these four terms get defined directly.
+
+**Key findings**:
+- `design/matryoshka-model-003.md`'s "Core Principles" section already states all
+  four concepts as one continuous idea, plus the "Layers compose" one-diagram
+  summary — needed only distillation, no new authoring.
+- `design/matryoshka-master.md` (an informal dialogue) independently arrives at the
+  same four-concept framing and supplied the Master-as-role wording.
+
+**Changes**:
+- `kitchen/docs/building-blocks/core-concepts.md` (new) — PolyNode, Mailbox, Pool,
+  Master sub-sections plus the layering diagram, pointing back at
+  `matryoshka-model-003.md` and the Observable by Human page.
+- `kitchen/docs/building-blocks/index.md` — added a link to the new page.
+- `kitchen/mkdocs.yml` — "Building Blocks" nav entry gains the new page.
+- `design/matryoshka-io-docs-plan-005.md` → `-006.md` — new "Stage DOC 8" session
+  log + Stages update.
+- `design/context.md` — docs plan pointer → -006.
+- `design/STATUS.md` — DOC 8 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` (output → `zig-out/docs_build_site.log`) | succeeded, no mkdocs warnings |
+| New page renders in `kitchen/output/building-blocks/` | confirmed |
+| Banned-word scan on new content | CLEAN |
+| `.zig` files touched | none — doc-only stage |
+
+**Next**: DOC 9+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
+duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second
+Concepts story, further Building Blocks topics (Select loops, spawn/await, Master
+composition, pool patterns, API reference), Cookbook stub still unpopulated.
+
+### 2026-07-04 — DOC 7 (populate Building Blocks with one topic)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: DOC 6 populated Concepts with the print-server story. Owner confirmed no
+second story for now and picked Building Blocks as DOC 7's scope. Chose "Observable by
+human" as the first topic: it is rules-010.md's headline MUST rule, and patterns-008.md's
+first pattern section is its concrete template — the two source docs already
+cross-reference each other as companions.
+
+**Key findings**:
+- Rule and pattern were already paired 1:1 in the source docs — combining them needed
+  only distillation, no new authoring.
+- API reference (matryoshka-api-reference-016.md) is lookup content, not narrative —
+  deferred to a later DOC stage rather than folded into this one.
+- Select-loop and spawn/await pattern variants in patterns-008.md left for a later
+  Building Blocks topic — one topic at a time, per the established discipline.
+
+**Changes**:
+- `kitchen/docs/building-blocks/observable-by-human.md` (new) — rule + pattern
+  (Coordinator, Step, Init shapes), pointing at `031-select_graceful_shutdown.zig` and
+  `018-master_with_pool.zig` as working examples.
+- `kitchen/docs/building-blocks/index.md` — rewritten from stub to landing page.
+- `kitchen/mkdocs.yml` — "Building Blocks" nav entry expanded to Overview + new page.
+- `design/matryoshka-io-docs-plan-004.md` → `-005.md` — new "Stage DOC 7" session log +
+  Stages update.
+- `design/context.md` — docs plan pointer → -005.
+- `design/STATUS.md` — DOC 7 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` (output → `zig-out/docs_build_site.log`) | succeeded, no mkdocs warnings |
+| New pages render in `kitchen/output/building-blocks/` | confirmed |
+| Banned-word scan on new content | CLEAN |
+| `.zig` files touched | none — doc-only stage |
+
+**Next**: DOC 8+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
+duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second
+Concepts story, further Building Blocks topics (Select loops, spawn/await, Master
+composition, pool patterns, API reference), Cookbook stub still unpopulated.
+
+### 2026-07-04 — DOC 6 (populate Concepts with a story, top-down)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: DOC 5 left three open items for later stages. Owner picked populating the
+Concepts stub as DOC 6's scope. First plan draft led with raw PolyNode/Mailbox/Pool/
+Master definitions; owner rejected it: "system has no Masters, Mailboxes, and Pools —
+it's more suitable to a story; later we see how it's built using Matryoshka, without
+details." Corrected direction: describe a real system first in domain terms, then show
+the same system built with Matryoshka.
+
+**Key findings**:
+- `design/stories/*.md` already use exactly this two-part shape: Parts 1-2 are pure
+  domain (Discussion + SRS, no Matryoshka vocabulary), Parts 3-4 map requirements onto
+  PolyNode/Mailbox/Pool/Master and end with an ASCII flow diagram.
+- `design/matryoshka-model-003.md`'s Three-Category Model already names "Story" as this
+  exact docs-facing artifact type, distinct from Test and Example.
+- `print-server-002.md` used this stage; `video-transcoder-003.md` deferred to a later
+  DOC stage (one story at a time).
+
+**Changes**:
+- `kitchen/docs/concepts/print-server-the-system.md` (new) — domain-only page, adapted
+  from `print-server-002.md` Parts 1-2.
+- `kitchen/docs/concepts/print-server-with-matryoshka.md` (new) — Matryoshka-mapping
+  page, adapted from `print-server-002.md` Parts 3-4, ending with the flow diagram.
+- `kitchen/docs/concepts/index.md` — rewritten from one-line stub to a landing page.
+- `kitchen/mkdocs.yml` — "Concepts" nav entry expanded to Overview + two new pages.
+- `design/matryoshka-io-docs-plan-003.md` → `-004.md` — new "Stage DOC 6" session log +
+  Stages update.
+- `design/context.md` — docs plan pointer → -004.
+- `design/STATUS.md` — DOC 6 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` (output → `zig-out/docs_build_site.log`) | succeeded, no mkdocs warnings |
+| New pages render in `kitchen/output/` | confirmed |
+| Grep for Matryoshka vocabulary in the-system page | none found (only "spooler" prose) |
+| Banned-word scan on new content | CLEAN |
+| `.zig` files touched | none — doc-only stage |
+
+**Next**: DOC 7+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
+duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second
+Concepts story, Building Blocks/Cookbook stubs still unpopulated.
+
+---
+
+### 2026-07-04 — DOC 5 (top-down entry point + nav skeleton)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: Before scoping DOC 5, owner asked for an audit of four candidate content
+sources: `design/*.md`, `kitchen/docs/*.md`, the Odin `matryoshka` repo's `kitchen/docs/`,
+and a 4255-line ChatGPT brainstorm transcript. Owner directed a narrow, top-down scope:
+one entry-point page ("what is a Matryoshka-based system and why") plus a nav skeleton with
+stub placeholders for future sections — not a full site design in one stage.
+
+**Key findings**:
+- `design/*.md` current versions (rules-010, patterns-008, model-003, architecture-001,
+  api-reference-016) are rich but dense — future stages must split each into narrow topic
+  pages, not dump them whole.
+- `kitchen/docs/*.md` is already fully wired into the mkdocs nav but is mostly raw chat
+  logs and iterative storytelling drafts; `index.md` is a 3-line stub;
+  `matryoshka-storytelling-001.md`/`-003.md` share a duplicate H1; `test-example-story.md`
+  covers three topics in one 793-line file. Not fixed this stage — flagged for later.
+- Odin `matryoshka/kitchen/docs/` has a large amount of language-agnostic prose reusable as
+  future content, distinct from its Odin-specific API reference files. Notably
+  `matryoshka-zig-api-reference.md` already exists there as a Zig-ported counterpart.
+- The ChatGPT transcript mostly duplicates `design/` material (it reads like an early
+  draft), but its closing pitch — "most libraries document features; Matryoshka should
+  document architectures" — was new and is used verbatim as the new overview page's
+  opening line.
+
+**Changes**:
+- `kitchen/docs/matryoshka-based-systems.md` (new) — overview/pitch page.
+- `kitchen/docs/concepts/index.md`, `kitchen/docs/building-blocks/index.md`,
+  `kitchen/docs/cookbook/index.md` (new) — stub placeholders naming future source material.
+- `kitchen/mkdocs.yml` — nav: added the 4 new entries after Home, before Reference;
+  existing entries untouched.
+- `design/matryoshka-io-docs-plan-002.md` → `-003.md` — new "Stage DOC 5" session log +
+  Stages update.
+- `design/context.md` — docs plan pointer → -003; added pointer to new
+  `design/docs-tooling-approach-001.md`.
+- `design/docs-tooling-approach-001.md` (new) — content-authoring approach extracted
+  into its own design doc (was previously only in this session log and assistant memory).
+- `design/STATUS.md` — sources updated; DOC 5 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` (output → `zig-out/docs_build_site.log`) | succeeded, no mkdocs warnings |
+| New pages render in `kitchen/output/` | confirmed — 4 new `index.html` outputs |
+| Banned-word scan on new content | CLEAN |
+| `.zig` files touched | none — doc-only stage, kitchen test scripts not run |
+
+**Next**: DOC 6+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
+duplicate H1, `test-example-story.md` three-topics-in-one-file split, breaking `design/`
+content into narrow topic pages to fill the Concepts/Building Blocks/Cookbook stubs.
+
+---
 
 ### 2026-07-03 — DOC 4 (build kitchen/ doc infra, verify locally)
 

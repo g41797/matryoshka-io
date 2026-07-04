@@ -32,6 +32,16 @@ theme:
 
 nav:
   - Home: index.md
+  - Matryoshka Based Systems: matryoshka-based-systems.md
+  - Concepts:
+      - Overview: concepts/index.md
+      - "The System: Print Server": concepts/print-server-the-system.md
+      - "With Matryoshka: Print Server": concepts/print-server-with-matryoshka.md
+  - Building Blocks:
+      - Overview: building-blocks/index.md
+      - Core Concepts: building-blocks/core-concepts.md
+      - Observable by Human: building-blocks/observable-by-human.md
+  - Cookbook: cookbook/index.md
   - Reference:
       - API Reference: api_reference.md
       - Examples Reference: examples_reference.md
