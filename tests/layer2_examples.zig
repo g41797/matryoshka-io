@@ -83,3 +83,11 @@ test "62 - shutdown via ShutdownCommand" {
         return err;
     };
 }
+
+test "97 - wake up all" {
+    std.testing.log_level = .debug;
+    layer2.wake_up_all.@"Wake blocked receiver without a message"(allocator, io) catch |err| {
+        std.log.err("example failed: {s}", .{@errorName(err)});
+        return err;
+    };
+}

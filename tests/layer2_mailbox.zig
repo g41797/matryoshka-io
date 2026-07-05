@@ -909,6 +909,146 @@ test "oob last resets after last oob received, next send_oob goes to front" {
     }
 }
 
+// --- wakeUpAll: wakes a blocked receiver with error.Wakeup ---
+test "wakeUpAll wakes blocked receiver" {
+    const io: Io = testing.io;
+    const alloc: std.mem.Allocator = testing.allocator;
+
+    const mbh: MailboxHandle = try mailbox.new(io, alloc);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.clearList(&rem);
+        mailbox.destroy(mbh, alloc);
+    }
+
+    const Ctx = struct {
+        mbh: MailboxHandle,
+        result: ?anyerror = null,
+    };
+    var ctx: Ctx = .{ .mbh = mbh };
+
+    const worker = struct {
+        fn run(c: *Ctx) void {
+            var slot: Slot = null;
+            mailbox.receive(c.*.mbh, &slot, 5_000_000_000) catch |err| {
+                c.*.result = err;
+                return;
+            };
+        }
+    }.run;
+
+    const t: Thread = try Thread.spawn(.{}, worker, .{&ctx});
+
+    std.Io.Timeout.sleep(.{ .duration = .{ .raw = .{ .nanoseconds = 50_000_000 }, .clock = .real } }, io) catch {};
+    try mailbox.wakeUpAll(mbh);
+
+    t.join();
+    try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx.result);
+}
+
+// --- wakeUpAll: does not affect a receiver that starts afterward ---
+test "wakeUpAll does not affect future receiver" {
+    const io: Io = testing.io;
+    const alloc: std.mem.Allocator = testing.allocator;
+
+    const mbh: MailboxHandle = try mailbox.new(io, alloc);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.clearList(&rem);
+        mailbox.destroy(mbh, alloc);
+    }
+
+    try mailbox.wakeUpAll(mbh);
+
+    var ev: Event = .{ .code = 64 };
+    EventPolyHelper.init(&ev);
+    var send_slot: Slot = &ev.poly;
+    try mailbox.send(mbh, &send_slot);
+
+    var slot: Slot = null;
+    try mailbox.receive(mbh, &slot, 1_000_000_000);
+    const recovered: *Event = EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
+    try testing.expectEqual(@as(i32, 64), recovered.*.code);
+}
+
+// --- wakeUpAll: wakes every receiver currently blocked ---
+test "wakeUpAll wakes all blocked receivers" {
+    const io: Io = testing.io;
+    const alloc: std.mem.Allocator = testing.allocator;
+
+    const mbh: MailboxHandle = try mailbox.new(io, alloc);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.clearList(&rem);
+        mailbox.destroy(mbh, alloc);
+    }
+
+    const Ctx = struct {
+        mbh: MailboxHandle,
+        result: ?anyerror = null,
+    };
+    var ctx_a: Ctx = .{ .mbh = mbh };
+    var ctx_b: Ctx = .{ .mbh = mbh };
+    var ctx_c: Ctx = .{ .mbh = mbh };
+
+    const worker = struct {
+        fn run(c: *Ctx) void {
+            var slot: Slot = null;
+            mailbox.receive(c.*.mbh, &slot, 5_000_000_000) catch |err| {
+                c.*.result = err;
+                return;
+            };
+        }
+    }.run;
+
+    const ta: Thread = try Thread.spawn(.{}, worker, .{&ctx_a});
+    const tb: Thread = try Thread.spawn(.{}, worker, .{&ctx_b});
+    const tc: Thread = try Thread.spawn(.{}, worker, .{&ctx_c});
+
+    std.Io.Timeout.sleep(.{ .duration = .{ .raw = .{ .nanoseconds = 50_000_000 }, .clock = .real } }, io) catch {};
+    try mailbox.wakeUpAll(mbh);
+
+    ta.join();
+    tb.join();
+    tc.join();
+
+    try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx_a.result);
+    try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx_b.result);
+    try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx_c.result);
+}
+
+// --- wakeUpAll: on a closed mailbox returns error.Closed ---
+test "wakeUpAll on closed mailbox returns error.Closed" {
+    const io: Io = testing.io;
+    const alloc: std.mem.Allocator = testing.allocator;
+
+    const mbh: MailboxHandle = try mailbox.new(io, alloc);
+    var rem: std.DoublyLinkedList = mailbox.close(mbh);
+    helpers.clearList(&rem);
+
+    try testing.expectError(error.Closed, mailbox.wakeUpAll(mbh));
+    mailbox.destroy(mbh, alloc);
+}
+
+// --- wakeUpAll: with no blocked receivers is a no-op for the next receive ---
+test "wakeUpAll with no waiters does not affect next receive" {
+    const io: Io = testing.io;
+    const alloc: std.mem.Allocator = testing.allocator;
+
+    const mbh: MailboxHandle = try mailbox.new(io, alloc);
+    defer {
+        var rem: std.DoublyLinkedList = mailbox.close(mbh);
+        helpers.clearList(&rem);
+        mailbox.destroy(mbh, alloc);
+    }
+
+    try mailbox.wakeUpAll(mbh);
+    try mailbox.wakeUpAll(mbh);
+
+    var slot: Slot = null;
+    try testing.expectError(error.Timeout, mailbox.receive(mbh, &slot, 0));
+}
+
 const helpers = @import("helpers");
 
 const matryoshka = @import("matryoshka");

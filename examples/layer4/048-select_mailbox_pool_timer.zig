@@ -72,7 +72,7 @@ const MailboxPoolTimerMaster = struct {
                             try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
                         }
                     },
-                    .closed, .canceled, .timeout => break,
+                    .closed, .canceled, .timeout, .wakeup => break,
                 },
                 .pool_ev => |r| switch (r) {
                     .item => |handle| {

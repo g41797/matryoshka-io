@@ -113,7 +113,7 @@ const Ctx = struct {
                             try sel.concurrent(.inbox1, mailbox.receiveResult, .{ self.mbh1, null });
                         }
                     },
-                    .closed, .canceled, .timeout => break :loop,
+                    .closed, .canceled, .timeout, .wakeup => break :loop,
                 },
                 .inbox2 => |r| switch (r) {
                     .item => |handle| {
@@ -122,7 +122,7 @@ const Ctx = struct {
                         std.log.info("inbox2: Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         self.got2 = true;
                     },
-                    .closed, .canceled, .timeout => break :loop,
+                    .closed, .canceled, .timeout, .wakeup => break :loop,
                 },
             }
             if (self.got1 and self.got2) break :loop;

@@ -8,3 +8,4 @@ pub const shutdown_cleanup = @import("059-shutdown_cleanup.zig");
 pub const batch_processing = @import("060-batch_processing.zig");
 pub const fan_out = @import("061-fan_out.zig");
 pub const shutdown_exit = @import("062-shutdown_exit.zig");
+pub const wake_up_all = @import("097-wake_up_all.zig");

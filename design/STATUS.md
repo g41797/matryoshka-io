@@ -22,7 +22,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-016.md
+- API: matryoshka-api-reference-017.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -32,10 +32,10 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-031.md (slim, state-only)
+- Plan: matryoshka-io-implementation-plan-032.md (slim, state-only)
 - Rules: rules-010.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-007.md
+- Patterns: patterns-009.md
 - Docs plan: matryoshka-io-docs-plan-006.md
 
 ## Participants
@@ -131,9 +131,83 @@ DOC 5 — top-down entry point (matryoshka-based-systems.md) + nav skeleton (Con
 DOC 6 — populate Concepts with a story, top-down: print-server system page + Matryoshka-mapping page. DONE.
 DOC 7 — populate Building Blocks with one topic: Observable by human (rule + pattern). DONE.
 DOC 8 — populate Building Blocks with the four core concepts: PolyNode/Mailbox/Pool/Master. DONE.
-Current: 161/161 tests. DOC 8 DONE.
+API 3 — mailbox.wakeUpAll(). DONE (167/167 tests). Plan version 032 created.
+Current: 167/167 tests. API 3 DONE.
 
 ## Session Log
+
+### 2026-07-05 — API 3 (mailbox.wakeUpAll)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: `design/mailbox-wakeUp.md` (untracked brainstorm doc, owner-authored) explored
+several designs for waking a blocked `mailbox.receive()` caller without sending a real
+message, rejecting each for lost-wakeup races or unneeded complexity, converging on:
+only `wakeUpAll()` (no single-receiver `wakeUp()`), implemented with one broadcast
+generation counter under the mailbox mutex. Owner confirmed this scope and explicitly asked
+for the implementation's field names/code shape to be designed independently rather than
+transcribed from the doc — the doc's role was race-condition rationale, not a spec. Inserted
+as Stage API 3, before Stage 9, following the API 2 precedent (impl + tests + examples + docs
+in one stage, no `.a`/`.b` split).
+
+**Design**: one `wake_epoch: u64` field on `_Mailbox`, read/written only under the existing
+`mutex` (no new atomics, same discipline as `len`/`closed`/`oob_count`). `wakeUpAll()` locks,
+checks `closed`, increments `wake_epoch`, broadcasts. `receive()` captures its own epoch before
+waiting; the wait loop's condition also breaks on an epoch change; if the loop exits with
+`len == 0` it returns `error.Wakeup`. Receivers that start after the bump capture the new
+epoch and are unaffected. Spurious wakeups (epoch unchanged) just loop again — no races,
+because the epoch is only ever touched under the mutex and `condition_waitTimeout` releases
+the mutex atomically with becoming a waiter.
+
+**Changes**:
+- `src/mailbox.zig` — `_Mailbox.wake_epoch: u64` field; new `pub fn wakeUpAll(mbh) error{Closed}!void`;
+  `receive()` error set gains `error.Wakeup`, wait loop checks the epoch, returns `error.Wakeup`
+  on a pure wake; `ReceiveResult` gains `wakeup: void`; `receiveResult()` handles `error.Wakeup`.
+- `tests/layer2_mailbox.zig` — 5 new tests (unnumbered, outside the original scenario
+  catalog — same precedent as the pre-existing OOB invariant test): blocked receiver wakes
+  with `error.Wakeup`; future receiver unaffected; multiple blocked receivers all wake;
+  `wakeUpAll` on a closed mailbox returns `error.Closed`; `wakeUpAll` with no waiters doesn't
+  affect the next `receive()`.
+- `examples/layer2/097-wake_up_all.zig` (new) — worker blocks in `receive()`, coordinator
+  flips a shutdown flag and calls `wakeUpAll()`, worker wakes on `error.Wakeup`, re-checks the
+  flag, exits. Numbered 097 (fresh, beyond the existing 17-96 example catalog range) to avoid
+  colliding with Layer3's test scenarios 63-88, which already occupy that number range in the
+  project's flat scenario-numbering scheme. Registered in `examples/layer2/layer2.zig`; test
+  wrapper added to `tests/layer2_examples.zig`.
+- Every pre-existing exhaustive `switch` on `receive()`/`receiveResult()` errors gained a
+  `.wakeup`/`error.Wakeup` arm: `tests/layer4_master.zig`, `tests/layer4_cancel.zig`,
+  `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/019-multi_worker_master.zig`,
+  `025-select_two_mailboxes.zig`, `026-select_cancel_close.zig`,
+  `027-select_cancel_master_decides.zig`, `028-select_mixed_sources.zig`,
+  `031-select_graceful_shutdown.zig`, `042-select_mailbox_event.zig`,
+  `044-select_mailbox_close.zig`, `045-select_mailbox_cancel.zig`,
+  `048-select_mailbox_pool_timer.zig`, `061-mailbox_less_to_mailbox_transition.zig`. None of
+  these call `wakeUpAll()`, so the new arm is unreachable in practice — treated the same as
+  `error.Closed`/`error.Timeout` (benign wake, loop exits).
+- `design/matryoshka-api-reference-016.md` → `-017.md` — `wakeUpAll()` documented in mailbox
+  Functions; `error.Wakeup` row in Error sets; `wakeup: void` in `ReceiveResult`; Change log entry.
+- `design/patterns-008.md` → `-009.md` — new "Wake blocked receivers without a message" pattern.
+- `design/matryoshka-io-implementation-plan-031.md` → `-032.md` — API 3 summary bullet.
+- `design/context.md` — api-reference/patterns/plan pointers bumped.
+- `design/STATUS.md` — sources updated; API 3 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167) |
+| `bash kitchen/build_and_test_all.sh` (output → `zig-out/build_and_test_all.log`) | PASS (167/167 × 4 modes) |
+| `bash kitchen/build_cross_debug.sh` (output → `zig-out/build_cross_debug.log`) | PASS (3/3 targets: x86_64-macos, aarch64-macos, x86_64-windows) |
+| AI-sh + banned words scan on new/changed content | CLEAN |
+| Post-stage cleanup | doc-only pass — no obsolete code found; new example's `///` comment, entry-point name, LE import order match rules-010.md |
+
+**Post-stage cleanup**: reviewed all new/changed `.zig` files against rules-010.md (Observable
+by human, description as code, descriptive entry-point name, LE import order, banned words).
+No violations found — no further changes needed.
+
+**Next**: Stage 9 — Docs + README + autodocs.
+
+---
 
 ### 2026-07-04 — DOC 8 (populate Building Blocks with the four core concepts)
 

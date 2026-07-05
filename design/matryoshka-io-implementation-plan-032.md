@@ -1,10 +1,10 @@
-# Matryoshka Zig — Implementation Plan (031)
+# Matryoshka Zig — Implementation Plan (032)
 
-Replaces [matryoshka-io-implementation-plan-030.md](matryoshka-io-implementation-plan-030.md).
+Replaces [matryoshka-io-implementation-plan-031.md](matryoshka-io-implementation-plan-031.md).
 
 ## Status
 
-EXMPL 4b — DONE. 161/161 tests.
+API 3 — DONE. 167/167 tests.
 
 ---
 
@@ -33,6 +33,18 @@ EXMPL 4b — DONE. 161/161 tests.
   (`tests/layer1_examples.zig`, `layer2_examples.zig`, `layer3_examples.zig`,
   `layer4_examples.zig`, `layer4_select.zig`, `layer4_cross.zig`) updated to match.
   No logic changed. 161/161 tests, all 4 opt modes, cross-compile clean.
+- API 3: added `mailbox.wakeUpAll()` — wakes every receiver currently blocked in `receive()`
+  with `error.Wakeup`, no item sent, mailbox stays open, future receivers unaffected.
+  Implemented with one `wake_epoch: u64` field on `_Mailbox`, read/written only under the
+  existing mutex (no new atomics). `receive()`'s error set gains `error.Wakeup`;
+  `ReceiveResult` gains `wakeup: void`. All existing exhaustive switches on `receive()`/
+  `receiveResult()` errors across tests/examples/stories updated to handle the new arm.
+  5 new tests in `tests/layer2_mailbox.zig` (unnumbered, outside the original scenario
+  catalog — same precedent as the pre-existing OOB invariant test). New example
+  `examples/layer2/097-wake_up_all.zig` (fresh number beyond the existing 17-96 catalog
+  range, avoiding collision with Layer3's test scenarios 63-88). api-reference-016 → -017.
+  patterns-008 → -009 (new "Wake blocked receivers without a message" pattern). 167/167
+  tests, all 4 opt modes, cross-compile clean.
 
 ---
 

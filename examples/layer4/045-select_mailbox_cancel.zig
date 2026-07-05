@@ -82,7 +82,7 @@ const Ctx = struct {
                         var slot: Slot = handle;
                         helpers.freeSlot(&slot, self.alloc);
                     },
-                    .closed, .timeout => {},
+                    .closed, .timeout, .wakeup => {},
                 },
                 .timer => {},
             }

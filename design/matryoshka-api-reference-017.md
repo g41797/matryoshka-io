@@ -959,13 +959,14 @@ pub fn send(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
   - `!polynode.is_linked(slot.*)`
 
 ```zig
-pub fn receive(mbh: MailboxHandle, slot: *Slot, timeout_ns: ?u64) (error{ Closed, Timeout } || Cancelable)!void
+pub fn receive(mbh: MailboxHandle, slot: *Slot, timeout_ns: ?u64) (error{ Closed, Timeout, Wakeup } || Cancelable)!void
 ```
 - Blocks until handle available.
 - `null` timeout = wait forever.
 - `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `try_receive`.
 - Transfers ownership — `slot.*` set to non-null.
 - OOB handles arrive first (front of queue).
+- `wakeUpAll()` called while blocked here — returns `error.Wakeup`, `slot.*` stays null.
 - Multiple concurrent receivers compete for each handle. One receiver gets it. Scheduling order among waiters depends on the Io runtime and is not guaranteed FIFO.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
@@ -987,6 +988,17 @@ pub fn receive_batch(mbh: MailboxHandle) error{Closed}!std.DoublyLinkedList
 - Takes everything from the queue at once.
 - Returns empty `std.DoublyLinkedList` if queue is currently empty.
 - Does not wait. Does not return error for empty.
+- Assert:
+  - `mailbox.is_it_you(mbh.*.tag)`
+
+```zig
+pub fn wakeUpAll(mbh: MailboxHandle) error{Closed}!void
+```
+- Wakes every receiver currently blocked in `receive()` — no item is sent, nothing is queued.
+- Blocked receivers return `error.Wakeup`.
+- Future receivers (those that call `receive()` after `wakeUpAll()` returns) are not affected.
+- Distinct from `close()`: the mailbox is not torn down, and the effect does not persist for
+  receivers that start later.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
 
@@ -1021,6 +1033,7 @@ pub fn is_it_you(tag: *const anyopaque) bool
 | `error.Closed` | Mailbox was closed via `close()` |
 | `error.Timeout` | `timeout_ns` expired (only when non-null) |
 | `error.Canceled` | Waiting operation was canceled |
+| `error.Wakeup` | `wakeUpAll()` woke this receiver — no item, mailbox stays open |
 
 ### Event source helpers
 
@@ -1038,6 +1051,7 @@ pub const ReceiveResult = union(enum) {
     closed: void,
     timeout: void,
     canceled: void,
+    wakeup: void,
 };
 ```
 
@@ -1805,6 +1819,7 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 017 | 2026-07-05 | API 3. Added `mailbox.wakeUpAll()` — wakes every receiver currently blocked in `receive()` with `error.Wakeup`, no item sent, future receivers unaffected. `receive()` error set gains `error.Wakeup`. `ReceiveResult` gains `wakeup: void`. |
 | 016 | 2026-07-02 | API 2. Renamed `cast`→`identifyNodeAs`, `mustCast`→`mustIdentifyNodeAs`. Added `identifySlotAs` and `mustIdentifySlotAs` for application code that works with Slots directly. Updated `no_create_destroy` diagram. Updated violation example in "No raw allocator calls". |
 | 015 | 2026-06-28 | INTR 4 fixes. Bug 3.1: pool.put_all thread-safety table corrected (NOT atomic wrt close). Bug 1.2: Pattern 1 extended with double-defer for closed-pool fallback. Bug 1.3: get_wait zero-timeout documents intentional error divergence from available_only. Bug 1.4: Slot rule exception note for receiveResult/getWaitResult. Bug 2.3: stdlib compatibility section — polynode.reset warning after popFirst(). |
 | 014 | 2026-06-28 | INTR 2 thread-safe hooks + hook concurrency contract. CappedPoolCtx io/mutex/count fields. in_pool_count semantics. |

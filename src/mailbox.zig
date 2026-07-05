@@ -17,6 +17,7 @@ pub fn new(io: Io, alloc: std.mem.Allocator) !MailboxHandle {
         .closed = std.atomic.Value(bool).init(false),
         .oob_count = 0,
         .oob_last = null,
+        .wake_epoch = 0,
         .io = io,
         .alloc = alloc,
     };
@@ -86,7 +87,7 @@ pub fn send_oob(mbh: MailboxHandle, slot: *polynode.Slot) error{Closed}!void {
     mbx.*.cond.signal(io);
 }
 
-pub fn receive(mbh: MailboxHandle, slot: *polynode.Slot, timeout_ns: ?u64) (error{ Closed, Timeout } || Io.Cancelable)!void {
+pub fn receive(mbh: MailboxHandle, slot: *polynode.Slot, timeout_ns: ?u64) (error{ Closed, Timeout, Wakeup } || Io.Cancelable)!void {
     std.debug.assert(slot.* == null);
 
     const mbx: *_Mailbox = MailboxPolyHelper.mustIdentifyNodeAs(mbh);
@@ -106,7 +107,9 @@ pub fn receive(mbh: MailboxHandle, slot: *polynode.Slot, timeout_ns: ?u64) (erro
 
     if (mbx.*.closed.load(.monotonic)) return error.Closed;
 
-    while (mbx.*.len == 0) {
+    const my_epoch: u64 = mbx.*.wake_epoch;
+
+    while (mbx.*.len == 0 and mbx.*.wake_epoch == my_epoch) {
         if (mbx.*.closed.load(.monotonic)) return error.Closed;
         cond_timeout.condition_waitTimeout(&mbx.*.cond, io, &mbx.*.mutex, deadline) catch |err| switch (err) {
             error.Timeout => {
@@ -119,6 +122,8 @@ pub fn receive(mbh: MailboxHandle, slot: *polynode.Slot, timeout_ns: ?u64) (erro
             },
         };
     }
+
+    if (mbx.*.len == 0) return error.Wakeup;
 
     const node: *std.DoublyLinkedList.Node = mbx.*.list.popFirst().?;
     mbx.*.len -= 1;
@@ -203,6 +208,21 @@ pub fn close(mbh: MailboxHandle) std.DoublyLinkedList {
     return result;
 }
 
+pub fn wakeUpAll(mbh: MailboxHandle) error{Closed}!void {
+    const mbx: *_Mailbox = MailboxPolyHelper.mustIdentifyNodeAs(mbh);
+
+    if (mbx.*.closed.load(.acquire)) return error.Closed;
+    const io: Io = mbx.*.io;
+
+    mbx.*.mutex.lockUncancelable(io);
+    defer mbx.*.mutex.unlock(io);
+
+    if (mbx.*.closed.load(.monotonic)) return error.Closed;
+
+    mbx.*.wake_epoch += 1;
+    mbx.*.cond.broadcast(io);
+}
+
 pub const ConcurrentError = error{ConcurrencyUnavailable};
 
 pub const ReceiveResult = union(enum) {
@@ -210,6 +230,7 @@ pub const ReceiveResult = union(enum) {
     closed: void,
     timeout: void,
     canceled: void,
+    wakeup: void,
 };
 
 pub fn receiveResult(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
@@ -218,6 +239,7 @@ pub fn receiveResult(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult {
         error.Closed => .closed,
         error.Timeout => .timeout,
         error.Canceled => .canceled,
+        error.Wakeup => .wakeup,
     };
     return .{ .item = slot.? };
 }
@@ -238,6 +260,7 @@ const _Mailbox = struct {
     closed: std.atomic.Value(bool),
     oob_count: usize,
     oob_last: ?*std.DoublyLinkedList.Node,
+    wake_epoch: u64,
     io: Io,
     alloc: std.mem.Allocator,
 };

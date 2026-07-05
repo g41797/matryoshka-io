@@ -1014,6 +1014,37 @@ Why.
 
 ---
 
+## Wake blocked receivers without a message
+
+When to use.
+- Re-check external state (a flag flipped outside the mailbox) without sending a real item.
+- Poke a Master blocked in `receive()` so it re-evaluates its loop condition.
+
+Code shape.
+
+```zig
+shutdown.store(true, .release);
+try mailbox.wakeUpAll(mbh);
+```
+
+```zig
+mailbox.receive(mbh, &slot, null) catch |err| switch (err) {
+    error.Wakeup => {
+        if (shutdown.load(.acquire)) return;
+        continue; // spurious poke, re-check and keep waiting
+    },
+    else => ...,
+};
+```
+
+Why.
+- Distinct from `close()`: the mailbox is not torn down, sending still works afterward.
+- Distinct from `send()`: nothing is queued, no item to free.
+- Only receivers already blocked at the time of the call return `error.Wakeup` — a receiver
+  that starts `receive()` afterward is not affected.
+
+---
+
 # Pool patterns
 
 ## Pool as lifecycle policy

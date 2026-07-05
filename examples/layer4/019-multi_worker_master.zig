@@ -42,7 +42,7 @@ fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
         defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
             error.Canceled => return error.Canceled,
-            error.Closed, error.Timeout => return,
+            error.Closed, error.Timeout, error.Wakeup => return,
         };
     }
 }

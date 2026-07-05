@@ -5,7 +5,7 @@
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 
-API reference: [matryoshka-api-reference-016.md](matryoshka-api-reference-016.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, Select internals, receiveResult/getWaitResult
+API reference: [matryoshka-api-reference-017.md](matryoshka-api-reference-017.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, Select internals, receiveResult/getWaitResult, mailbox.wakeUpAll
 
 Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
 
@@ -15,9 +15,9 @@ Thinking model: [matryoshka-model-003.md](matryoshka-model-003.md) — ownership
 
 Rules: [rules-010.md](rules-010.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item + Description as code rule + descriptive entry-point name rule)
 
-Patterns: [patterns-008.md](patterns-008.md) — reusable coding patterns (Observable function shapes, pool, Select, Group, shutdown, dispatch, Master composition + Select event loop and spawn+await coordinator templates)
+Patterns: [patterns-009.md](patterns-009.md) — reusable coding patterns (Observable function shapes, pool, Select, Group, shutdown, dispatch, Master composition + Select event loop and spawn+await coordinator templates + wake blocked receivers without a message)
 
-Plan: [matryoshka-io-implementation-plan-031.md](matryoshka-io-implementation-plan-031.md) — slim state-only plan; rules live in rules-010.md
+Plan: [matryoshka-io-implementation-plan-032.md](matryoshka-io-implementation-plan-032.md) — slim state-only plan; rules live in rules-010.md
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 

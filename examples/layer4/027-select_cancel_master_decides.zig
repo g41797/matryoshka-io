@@ -80,7 +80,7 @@ const CancelDecideMaster = struct {
                         var slot: Slot = handle;
                         helpers.freeSlot(&slot, self.allocator);
                     },
-                    .timeout => {},
+                    .timeout, .wakeup => {},
                 },
                 .inbox2 => |r| switch (r) {
                     .canceled => {
@@ -91,7 +91,7 @@ const CancelDecideMaster = struct {
                         var slot: Slot = handle;
                         helpers.freeSlot(&slot, self.allocator);
                     },
-                    .closed, .timeout => {},
+                    .closed, .timeout, .wakeup => {},
                 },
                 .timer => {},
             }
@@ -128,7 +128,7 @@ const CancelDecideMaster = struct {
                             try sel2.concurrent(.inbox2, mailbox.receiveResult, .{ self.mbh2, null });
                         }
                     },
-                    .closed, .canceled, .timeout => break,
+                    .closed, .canceled, .timeout, .wakeup => break,
                 },
                 else => break,
             }

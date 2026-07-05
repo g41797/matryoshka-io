@@ -94,7 +94,7 @@ const Ctx = struct {
                         var slot: Slot = handle;
                         helpers.freeSlot(&slot, self.alloc);
                     },
-                    .closed, .timeout => {},
+                    .closed, .timeout, .wakeup => {},
                 },
                 .inbox2 => |r| switch (r) {
                     .canceled => {
@@ -105,7 +105,7 @@ const Ctx = struct {
                         var slot: Slot = handle;
                         helpers.freeSlot(&slot, self.alloc);
                     },
-                    .closed, .timeout => {},
+                    .closed, .timeout, .wakeup => {},
                 },
                 .timer => {},
             }

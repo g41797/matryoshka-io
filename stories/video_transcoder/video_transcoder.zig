@@ -98,7 +98,7 @@ fn storageFn(ctx: *StorageCtx) error{Canceled}!void {
         defer EncodedSegmentPolyHelper.destroy(ctx.alloc, &slot);
         mailbox.receive(ctx.storage_mbh, &slot, null) catch |err| switch (err) {
             error.Canceled => return error.Canceled,
-            error.Closed, error.Timeout => return,
+            error.Closed, error.Timeout, error.Wakeup => return,
         };
         const seg: *EncodedSegment = EncodedSegmentPolyHelper.mustIdentifySlotAs(&slot);
         std.log.info("storage: camera={d} segment={d}", .{ seg.camera_id, seg.segment_id });
@@ -121,7 +121,7 @@ fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
         defer StreamContextPolyHelper.destroy(ctx.alloc, &slot);
         mailbox.receive(ctx.ready_queue, &slot, null) catch |err| switch (err) {
             error.Canceled => return error.Canceled,
-            error.Closed, error.Timeout => return,
+            error.Closed, error.Timeout, error.Wakeup => return,
         };
         const sc: *StreamContext = StreamContextPolyHelper.mustIdentifySlotAs(&slot);
         sc.frames_processed += 1;

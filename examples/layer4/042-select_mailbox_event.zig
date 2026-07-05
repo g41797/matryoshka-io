@@ -92,7 +92,7 @@ const Ctx = struct {
                             try sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
                         }
                     },
-                    .closed, .canceled, .timeout => break,
+                    .closed, .canceled, .timeout, .wakeup => break,
                 },
                 .timer => {
                     self.ticks += 1;

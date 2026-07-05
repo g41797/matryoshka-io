@@ -104,7 +104,7 @@ const GracefulShutdownMaster = struct {
                             helpers.freeSlot(&slot, self.allocator);
                         }
                     },
-                    .closed, .canceled, .timeout => break :outer,
+                    .closed, .canceled, .timeout, .wakeup => break :outer,
                 },
                 .pool_ev => |r| switch (r) {
                     .item => |handle| {
@@ -133,7 +133,7 @@ const GracefulShutdownMaster = struct {
                         self.freed_inbox += 1;
                         std.log.info("graceful cancel: freed inbox item", .{});
                     },
-                    .canceled, .closed, .timeout => {},
+                    .canceled, .closed, .timeout, .wakeup => {},
                 },
                 .pool_ev => |r| switch (r) {
                     .item => |handle| {

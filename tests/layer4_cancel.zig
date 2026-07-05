@@ -14,7 +14,7 @@ fn mbxLoopWorker(ctx: *MbxCtx) error{Canceled}!void {
         defer helpers.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
             error.Canceled => return error.Canceled,
-            error.Closed, error.Timeout => return,
+            error.Closed, error.Timeout, error.Wakeup => return,
         };
     }
 }
@@ -81,7 +81,7 @@ fn worker5(ctx: *Ctx5) error{Canceled}!void {
                 ctx.canceled.store(true, .release);
                 return error.Canceled;
             },
-            error.Closed, error.Timeout => return,
+            error.Closed, error.Timeout, error.Wakeup => return,
         };
         ctx.received.store(true, .release);
         // pool.put runs in defer: lockUncancelable, succeeds even if cancel pending.
@@ -164,7 +164,7 @@ fn worker7(ctx: *Ctx7) error{Canceled}!void {
         defer pool.put(ctx.ph, &slot);
         mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
             error.Canceled => return error.Canceled,
-            error.Closed, error.Timeout => return,
+            error.Closed, error.Timeout, error.Wakeup => return,
         };
     }
 }
@@ -208,7 +208,7 @@ fn worker8(ctx: *Ctx8) error{Canceled}!void {
     defer helpers.freeSlot(&slot, ctx.alloc); // frees slot if pool.put left it non-null
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => return error.Canceled,
-        error.Closed, error.Timeout => return,
+        error.Closed, error.Timeout, error.Wakeup => return,
     };
     pool.put(ctx.ph, &slot); // pool closed: slot stays non-null, caller retains ownership
 }
@@ -366,7 +366,7 @@ fn worker11(ctx: *Ctx11) error{Canceled}!void {
             ctx.got_closed.store(true, .release);
             return;
         },
-        error.Timeout => return,
+        error.Timeout, error.Wakeup => return,
     };
 }
 
@@ -467,7 +467,7 @@ fn worker13(ctx: *Ctx13) error{Canceled}!void {
             return error.Canceled;
             // defers (LIFO): msg_slot freed (null, no-op), pool_slot put (lockUncancelable)
         },
-        error.Closed, error.Timeout => return,
+        error.Closed, error.Timeout, error.Wakeup => return,
     };
 }
 
@@ -527,7 +527,7 @@ fn worker14(ctx: *Ctx14) error{Canceled}!void {
             helpers.freeList(&rem, ctx.alloc);
             return error.Canceled;
         },
-        error.Closed, error.Timeout => return,
+        error.Closed, error.Timeout, error.Wakeup => return,
     };
 }
 
@@ -582,14 +582,14 @@ fn worker15(ctx: *Ctx15) error{Canceled}!void {
     defer helpers.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => ctx.io.recancel(), // activate cancel again: next cancellation point returns error.Canceled
-        error.Closed, error.Timeout => return,
+        error.Closed, error.Timeout, error.Wakeup => return,
     };
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => {
             ctx.second_canceled.store(true, .release);
             return error.Canceled;
         },
-        error.Closed, error.Timeout => return,
+        error.Closed, error.Timeout, error.Wakeup => return,
     };
 }
 
