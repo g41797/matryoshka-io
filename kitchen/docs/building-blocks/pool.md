@@ -2,8 +2,6 @@
 
 Everything reusable lives here.
 
-Previous: [Mailbox](mailbox.md).
-
 ---
 
 ## What a Pool does

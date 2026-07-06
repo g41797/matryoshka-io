@@ -1,15 +1,15 @@
 # Patterns — Shutdown and Master Patterns
 
-Previous: [Futures, Select, Group, Cancellation](async.md).
-
 Concepts: [Building Blocks — Master](../building-blocks/master.md).
 
 ## Graceful shutdown sequence
 
 When to use.
+
 - Tearing down a Master that owns workers, mailboxes, and a pool.
 
 Mandatory order.
+
 1. Stop the producer loop (the Select Master). Stop registering new work.
 2. Close the mailbox that feeds the workers. This signals end-of-stream.
 3. Walk the mailbox close list. Recover or recycle every item it returns.
@@ -21,6 +21,7 @@ Mandatory order.
 9. `pool.destroy`.
 
 Why this order.
+
 - Close upstream before awaiting workers, or workers block forever.
 - Await workers before closing the pool, or a worker returns an item to a closed pool.
 - A pool returns the item to the caller when closed — the worker must free it as a fallback.
@@ -38,6 +39,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/037-c
 ### Alternative — shutdown via Exit message
 
 When to use.
+
 - The mailbox must stay open and reusable while the worker still needs to exit cleanly.
 - Simpler than the close-based sequence above when there is only one worker and no pool to
   empty in lockstep.
@@ -50,6 +52,7 @@ main ──ShutdownCommand──► mailbox ──► worker (recognizes tag, ex
 ```
 
 Why.
+
 - A tagged sentinel item flows through the normal mailbox instead of `mailbox.close`.
 - The mailbox can be reused for another worker afterward — closing it cannot be undone.
 - Use the mandatory 9-step sequence instead when a pool must also empty in lockstep with the
@@ -68,6 +71,7 @@ Concrete templates for the "Observable by human" MUST rule (`design/rules-017.md
 #### Coordinator / run
 
 When to use.
+
 - Any function that sequences discrete steps: `pub fn run`, a Master's `run`, any sequencing method.
 
 Code shape.
@@ -90,6 +94,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 #### Step function
 
 When to use.
+
 - Any function that implements one discrete phase of the coordinator.
 
 Code shape.
@@ -114,6 +119,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 #### Init
 
 When to use.
+
 - Allocating a Master struct and acquiring its resources.
 
 Code shape.
@@ -143,6 +149,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 #### Destroy
 
 When to use.
+
 - Releasing a Master struct and its resources.
 
 Code shape.
@@ -165,9 +172,11 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 #### Thread-is-container
 
 When to use.
+
 - Spawning a worker thread or `io.concurrent` task for a Master.
 
 Rule.
+
 - The spawned function receives `*Master` (or a small `*Ctx`) directly as its argument.
 - It keeps no other thread-local bookkeeping — the thread's own stack holds no separate
   ITC state to track and free later. The Master struct (heap-allocated, see Init above) is
@@ -188,6 +197,7 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
 ```
 
 Why.
+
 - One pointer in, no hidden thread-local state to lose track of.
 - Matches the heap-allocated-Master rule: the container the thread runs against outlives
   the spawn call and is destroyed only after the thread is joined/awaited.
@@ -197,6 +207,7 @@ Example: `examples/layer4/017-minimal_master.zig`, `examples/layer4/019-multi_wo
 ### Coordinator with Select event loop (flat file)
 
 When to use.
+
 - A flat `pub fn run` (no Master struct) that owns an `Io.Select` event loop.
 - `buf` and `sel` are declared at coordinator scope; passed as `*Sel` (transient) to step functions.
 - Use when the file has 1-2 coordinator-scope params (explicit passing) or 3+ params (introduce a local Ctx struct).
@@ -281,6 +292,7 @@ Examples: `examples/layer4/046-select_pool_event.zig`, `examples/layer4/028-sele
 ### Coordinator with spawn + await (flat file)
 
 When to use.
+
 - A flat `pub fn run` that spawns concurrent workers (`io.concurrent`, `group.concurrent`, `Thread.spawn`) and awaits them.
 - The spawn block and the await block together form one named step.
 
@@ -331,14 +343,17 @@ Examples: `examples/layer4/017-minimal_master.zig`, `examples/layer4/054-pool_fa
 ### Master composition
 
 When to use.
+
 - A story or service has more than one coordination boundary.
 
 The shape.
+
 - Each Master owns its resources and coordinates their lifecycle.
 - A Master is a state struct plus a loop function — not inlined into `run`.
 - `run` is thin: initialize resources, start Masters, await shutdown in order.
 
 Two Masters in the pilot story.
+
 - Network Master — an `Io.Select` loop. Owns the buffer pool as a backpressure source. Fills buffers, routes `StreamContext` to the ready queue.
 - Worker set — an `Io.Group`. Each worker receives a `StreamContext`, encodes, returns the buffer to the pool, sends an `EncodedSegment` to storage.
 - Storage task — a single-mailbox loop. Receives `EncodedSegment`, logs, frees.
@@ -361,6 +376,7 @@ Example: `stories/video_transcoder/video_transcoder.zig` — see the
 ### Mailbox + Pool integration
 
 When to use.
+
 - Separate lifecycle from transport.
 
 Pattern.
@@ -394,6 +410,7 @@ Pattern.
 ```
 
 Purpose.
+
 - Event-driven coordination.
 - Worker parallelism.
 - Ownership-safe transport.

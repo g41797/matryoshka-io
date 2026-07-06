@@ -1,7 +1,5 @@
 # API Reference — Invariants and Contracts
 
-Previous: [Cancel Model and Object Lifecycle](cancel-and-lifecycle.md).
-
 ## Invariants
 
 These hold at all times, for every node in the system:
@@ -51,6 +49,7 @@ These hold at all times, for every node in the system:
 
 Programming errors.
 Checked via `std.debug.assert`:
+
 - Active in Debug and ReleaseSafe.
 - Removed in ReleaseFast and ReleaseSmall.
 
@@ -86,11 +85,13 @@ The following are unconditional panics (all build modes):
 ```
 
 Dependencies:
+
 - Mailbox and Pool are independent — neither depends on the other.
 - Both depend only on the one-place-one-state model.
 - Master is where they are combined.
 
 Valid combinations:
+
 - Layer 1 only — type identity without infrastructure
 - Layer 1 + Layer 2 — type identity + message passing, no lifecycle
 - Layer 1 + Layer 3 — type identity + object lifecycle, no message passing

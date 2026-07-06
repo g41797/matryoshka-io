@@ -46,6 +46,7 @@ nav:
       - Master: building-blocks/master.md
   - API Reference:
       - PolyNode & NodeHandle & Slot: api/polynode.md
+      - PolyHelper: api/polyhelper.md
       - Mailbox: api/mailbox.md
       - Pool: api/pool.md
       - Tag Identity & Slot Programming: api/tags-and-slots.md

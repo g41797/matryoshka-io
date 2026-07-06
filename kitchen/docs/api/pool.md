@@ -1,7 +1,5 @@
 # API Reference — Pool
 
-Previous: [Mailbox](mailbox.md).
-
 New to the concept? See [Building Blocks — Pool](../building-blocks/pool.md) first.
 
 Lifecycle management with user supplied hooks.
@@ -49,6 +47,7 @@ pub const PoolHandle = NodeHandle;
 
 PoolHandle is itself a *PolyNode.
 A pool can be:
+
 - sent through a mailbox
 - embedded into larger structures
 
@@ -81,16 +80,19 @@ pub const PoolHooks = struct {
 ```
 
 **`in_pool_count` semantics**
+
 - `on_get`: count **after** removal — items remaining with this tag.
 - `on_put`: count **before** addition — items already stored with this tag.
 - Both values are **hints** — read under lock, passed to a hook running without lock;
   the pool may have changed by the time the hook reads the value.
 
 **Hook concurrency**
+
 - Hooks are called **outside the pool mutex**.
 - Multiple threads may invoke hooks simultaneously — the pool does not serialize them.
 
 **Advice for hook implementers**
+
 - If your hook touches shared state, protect it.
 - Example: use `Io.Mutex` and call `lockUncancelable` to acquire it.
   Hooks return `void` — `lock` (cancelable) is not an option here.
@@ -210,10 +212,12 @@ pub fn is_it_you(tag: *const anyopaque) bool
 Pool as event source for `Io.Select` and `Io.Future`.
 
 Cancel and close in concurrent tasks:
+
 - Pool closed — blocked callers wake with `error.Closed`.
 - Task canceled — the operation returns `error.Canceled`.
 
 When a handle becomes available, the Master can react. This is the job-pool pattern:
+
 - Worker returns a handle.
 - Master is notified.
 - Master submits new work.

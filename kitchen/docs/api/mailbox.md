@@ -1,7 +1,5 @@
 # API Reference — Mailbox
 
-Previous: [PolyNode, NodeHandle, Slot](polynode.md).
-
 New to the concept? See [Building Blocks — Mailbox](../building-blocks/mailbox.md) first.
 
 Sends handles between execution contexts.
@@ -51,6 +49,7 @@ pub const MailboxHandle = NodeHandle;
 
 MailboxHandle is itself a *PolyNode.
 A mailbox can be:
+
 - sent through another mailbox
 - stored in pools
 - embedded into larger structures
@@ -159,6 +158,7 @@ pub fn is_it_you(tag: *const anyopaque) bool
 Mailbox as event source for `Io.Select` and `Io.Future`.
 
 Cancel and close in concurrent tasks:
+
 - Mailbox closed — blocked receivers wake with `error.Closed`.
 - Task canceled — the operation returns `error.Canceled`.
 
@@ -221,6 +221,7 @@ const result = try fut.await(io);
 ```
 
 **Bridging to external Io**: one `Io.Select` loop combines mailbox, timers, sockets, pool availability.
+
 - Matryoshka sources use `receiveResult` / `getWaitResult` via `select.concurrent`.
 - External sources use their own blocking functions via `select.concurrent`.
 - Direct push: `select.queue.putOneUncancelable(io, value)` for immediate events.

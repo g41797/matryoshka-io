@@ -1,7 +1,5 @@
 # API Reference — matryoshka (root) and Master
 
-Previous: [Cooperative Cleanup](cleanup.md).
-
 ## matryoshka (root)
 
 ```zig
@@ -62,6 +60,7 @@ The application assembles them.
 Layer 1-3 tests use `std.Io.Threaded.global_single_threaded.*.io()` — no concurrency needed.
 
 Layer 4 tests and examples need real concurrency (`io.concurrent`, `Io.Group`):
+
 - Use `std.Io.Threaded.init(allocator, .{})` to get a real backend.
 - Call `.deinit()` when done.
 
@@ -91,6 +90,7 @@ test "17 - minimal master" {
 ```
 
 Key rules:
+
 - `std.testing.io` — not used in this project, even in test files.
 - `global_single_threaded` — Layer 1-3 only. Returns `error.ConcurrencyUnavailable` for `io.concurrent`.
 - `Io.Threaded.init` — Layer 4 tests and example wrappers.

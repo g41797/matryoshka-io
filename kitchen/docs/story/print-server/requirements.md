@@ -1,7 +1,5 @@
 # Story: Network Print Server — Requirements
 
-Previous: [Discussion](discussion.md).
-
 - Client submits a print job and receives an immediate acknowledgment.
 - Submission never waits for printer availability.
 - Jobs are dispatched to the printer in submission order.

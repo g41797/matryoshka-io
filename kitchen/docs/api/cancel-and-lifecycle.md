@@ -1,7 +1,5 @@
 # API Reference — Cancel Model and Object Lifecycle
 
-Previous: [matryoshka (root) and Master](root-and-master.md).
-
 ## Cancel model
 
 Only functions that wait on a condition can be canceled.

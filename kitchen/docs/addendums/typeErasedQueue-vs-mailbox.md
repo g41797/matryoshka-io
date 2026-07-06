@@ -27,6 +27,7 @@ storage + sync + capacity           sync + moving objects between owners
 Its job: *"I have N slots. Coordinate access to them."*
 
 That means it needs:
+
 - waiting producers, waiting consumers
 - a notion of capacity
 - per-waiter conditions

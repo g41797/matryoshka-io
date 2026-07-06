@@ -1,10 +1,9 @@
 # Story: Network Print Server — Matryoshka Translation
 
-Previous: [Requirements](requirements.md).
-
 Requirement: Non-blocking submission.
 
 Matryoshka:
+
 - `PrintJob` — PolyNode-based struct.
 - `mailbox.send(job_queue, &job_slot)`.
 - Ownership transferred immediately.
@@ -15,6 +14,7 @@ Matryoshka:
 Requirement: Ordered dispatch.
 
 Matryoshka:
+
 - Spool Master.
 - `job_queue` mailbox.
 - `mailbox.receive` — FIFO preserved.
@@ -24,6 +24,7 @@ Matryoshka:
 Requirement: Result notification.
 
 Matryoshka:
+
 - `reply_mbh: MailboxHandle` embedded in `PrintJob`.
 - Printer Master sends `PrintResult` directly to `job.reply_mbh`.
 - Spool Master not involved.
@@ -33,6 +34,7 @@ Matryoshka:
 Requirement: Exclusive ownership during printing.
 
 Matryoshka:
+
 - Printer Master holds one job.
 - Single slot: `var slot: Slot = null`.
 - No shared access. No locks.
@@ -42,6 +44,7 @@ Matryoshka:
 Requirement: Cancellation with priority.
 
 Matryoshka:
+
 - `mailbox.send_oob(job_queue, &cancel_slot)`.
 - `CancelSignal` arrives at queue front.
 - If job already forwarded: `mailbox.send_oob(printer_inbox, &cancel_slot)`.
@@ -51,6 +54,7 @@ Matryoshka:
 Requirement: Clean shutdown.
 
 Matryoshka:
+
 - Spool Master closes `job_queue`.
 - Remaining jobs in `printer_inbox` receive canceled result via `job.reply_mbh`.
 - Closes `printer_inbox`.

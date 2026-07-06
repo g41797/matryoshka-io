@@ -10,6 +10,7 @@ The slot rule in full: [API Reference — Tag Identity and Slot Programming](../
 ### Empty Slot initialization
 
 When to use.
+
 - Every ownership acquisition.
 
 Code shape.
@@ -18,12 +19,14 @@ var slot: Slot = null;
 ```
 
 Why.
+
 - Every acquisition API requires an empty slot.
 - Passing a non-null slot is a programming error.
 
 ### Slot overwrite prevention
 
 When to use.
+
 - Before every receive/get/create operation.
 
 Code shape.
@@ -32,6 +35,7 @@ std.debug.assert(slot.* == null);
 ```
 
 Why.
+
 - A slot always owns exactly one object.
 - Overwriting a non-null slot loses ownership.
 - Every acquisition API contains this assert. Wrong use panics immediately.
@@ -39,6 +43,7 @@ Why.
 ### Transfer clears ownership
 
 When to use.
+
 - Every ownership transfer.
 
 Code shape.
@@ -55,6 +60,7 @@ pool.put(ph, &slot);
 ```
 
 Why.
+
 - Sender no longer owns the object.
 - Cleanup code becomes naturally safe.
 - Transfer pre-empts cleanup: a later `defer` sees null and does nothing.
@@ -62,6 +68,7 @@ Why.
 ### Null-safe cleanup
 
 When to use.
+
 - Every deferred cleanup.
 
 Code shape.
@@ -76,12 +83,14 @@ defer EventPolyHelper.destroy(allocator, &slot);
 ```
 
 Why.
+
 - Cleanup helpers ignore null slots.
 - Cleanup may safely execute after transfer.
 
 ### Defer-put-early (pool item)
 
 When to use.
+
 - Acquiring a pool item. The defer goes before the get.
 
 Code shape.
@@ -95,6 +104,7 @@ try pool.get(ph, TAG, .available_or_new, &slot);
 ```
 
 Why.
+
 - Failure path, success path, and transfer path all become correct automatically.
 - If the get fails, the defer sees null — nothing lost.
 
@@ -103,6 +113,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 ### Defer-destroy-early (heap item via PolyHelper)
 
 When to use.
+
 - Creating a heap item. The defer goes before the create.
 
 Code shape.
@@ -120,6 +131,7 @@ Example: `examples/layer2/097-wake_up_all.zig`.
 ### Defer for received mailbox item
 
 When to use.
+
 - Receiving into a slot. Cleanup must cover both the error path and the normal path.
 
 Code shape.
@@ -136,6 +148,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 ### Fallback destroy after pool.put
 
 When to use.
+
 - Pool may already be closed when the item comes back.
 
 Code shape.
@@ -146,6 +159,7 @@ defer pool.put(ph, &slot);                          // primary: recycles to pool
 ```
 
 Why.
+
 - Pool receives the item if open.
 - A closed pool leaves the slot non-null — the caller keeps ownership.
 - Destroy executes only if ownership remained with the caller.
@@ -155,6 +169,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 ### No raw allocator calls on PolyNode-based types
 
 When to use.
+
 - Every PolyNode-based user type (Event, Sensor, Timer, ShutdownCommand).
 
 Code shape.
@@ -169,6 +184,7 @@ try EventPolyHelper.create(alloc, &slot);
 ```
 
 Why.
+
 - `PolyHelper.create` sets the tag and initializes the node.
 - Raw `allocator.create` skips both. The object is unusable for dispatch.
 
@@ -182,6 +198,7 @@ Full list: [API Reference — Cooperative Cleanup](../api/cleanup.md).
 ### Intrusive node embedding
 
 When to use.
+
 - Every PolyNode-based user type, from first definition.
 
 Code shape.
@@ -195,6 +212,7 @@ pub const MessagePolyHelper = polynode.PolyHelper(Message);
 ```
 
 Why.
+
 - `PolyNode` sits at offset 0. One allocation, no wrapper struct.
 - Safe cast both ways: `*Message` to `*PolyNode` and back, via `PolyHelper`.
 - No separate link object to keep in sync with the payload.
@@ -204,6 +222,7 @@ Example: `examples/layer1/021-define_type.zig`.
 ### PolyHelper everywhere
 
 When to use.
+
 - Every PolyNode type.
 
 Code shape.
@@ -213,6 +232,7 @@ pub const EventPolyHelper =
 ```
 
 Why.
+
 - Eliminates manual tag management.
 - Eliminates unsafe casts.
 - Eliminates initialization boilerplate.
@@ -220,6 +240,7 @@ Why.
 ### Node identification
 
 When to use.
+
 - Recovering a concrete type from a `*PolyNode` handle (e.g. a `NodeHandle` received from a mailbox or returned by a pool event source).
 
 Code shape.
@@ -230,12 +251,14 @@ if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
 ```
 
 Why.
+
 - Tag check and recovery are combined.
 - Wrong types return null.
 
 ### Slot identification — accessing owned items
 
 When to use.
+
 - After `create` or `get`, to access fields of the item in a Slot before sending or returning it.
 
 Code shape (assert non-null, known type).
@@ -255,6 +278,7 @@ if (EventPolyHelper.identifySlotAs(&slot)) |ev| {
 ```
 
 Why.
+
 - Unwraps the optional internally — no `.?` in application code.
 - `mustIdentifySlotAs` panics if the Slot is empty or the tag does not match.
 - Use `identifySlotAs` (nullable) when the type is not guaranteed.
@@ -262,6 +286,7 @@ Why.
 ### Polymorphic dispatch
 
 When to use.
+
 - One mailbox or one list carries more than one item type. The receiver recovers the concrete type.
 
 Code shape.
@@ -282,6 +307,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/03
 ### Tag identifies the class
 
 When to use.
+
 - Runtime dispatch.
 
 Pattern.
@@ -300,6 +326,7 @@ instance
 ```
 
 Use.
+
 - Pointer comparison for infrastructure handles.
 - User fields (`kind`, `role`) for application roles.
 
@@ -308,6 +335,7 @@ Details: [API Reference — Tag Identity](../api/tags-and-slots.md).
 ### Wrapper type for infrastructure handles
 
 When to use.
+
 - Mailbox or Pool must participate in polymorphic dispatch by tag.
 
 Code shape.
@@ -320,12 +348,14 @@ pub const WorkerInboxPolyHelper = polynode.PolyHelper(WorkerInbox);
 ```
 
 Why.
+
 - Wrapper has its own PolyHelper tag, distinct from `MailboxPolyHelper.TAG`.
 - Enables normal type dispatch. The receiver finds the embedded handle.
 
 ### Mailbox-as-message
 
 When to use.
+
 - Returning ownership of communication endpoints.
 
 Pattern.
@@ -338,6 +368,7 @@ Master receives mailbox
 ```
 
 Typical use.
+
 - Worker completion notification.
 - Dynamic topology construction.
 - Channel migration.
@@ -345,9 +376,11 @@ Typical use.
 ### Worker-finish-signal
 
 When to use.
+
 - A worker signals completion by sending its own mailbox back to the Master.
 
 Pattern.
+
 - Master creates `worker_mbh`, spawns a worker, passes `worker_mbh` as parameter.
 - Worker processes items until a shutdown signal.
 - Worker sends `worker_mbh` back to the Master's inbox (unclosed) as the finish signal, then exits.
@@ -356,6 +389,7 @@ Pattern.
 - Master closes and destroys `worker_mbh`, then joins the thread.
 
 Why.
+
 - Replaces a thread join or a separate shutdown message with ownership transfer.
 
 Details: [API Reference — Transporting infra handles](../api/tags-and-slots.md).
@@ -363,6 +397,7 @@ Details: [API Reference — Transporting infra handles](../api/tags-and-slots.md
 ### Pool-as-message
 
 When to use.
+
 - Sharing lifecycle managers.
 
 Pattern.
@@ -373,6 +408,7 @@ mailbox.send()
 ```
 
 Why.
+
 - PoolHandle is itself a PolyNode.
 
 ---

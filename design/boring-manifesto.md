@@ -99,7 +99,7 @@ One decision.
 
 I don't mind queues.
 
-I don't mind copying a message.
+I don't mind moving a message.
 
 Memory is cheap.
 

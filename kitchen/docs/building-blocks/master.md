@@ -2,8 +2,6 @@
 
 Everything runs inside one.
 
-Previous: [Pool](pool.md).
-
 ---
 
 ## Master is a role, not a type

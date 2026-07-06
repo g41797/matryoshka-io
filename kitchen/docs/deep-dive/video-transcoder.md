@@ -104,6 +104,7 @@ The developers begin negotiating responsibilities.
 Requirement: Memory reuse.
 
 Matryoshka:
+
 - `VideoBuffer` — PolyNode-based struct.
 - `Pool` of `VideoBuffer`.
 - Workers return buffers on completion.
@@ -113,6 +114,7 @@ Matryoshka:
 Requirement: Flow control.
 
 Matryoshka:
+
 - `pool.getWaitResult` inside `Io.Select`.
 - Pool availability is an async event.
 - Empty pool pauses the Network Master.
@@ -123,6 +125,7 @@ Matryoshka:
 Requirement: Sequential processing per stream. Concurrent processing.
 
 Matryoshka:
+
 - `StreamContext` — PolyNode-based struct, carries per-camera encoder state.
 - `ready_queue` — Mailbox of `StreamContext`.
 - Worker receives `StreamContext` via `mailbox.receive`.
@@ -134,6 +137,7 @@ Matryoshka:
 Requirement: Continuous ingest.
 
 Matryoshka:
+
 - Network Master: `Io.Select` loop.
 - Two sources: pool availability, incoming network data.
 - Fixed `Io.Group` of workers loops on `mailbox.receive(ready_queue)`.
@@ -143,6 +147,7 @@ Matryoshka:
 Requirement: Clean shutdown.
 
 Matryoshka:
+
 - Network Master stops. Closes `ready_queue`.
 - Workers receive `error.Closed`. Exit.
 - `Io.Group.await` — all workers done.

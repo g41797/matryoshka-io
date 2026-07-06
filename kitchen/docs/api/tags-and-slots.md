@@ -1,7 +1,5 @@
 # API Reference — Tag Identity and Slot Programming
 
-Previous: [Pool](pool.md).
-
 ## Tag identity — class, not instance
 
 `PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.
@@ -11,10 +9,12 @@ Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is
 It does not answer: "which T?" or "what role does this T play?"
 
 For user-defined types (Event, Sensor, etc.):
+
 - Tag identifies the class.
 - Instance fields carry the role. The user adds a `kind` or `role` field to discriminate.
 
 For infra handles (MailboxHandle, PoolHandle):
+
 - `_Mailbox` and `_Pool` are private structs. The user cannot add fields.
 - Tag identifies the class only. No per-instance role information is accessible.
 - **Instance identity**: resolved by pointer comparison against known handles.
@@ -28,10 +28,12 @@ For infra handles (MailboxHandle, PoolHandle):
 
 Master creates `worker_mbh`, spawns a worker thread and passes `worker_mbh` as parameter.
 Worker processes items until a shutdown signal, then:
+
 - Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
 - Exits.
 
 Master receives a PolyNode from its inbox:
+
 - `mailbox.is_it_you(received.*.tag)` — confirms class (it is a mailbox).
 - `received == worker_mbh` — confirms instance (it is the expected worker mailbox).
 - Master closes and destroys `worker_mbh`.
@@ -61,6 +63,7 @@ The receiver dispatches on `WorkerInboxPolyHelper.TAG` and finds the embedded ha
 The slot rule governs every acquisition and transfer.
 
 The slot rule:
+
 - Never overwrite a non-null slot.
 - Always start with `var slot: Slot = null`.
 - All acquisition APIs assert `slot.* == null` on entry. Writing to a non-null slot panics.

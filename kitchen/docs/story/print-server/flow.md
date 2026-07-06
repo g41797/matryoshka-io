@@ -1,7 +1,5 @@
 # Story: Network Print Server — Flow Diagram
 
-Previous: [Matryoshka Translation](translation.md).
-
 ```text
   [ Client A ]  [ Client B ]  [ Client C ]
        │               │               │

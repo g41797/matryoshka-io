@@ -2,8 +2,6 @@
 
 Everything communicates.
 
-Previous: [PolyNode](polynode.md).
-
 ---
 
 ## What a Mailbox does

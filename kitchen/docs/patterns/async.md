@@ -1,7 +1,5 @@
 # Patterns — Futures, Select, Group, Cancellation
 
-Previous: [Pool Patterns](pool.md).
-
 New to `std.Io` concepts? See [Addendums — Io 101](../addendums/io-101.md) first.
 
 ## Future patterns
@@ -9,6 +7,7 @@ New to `std.Io` concepts? See [Addendums — Io 101](../addendums/io-101.md) fir
 ### Direct Future
 
 When to use.
+
 - Only one asynchronous operation. No Select loop needed.
 
 Code shape.
@@ -23,6 +22,7 @@ const result =
 ### Future cancellation
 
 When to use.
+
 - Abort one asynchronous operation.
 
 Code shape.
@@ -31,6 +31,7 @@ try future.cancel(io);
 ```
 
 Why.
+
 - Ownership stays in mailbox/pool.
 - Only the wait is canceled.
 
@@ -41,6 +42,7 @@ Why.
 ### Event loop — register, await, re-register
 
 When to use.
+
 - Wait on several sources at once: mailbox, pool, timer, external push.
 
 Code shape.
@@ -68,6 +70,7 @@ while (true) {
 ```
 
 Why.
+
 - Each registration produces exactly one completion.
 - Re-register the source after each item.
 
@@ -87,6 +90,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/02
 ### Mailbox as event source
 
 When to use.
+
 - Event-driven Master.
 
 Code shape.
@@ -101,6 +105,7 @@ try select.concurrent(
 ### Pool as event source
 
 When to use.
+
 - Wait for reusable objects.
 
 Code shape.
@@ -115,6 +120,7 @@ try select.concurrent(
 ### Mixed event sources
 
 When to use.
+
 - One loop coordinates everything.
 
 Pattern.
@@ -134,6 +140,7 @@ Example: `examples/layer4/028-select_mixed_sources.zig`.
 ### Backpressure via getWaitResult in Select
 
 When to use.
+
 - A producer must slow down when no buffers are free.
 - Pool availability becomes an event source in the same loop as data.
 
@@ -161,6 +168,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 ### Direct push — putOneUncancelable
 
 When to use.
+
 - A result is already available, or an external thread or callback must inject one without spawning.
 
 Code shape.
@@ -173,6 +181,7 @@ Example: `examples/layer4/043-select_direct_push.zig`.
 ### Graceful cancel walk — recover in-flight items
 
 When to use.
+
 - Shutting down a Select loop. Spawned sources may still hold items. None must leak.
 
 Code shape.
@@ -203,6 +212,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 ### cancelDiscard — timer-only or no-item sources
 
 When to use.
+
 - The remaining spawned sources carry no owned item (e.g. a timer). Discard them.
 
 Code shape.
@@ -219,6 +229,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 ### Worker set — concurrent then await
 
 When to use.
+
 - Run several workers. Wait for all to finish.
 - Spawn now, await later — the spawn does not block.
 
@@ -237,6 +248,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 ### Reusable Group
 
 When to use.
+
 - Multiple execution rounds.
 
 Pattern.
@@ -249,11 +261,13 @@ await
 ```
 
 Why.
+
 - Group may be reused after completion.
 
 ### Shutdown signal — close the source mailbox
 
 When to use.
+
 - Stop a Group of workers that block on `mailbox.receive`.
 
 Code shape.
@@ -271,6 +285,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 ### Shutdown signal — group.cancel
 
 When to use.
+
 - Stop a Group of workers that block on `pool.get_wait`, with no mailbox to close.
 
 Code shape.
@@ -289,6 +304,7 @@ Example: `examples/layer4/059-mailbox_less_pool_group_workers.zig`.
 ### Cancellation boundary
 
 When to use.
+
 - Designing APIs.
 
 Rule.
@@ -296,6 +312,7 @@ Rule.
 Only waiting operations are cancelable.
 
 Examples.
+
 - mailbox.receive
 - pool.get_wait
 - receiveResult
@@ -306,6 +323,7 @@ Everything else completes normally.
 ### Cancellation preserves ownership
 
 When to use.
+
 - Recovering after cancellation.
 
 Pattern.
@@ -335,6 +353,7 @@ Never substitute one for the other.
 ### Error handling on receive
 
 When to use.
+
 - A worker blocks on `mailbox.receive` or `pool.get_wait` and must react to each outcome.
 
 Code shape.
@@ -347,6 +366,7 @@ mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
 ```
 
 The distinction.
+
 - `error.Canceled` — external stop signal. Propagate it. Do not close anything.
 - `error.Closed` — the Master closed the source. End of stream. Exit.
 - `error.Timeout` — the wait window passed. Treat per domain.

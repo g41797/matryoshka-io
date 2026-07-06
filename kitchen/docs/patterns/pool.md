@@ -1,13 +1,12 @@
 # Patterns — Pool Patterns
 
-Previous: [Mailbox and Topology Patterns](mailbox-and-topology.md).
-
 Concepts: [Building Blocks — Pool](../building-blocks/pool.md).
 API: [API Reference — Pool](../api/pool.md).
 
 ### Pool mode — .available_or_new
 
 When to use.
+
 - The common case: reuse a stored item if one is free, otherwise create a fresh one.
 
 Code shape.
@@ -24,6 +23,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 ### Pool mode — .new_only
 
 When to use.
+
 - Seeding. You want a fresh item every time, never a stored one.
 
 Code shape.
@@ -39,6 +39,7 @@ Example: `examples/layer3/pool_seeding.zig`.
 ### Pool mode — .available_only
 
 When to use.
+
 - Consume what is stored. Stop when the pool is empty.
 - Empty pool returns `error.NotAvailable` — a normal end condition, not a failure.
 
@@ -56,6 +57,7 @@ Example: `examples/layer3/pool_seeding.zig`.
 ### Seeding pattern
 
 When to use.
+
 - A fixed-size pool. Pool capacity is set once at startup, no on-demand creation.
 
 Code shape.
@@ -75,6 +77,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 ### Pool as lifecycle policy — on_get and on_put hooks
 
 When to use.
+
 - `on_get`: decide how an item is created or reinitialized.
 - `on_put`: decide whether a returned item is kept or destroyed (cap policy).
 
@@ -104,6 +107,7 @@ Example: `examples/layer3/capped_pool.zig` (cap policy), `helpers/helpers.zig` `
 ### Hook outside lock
 
 When to use.
+
 - Shared hook state.
 
 Code shape.
@@ -116,6 +120,7 @@ unlock()
 ```
 
 Why.
+
 - Hooks run outside the pool lock. Multiple threads may call them at once.
 - Pool does not serialize hook execution.
 - Protect shared state with `Io.Mutex.lockUncancelable`.
@@ -125,6 +130,7 @@ Example: `helpers/helpers.zig` `CappedPoolCtx`.
 ### on_close hook
 
 When to use.
+
 - Free all stored items when the pool shuts down.
 
 Code shape.
@@ -147,6 +153,7 @@ Example: `examples/layer3/pool_teardown.zig`, `stories/video_transcoder/video_tr
 ### Multi-tag pool
 
 When to use.
+
 - Pool stores multiple object types.
 
 Pattern.
@@ -158,6 +165,7 @@ Pool
 ```
 
 Why.
+
 - One lifecycle manager.
 - Separate free lists per tag.
 
