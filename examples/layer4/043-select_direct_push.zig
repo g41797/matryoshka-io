@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Select direct queue push.
-///
-/// - A separate thread pushes a value directly into the Select queue via putOneUncancelable.
-/// - This bypasses the usual sel.concurrent path — it's a raw queue push.
-/// - sel.await() receives the .direct value directly, then cancels the blocked inbox source.
-///
-/// Ownership:
-///
-///  wild thread ──sel.queue.putOneUncancelable──► Select queue
-///               (bypasses concurrent fn mechanism)
-///  │
-///  sel.await() ──► .direct u32 value
-///  │
-///  sel.cancelDiscard() ──► cancels blocking .inbox source
-pub fn @"Select direct queue push"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Select direct queue push.
+//!
+//! - A separate thread pushes a value directly into the Select queue via putOneUncancelable.
+//! - This bypasses the usual sel.concurrent path — it's a raw queue push.
+//! - sel.await() receives the .direct value directly, then cancels the blocked inbox source.
+//!
+//! Ownership:
+//!
+//! ```
+//!  wild thread ──sel.queue.putOneUncancelable──► Select queue
+//!               (bypasses concurrent fn mechanism)
+//!  │
+//!  sel.await() ──► .direct u32 value
+//!  │
+//!  sel.cancelDiscard() ──► cancels blocking .inbox source
+//! ```
+pub fn select_direct_queue_push(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

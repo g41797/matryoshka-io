@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// receive_future with timeout.
-///
-/// - receiveWithTimeout: receive_future on an empty mailbox with a 50ms timeout, resolves .timeout.
-/// - sendAndReceiveItem: sends one Event, then receive_future(null) resolves .item.
-/// - Confirms the future resolves to whichever result actually occurs.
-///
-/// Ownership:
-///
-///  mailbox (empty)
-///  │
-///  receive_future(50ms) ──► Future(ReceiveResult)
-///  fut.await ──► ReceiveResult .timeout
-///  │
-///  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
-///  receive_future(null) ──► fut.await ──► ReceiveResult .item ──► freeSlot
-pub fn @"receive_future with timeout"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! receive_future with timeout.
+//!
+//! - receiveWithTimeout: receive_future on an empty mailbox with a 50ms timeout, resolves .timeout.
+//! - sendAndReceiveItem: sends one Event, then receive_future(null) resolves .item.
+//! - Confirms the future resolves to whichever result actually occurs.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (empty)
+//!  │
+//!  receive_future(50ms) ──► Future(ReceiveResult)
+//!  fut.await ──► ReceiveResult .timeout
+//!  │
+//!  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
+//!  receive_future(null) ──► fut.await ──► ReceiveResult .item ──► freeSlot
+//! ```
+pub fn receive_future_with_timeout(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

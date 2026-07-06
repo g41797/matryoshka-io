@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// receive_future awaited directly.
-///
-/// - Send one Event into the mailbox.
-/// - mailbox.receive_future returns an Io.Future(ReceiveResult), no Select needed.
-/// - fut.await blocks until the item arrives, then it's freed.
-///
-/// Ownership:
-///
-///  master ──EventPolyHelper.create──► slot
-///          ──mailbox.send──► mailbox
-///          │
-///  receive_future ──► Future(ReceiveResult)
-///  fut.await ──► ReceiveResult .item ──► slot (master owns)
-///          │
-///  freeSlot
-pub fn @"receive_future awaited directly"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! receive_future awaited directly.
+//!
+//! - Send one Event into the mailbox.
+//! - mailbox.receive_future returns an Io.Future(ReceiveResult), no Select needed.
+//! - fut.await blocks until the item arrives, then it's freed.
+//!
+//! Ownership:
+//!
+//! ```
+//!  master ──EventPolyHelper.create──► slot
+//!          ──mailbox.send──► mailbox
+//!          │
+//!  receive_future ──► Future(ReceiveResult)
+//!  fut.await ──► ReceiveResult .item ──► slot (master owns)
+//!          │
+//!  freeSlot
+//! ```
+pub fn receive_future_awaited_directly(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

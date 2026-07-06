@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Worker finish signal via mailbox return.
-///
-/// - Master spawns a worker thread, sends 3 Events + a ShutdownCommand sentinel.
-/// - On the sentinel, the worker sends its own mailbox handle back to the master's inbox.
-/// - Master confirms the returned item is a MailboxHandle and the expected instance.
-/// - Master closes and destroys the worker's mailbox, then joins the thread.
-///
-/// Ownership:
-///
-///  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
-///                                                           │ process
-///                                                           │ send worker_mbh ──► master_inbox
-///                                                           ▼ exit
-///  master ◄──worker_mbh (as NodeHandle)── master_inbox
-///  master: close + destroy worker_mbh (tag+pointer verified first)
-pub fn @"Worker finish signal via mailbox return"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Worker finish signal via mailbox return.
+//!
+//! - Master spawns a worker thread, sends 3 Events + a ShutdownCommand sentinel.
+//! - On the sentinel, the worker sends its own mailbox handle back to the master's inbox.
+//! - Master confirms the returned item is a MailboxHandle and the expected instance.
+//! - Master closes and destroys the worker's mailbox, then joins the thread.
+//!
+//! Ownership:
+//!
+//! ```
+//!  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
+//!                                                           │ process
+//!                                                           │ send worker_mbh ──► master_inbox
+//!                                                           ▼ exit
+//!  master ◄──worker_mbh (as NodeHandle)── master_inbox
+//!  master: close + destroy worker_mbh (tag+pointer verified first)
+//! ```
+pub fn worker_finish_signal_via_mailbox_return(allocator: std.mem.Allocator, io: std.Io) !void {
     const master_inbox: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         _ = mailbox.close(master_inbox);

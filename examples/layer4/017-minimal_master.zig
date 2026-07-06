@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Minimal Master.
-///
-/// - Master spawns one worker via io.concurrent.
-/// - sendItems pushes 3 Events into the shared mailbox.
-/// - awaitWorker closes the mailbox, frees anything left, awaits the worker.
-/// - Shutdown cleanup uses a plain stdlib list — no Matryoshka-specific cleanup API.
-///
-/// Ownership:
-///
-///  master ──alloc.create──► slot ──mailbox.send──► mailbox
-///                                                      │ worker (io.concurrent)
-///                                                      │ mailbox.receive ──► freeSlot
-///  mailbox.close ──► remaining list ──► freeList
-///  fut.await ──► worker done
-pub fn @"Minimal Master"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Minimal Master.
+//!
+//! - Master spawns one worker via io.concurrent.
+//! - sendItems pushes 3 Events into the shared mailbox.
+//! - awaitWorker closes the mailbox, frees anything left, awaits the worker.
+//! - Shutdown cleanup uses a plain stdlib list — no Matryoshka-specific cleanup API.
+//!
+//! Ownership:
+//!
+//! ```
+//!  master ──alloc.create──► slot ──mailbox.send──► mailbox
+//!                                                      │ worker (io.concurrent)
+//!                                                      │ mailbox.receive ──► freeSlot
+//!  mailbox.close ──► remaining list ──► freeList
+//!  fut.await ──► worker done
+//! ```
+pub fn minimal_master(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

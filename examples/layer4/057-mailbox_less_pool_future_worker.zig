@@ -1,28 +1,30 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool + Future: simple worker.
-///
-/// - Master seeds the pool with 1 empty container, spawns one worker with N passed at spawn time.
-/// - Worker loops N times: pool.get_wait, writes its own counter into the container, pool.put.
-/// - fut.await blocks until the worker finishes all N cycles.
-/// - No mailbox needed — pool is the only coordination point.
-///
-/// Ownership (mailbox-less):
-///
-///  pool (1 empty container seeded — code=0)
-///  │ io.concurrent (n=3 passed at spawn time)
-///  ▼
-///  worker loop (n cycles):
-///    pool.get ──► slot (empty) ──► ev.code = worker counter ──► pool.put ──► pool
-///  │
-///  fut.await ──► master reads ctx.counter (= n after all cycles)
-///  pool.close ──► on_close ──► freed
-///
-///  Work input: spawn-time arg n + worker's own counter.
-///  Pool item is an empty container — a processing slot, not a data carrier.
-///  No mailbox needed for simple single-worker coordination.
-pub fn @"Pool + Future: simple worker"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool + Future: simple worker.
+//!
+//! - Master seeds the pool with 1 empty container, spawns one worker with N passed at spawn time.
+//! - Worker loops N times: pool.get_wait, writes its own counter into the container, pool.put.
+//! - fut.await blocks until the worker finishes all N cycles.
+//! - No mailbox needed — pool is the only coordination point.
+//!
+//! Ownership (mailbox-less):
+//!
+//! ```
+//!  pool (1 empty container seeded — code=0)
+//!  │ io.concurrent (n=3 passed at spawn time)
+//!  ▼
+//!  worker loop (n cycles):
+//!    pool.get ──► slot (empty) ──► ev.code = worker counter ──► pool.put ──► pool
+//!  │
+//!  fut.await ──► master reads ctx.counter (= n after all cycles)
+//!  pool.close ──► on_close ──► freed
+//! ```
+//!
+//!  Work input: spawn-time arg n + worker's own counter.
+//!  Pool item is an empty container — a processing slot, not a data carrier.
+//!  No mailbox needed for simple single-worker coordination.
+pub fn pool_future_simple_worker(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Fan-out.
-///
-/// - Main sends 5 Events and 4 Sensors into one mailbox.
-/// - 3 worker threads share the mailbox, compete for items.
-/// - Main closes the mailbox, frees any items left unclaimed.
-/// - Verifies every item was either received or freed.
-///
-/// Ownership:
-///
-///  main ──Event×5 + Sensor×4──► mailbox ──► worker A
-///                                      ├──► worker B  (compete; each item goes to one)
-///                                      └──► worker C
-///  mailbox.close ──► remaining list ──► freeItem (main)
-pub fn @"Fan-out"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Fan-out.
+//!
+//! - Main sends 5 Events and 4 Sensors into one mailbox.
+//! - 3 worker threads share the mailbox, compete for items.
+//! - Main closes the mailbox, frees any items left unclaimed.
+//! - Verifies every item was either received or freed.
+//!
+//! Ownership:
+//!
+//! ```
+//!  main ──Event×5 + Sensor×4──► mailbox ──► worker A
+//!                                      ├──► worker B  (compete; each item goes to one)
+//!                                      └──► worker C
+//!  mailbox.close ──► remaining list ──► freeItem (main)
+//! ```
+pub fn fan_out(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(mbh, allocator);
 

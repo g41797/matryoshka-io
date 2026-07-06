@@ -1,26 +1,28 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Mixed mailbox + pool event sources in Select.
-///
-/// - Mailbox pre-loaded with 2 Events, pool seeded with 1 Event, both are Select sources.
-/// - eventLoop handles each with a uniform switch, re-spawning after mailbox items.
-/// - Timer ticks independently; the loop exits once both targets are met.
-///
-/// Ownership:
-///
-///  mailbox (pre-loaded: Event×2)   pool (seeded: Event×1)
-///     │ receiveResult                  │ getWaitResult
-///     └────────────┬───────────────────┘
-///                  ▼
-///         Select(MasterEvent) ◄── sleepFn (timer)
-///                  │ sel.await()
-///                  ▼
-///  .inbox .item ──► freeSlot
-///  .pool_ev .item ──► pool.put
-///  .timer         ──► log tick, re-spawn
-///  done when inbox×2 + pool×1 received ──► sel.cancelDiscard()
-pub fn @"Mixed mailbox + pool event sources in Select"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Mixed mailbox + pool event sources in Select.
+//!
+//! - Mailbox pre-loaded with 2 Events, pool seeded with 1 Event, both are Select sources.
+//! - eventLoop handles each with a uniform switch, re-spawning after mailbox items.
+//! - Timer ticks independently; the loop exits once both targets are met.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (pre-loaded: Event×2)   pool (seeded: Event×1)
+//!     │ receiveResult                  │ getWaitResult
+//!     └────────────┬───────────────────┘
+//!                  ▼
+//!         Select(MasterEvent) ◄── sleepFn (timer)
+//!                  │ sel.await()
+//!                  ▼
+//!  .inbox .item ──► freeSlot
+//!  .pool_ev .item ──► pool.put
+//!  .timer         ──► log tick, re-spawn
+//!  done when inbox×2 + pool×1 received ──► sel.cancelDiscard()
+//! ```
+pub fn mixed_mailbox_pool_event_sources_in_select(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MailboxPoolTimerMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

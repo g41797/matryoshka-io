@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Timer via mailbox.
-///
-/// - Separate timer task sends 2 Timer ticks into the master's inbox.
-/// - Main sends 2 Events into the same inbox.
-/// - Worker dispatches on tag: counts Events separately from Timer ticks.
-/// - Worker exits after receiving the expected total — no Select needed.
-///
-/// Ownership:
-///
-///  main ──Event×2──►
-///  timerFn ──Timer×2──► mailbox ──► workerFn (tag dispatch; fixed count)
-///  (workerFn exits after receiving N_EVENTS + N_TICKS items)
-///  fut_timer.await → fut_worker.await
-pub fn @"Timer via mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Timer via mailbox.
+//!
+//! - Separate timer task sends 2 Timer ticks into the master's inbox.
+//! - Main sends 2 Events into the same inbox.
+//! - Worker dispatches on tag: counts Events separately from Timer ticks.
+//! - Worker exits after receiving the expected total — no Select needed.
+//!
+//! Ownership:
+//!
+//! ```
+//!  main ──Event×2──►
+//!  timerFn ──Timer×2──► mailbox ──► workerFn (tag dispatch; fixed count)
+//!  (workerFn exits after receiving N_EVENTS + N_TICKS items)
+//!  fut_timer.await → fut_worker.await
+//! ```
+pub fn timer_via_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

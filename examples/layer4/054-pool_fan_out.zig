@@ -1,23 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool fan-out: many workers acquire.
-///
-/// - Seed the pool with 3 items.
-/// - Spawn 3 workers, each calls pool.get(available_only) — no item is shared.
-/// - Verify all 3 workers got a distinct item, then all 3 put it back.
-///
-/// Ownership:
-///
-///  master: pool.get (×3, new_only) ──► pool (3 items seeded)
-///  │
-///  worker1 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
-///  worker2 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
-///  worker3 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
-///  │
-///  fut1.await + fut2.await + fut3.await
-///  pool.close ──► on_close ──► freeList
-pub fn @"Pool fan-out: many workers acquire"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool fan-out: many workers acquire.
+//!
+//! - Seed the pool with 3 items.
+//! - Spawn 3 workers, each calls pool.get(available_only) — no item is shared.
+//! - Verify all 3 workers got a distinct item, then all 3 put it back.
+//!
+//! Ownership:
+//!
+//! ```
+//!  master: pool.get (×3, new_only) ──► pool (3 items seeded)
+//!  │
+//!  worker1 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
+//!  worker2 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
+//!  worker3 ──pool.get (.available_only)──► slot ──► verify ──► pool.put
+//!  │
+//!  fut1.await + fut2.await + fut3.await
+//!  pool.close ──► on_close ──► freeList
+//! ```
+pub fn pool_fan_out_many_workers_acquire(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

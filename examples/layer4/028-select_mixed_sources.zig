@@ -1,27 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Multiple event source types in one Select.
-///
-/// - Inbox uses mailbox.receiveResult, job pool uses pool.getWaitResult, timer uses Io.sleep.
-/// - All three are event sources with uniform result handling in one switch.
-/// - Loop re-spawns each source after handling it, exits once both targets are met.
-/// - Timer just counts ticks; it drives no work in this example.
-///
-/// Ownership:
-///
-///  mailbox (Event items)    pool (Sensor items)    timer
-///  │ receiveResult           │ getWaitResult         │ sleepFn
-///  └──────────────────┬──────┘                        │
-///                     ▼                               │
-///             Select(MasterEvent) ◄───────────────────┘
-///                     │ sel.await() loop
-///                     ▼
-///  .inbox .item  ──► freeSlot             (count inbox)
-///  .pool_ev .item──► pool.put             (count pool)
-///  .timer        ──► re-spawn timer       (count ticks)
-///  exit when inbox_target + pool_target reached ──► sel.cancelDiscard()
-pub fn @"Multiple event source types in one Select"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Multiple event source types in one Select.
+//!
+//! - Inbox uses mailbox.receiveResult, job pool uses pool.getWaitResult, timer uses Io.sleep.
+//! - All three are event sources with uniform result handling in one switch.
+//! - Loop re-spawns each source after handling it, exits once both targets are met.
+//! - Timer just counts ticks; it drives no work in this example.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (Event items)    pool (Sensor items)    timer
+//!  │ receiveResult           │ getWaitResult         │ sleepFn
+//!  └──────────────────┬──────┘                        │
+//!                     ▼                               │
+//!             Select(MasterEvent) ◄───────────────────┘
+//!                     │ sel.await() loop
+//!                     ▼
+//!  .inbox .item  ──► freeSlot             (count inbox)
+//!  .pool_ev .item──► pool.put             (count pool)
+//!  .timer        ──► re-spawn timer       (count ticks)
+//!  exit when inbox_target + pool_target reached ──► sel.cancelDiscard()
+//! ```
+pub fn multiple_event_source_types_in_one_select(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

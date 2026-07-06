@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Tag-dispatch consume loop.
-///
-/// - Push one Event and one Sensor into a mixed-type list.
-/// - Pop each node, check its tag.
-/// - Recover the typed pointer with identifyNodeAs, process it.
-/// - Free every item; count events and sensors separately.
-///
-/// Ownership:
-///
-///  alloc.create (Event) ──► list
-///  alloc.create (Sensor) ──► list
-///       │ list.popFirst
-///       ▼
-///  tag check ──► EventPolyHelper.identifyNodeAs or SensorPolyHelper.identifyNodeAs
-///       │ freeItem per node
-pub fn @"Tag-dispatch consume loop"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Tag-dispatch consume loop.
+//!
+//! - Push one Event and one Sensor into a mixed-type list.
+//! - Pop each node, check its tag.
+//! - Recover the typed pointer with identifyNodeAs, process it.
+//! - Free every item; count events and sensors separately.
+//!
+//! Ownership:
+//!
+//! ```
+//!  alloc.create (Event) ──► list
+//!  alloc.create (Sensor) ──► list
+//!       │ list.popFirst
+//!       ▼
+//!  tag check ──► EventPolyHelper.identifyNodeAs or SensorPolyHelper.identifyNodeAs
+//!       │ freeItem per node
+//! ```
+pub fn tag_dispatch_consume_loop(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};
 

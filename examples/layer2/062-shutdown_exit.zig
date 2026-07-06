@@ -1,18 +1,20 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Shutdown via ShutdownCommand.
-///
-/// - Main sends 3 Events, then a ShutdownCommand PolyNode.
-/// - Worker processes each Event, exits cleanly on the sentinel.
-/// - Mailbox stays open throughout — worker owns every item it received.
-///
-/// Ownership:
-///
-///  main ──Event×3──► mailbox ──► worker (processes, freeSlot)
-///  main ──ShutdownCommand──► mailbox ──► worker (exits, freeSlot)
-///  (mailbox stays open; worker owns all received items)
-pub fn @"Shutdown via ShutdownCommand"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Shutdown via ShutdownCommand.
+//!
+//! - Main sends 3 Events, then a ShutdownCommand PolyNode.
+//! - Worker processes each Event, exits cleanly on the sentinel.
+//! - Mailbox stays open throughout — worker owns every item it received.
+//!
+//! Ownership:
+//!
+//! ```
+//!  main ──Event×3──► mailbox ──► worker (processes, freeSlot)
+//!  main ──ShutdownCommand──► mailbox ──► worker (exits, freeSlot)
+//!  (mailbox stays open; worker owns all received items)
+//! ```
+pub fn shutdown_via_shutdowncommand(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
 
     defer {

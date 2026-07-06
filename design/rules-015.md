@@ -1,9 +1,35 @@
-# Matryoshka Zig — Rules (013)
+# Matryoshka Zig — Rules (015)
 
-Versioned doc. Replaces [rules-012.md](rules-012.md).
+Versioned doc. Replaces [rules-014.md](rules-014.md).
 All coding, doc, and process rules for the project.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 Companion: [patterns-011.md](patterns-011.md) — reusable coding patterns.
+
+Change from rules-014: two example doc-comment fixes, confirmed against a
+from-scratch autodoc rebuild.
+- The example's description + Ownership diagram is a `//!` file-level doc
+  comment, placed at the top of the file (right after the SPDX header,
+  before the entry point) — not a `///` comment on the entry point. Reason:
+  every example file has exactly one public entry point, so the file-level
+  description is sufficient; `///` immediately above the entry point and
+  `//!` at the top of the file are different token kinds to the autodoc
+  parser, and mixing them truncates the function's own doc to whatever
+  trails the last `//!` line.
+- Any ASCII diagram inside a doc comment (Ownership diagrams, flow
+  diagrams) is wrapped in a ` ``` ` fenced code block. Reason: the autodoc
+  viewer renders doc comments as CommonMark markdown, which collapses
+  single line breaks into one flat paragraph — box-drawing diagrams need
+  a fenced (or indented) code block to keep their line breaks.
+See "Coding Rules — Examples" and "Description as code" below.
+
+Change from rules-013: example/story entry points use a plain snake_case
+identifier (`pub fn <snake_case>(...)`), not a quoted identifier
+(`pub fn @"<description>"(...)`). Reason: Zig's built-in `zig build docs`
+autodoc viewer cannot resolve declaration links for quoted identifiers —
+clicking such a name in the generated `examplesdocs` shows "Declaration
+not found." The staccato description text is unchanged; only the
+entry-point's identifier syntax changes. See "Coding Rules — Examples"
+and "Description as code" below.
 
 Change from rules-012: adds a verification rule for sweep/scan claims
 ("done" must be backed by a live grep, not a prior pass's claim) and a
@@ -74,7 +100,7 @@ Small functions with no distinct phases need no extraction.
 An example's or story's description is written like its code, not like prose about its code.
 
 Applies to.
-- Every `///` description block on an example's or story's entry point.
+- Every `//!` description block at the top of an example's or story's file.
 - `task1-examples-*.md` / `task2-examples-*.md` catalog entries (see Catalog docs below).
 
 Same shape as Observable by human.
@@ -89,18 +115,34 @@ Staccato rhythm applies.
 - One fact per bullet.
 - No prose paragraphs.
 
-Placement — `///` doc comment, not `//`.
-- The description + ASCII ownership diagram is a `///` doc comment.
-- `///` is autodoc-extractable (Stage 9). Plain `//` is not.
-- Attached to the example's entry point (`pub fn @"<description>"`) — the sole `pub`
-  declaration, and the one autodoc actually reads.
-- If the example uses a Master, the Master's own `run` method is the real coordinator,
-  but it is private (`fn`, not `pub fn`) — no `///` on it. Its steps are still named,
-  self-documenting per Observable by human; no separate doc block needed.
+Placement — `//!` file-level doc comment, not `//`.
+- The description + ASCII ownership diagram is a `//!` doc comment, placed at the
+  very top of the file, directly after the SPDX header, before any declaration.
+- `//!` is autodoc-extractable and renders on the file's own container page. Plain
+  `//` is not extracted at all.
+- Not `///` on the entry point: every example file has exactly one public entry
+  point, so the file-level `//!` description is sufficient. Mixing `//!` (file)
+  and `///` (declaration) above the same function is a bug, not a style choice —
+  they are different token kinds to the autodoc parser, and the function's own
+  doc silently truncates to whichever kind sits immediately above it.
+- If the example uses a Master, the Master's own `run` method is the real
+  coordinator, but it is private (`fn`, not `pub fn`) — no doc comment on it. Its
+  steps are still named, self-documenting per Observable by human; no separate
+  doc block needed.
+
+ASCII diagrams — fenced code block.
+- Any ASCII diagram inside a `//!` block (Ownership diagrams, flow diagrams) is
+  wrapped in a ` ``` ` fenced code block: ` ``` ` on its own `//!` line, the
+  diagram lines, then ` ``` ` on its own `//!` line to close.
+- Reason: the autodoc viewer renders doc comments as CommonMark markdown, which
+  collapses single line breaks into one flat paragraph. A fenced (or 4-space
+  indented) code block is the only way box-drawing diagrams keep their shape.
+- Trailing prose after a diagram (a summary sentence, not the diagram itself)
+  stays outside the fence, as a normal paragraph.
 
 File layout — flow descriptors at the top.
-- The entry point (`pub fn @"<description>"`) moves to the top of the file, directly
-  after the `///` description + diagram block.
+- The entry point (`pub fn <snake_case>`) sits at the top of the file, directly
+  after the `//!` description + diagram block.
 - Where a Master exists, its `run` method also moves up, directly after the entry
   point, ahead of struct fields, `init`, `destroy`, and step functions.
 - These two functions are the file's flow descriptors — a reader sees the whole shape
@@ -109,7 +151,7 @@ File layout — flow descriptors at the top.
 
 Catalog docs (`task1-examples-*.md`, `task2-examples-*.md`) are an index, not a copy.
 - One line per scenario: number, name, one-line hook, link to the source file.
-- The full staccato description lives in the source `///` block only.
+- The full staccato description lives in the source `//!` block only.
 - Do not duplicate the description in both places — the source is the single source
   of truth; the catalog just routes to it.
 
@@ -176,13 +218,19 @@ Test wrappers live in `tests/`.
 Scope and shape.
 - One pattern. One layer.
 - Entry point uses a descriptive name, not `run`.
-- Signature: `pub fn @"<description>"(allocator: std.mem.Allocator, io: std.Io) !void`.
-- `<description>` is the example's one-line staccato description — same text as the
-  first line of its `///` doc comment.
+- Signature: `pub fn <snake_case>(allocator: std.mem.Allocator, io: std.Io) !void`.
+- `<snake_case>` is a plain identifier derived from the example's one-line staccato
+  description (lowercase, words joined with `_`) — never a quoted identifier
+  (`@"..."`). Zig's built-in `zig build docs` autodoc viewer cannot resolve
+  declaration links for quoted identifiers; using one breaks the generated
+  `examplesdocs` page for that example.
+- The staccato description text itself is unchanged and still lives verbatim as
+  the first line of the file's `//!` doc comment.
 - Master's own `run` method (private, inside the Master struct) is unaffected — this
   rule targets only the example's public entry point.
-- `///` doc comment at the top of every example: staccato description + ASCII ownership
-  circuit diagram. No doc comment = not done. See Description as code above.
+- `//!` doc comment at the top of the file: staccato description + ASCII ownership
+  circuit diagram, diagram wrapped in a ` ``` ` fenced code block. No doc comment =
+  not done. See Description as code above.
 - The entry point (and Master `run` method, if any) placed at the top of the file, right
   after that doc comment.
 - Show correct resource cleanup. `errdefer` on error paths, `defer` on all-path cleanup.
@@ -219,7 +267,7 @@ Master struct shape.
   Description as code above), directly after the doc comment:
 
 ```zig
-pub fn @"<description>"(allocator: std.mem.Allocator, io: std.Io) !void {
+pub fn <snake_case>(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MasterXYZ.init(allocator, io);
     defer master.destroy();
     try master.run();

@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Multi-worker Master.
-///
-/// - Master spawns 3 workers via Io.Group, all sharing one mailbox.
-/// - sendItems pushes 3 Events; workers compete for them.
-/// - awaitAll closes the mailbox, frees anything left, awaits the group.
-/// - Shutdown cancels the group on defer, in case a worker is still running.
-///
-/// Ownership:
-///
-///  master ──Event×3──► mailbox ──► worker A (Io.Group)
-///                             ├──► worker B  (compete; each freeSlot)
-///                             └──► worker C
-///  mailbox.close ──► remaining freeList ──► group.await
-pub fn @"Multi-worker Master"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Multi-worker Master.
+//!
+//! - Master spawns 3 workers via Io.Group, all sharing one mailbox.
+//! - sendItems pushes 3 Events; workers compete for them.
+//! - awaitAll closes the mailbox, frees anything left, awaits the group.
+//! - Shutdown cancels the group on defer, in case a worker is still running.
+//!
+//! Ownership:
+//!
+//! ```
+//!  master ──Event×3──► mailbox ──► worker A (Io.Group)
+//!                             ├──► worker B  (compete; each freeSlot)
+//!                             └──► worker C
+//!  mailbox.close ──► remaining freeList ──► group.await
+//! ```
+pub fn multi_worker_master(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

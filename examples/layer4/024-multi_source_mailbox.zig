@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Multiple event sources, one mailbox.
-///
-/// - Timer task, event sender, and signal sender all send into one mailbox.
-/// - Worker has a single receive loop, dispatches on tag.
-/// - Senders finish, then the mailbox is closed to end the worker.
-/// - Ctx groups the flow: spawnSenders, then awaitSendersAndClose.
-///
-/// Ownership:
-///
-///  timerSenderFn ──Timer×2──►
-///  eventSenderFn ──Event×3──► mailbox ──► workerFn (tag dispatch; close-based exit)
-///  signalSenderFn ──ShutdownCommand──►
-///  senders await → mailbox.close → workerFn exits → fut_worker.await
-pub fn @"Multiple event sources, one mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Multiple event sources, one mailbox.
+//!
+//! - Timer task, event sender, and signal sender all send into one mailbox.
+//! - Worker has a single receive loop, dispatches on tag.
+//! - Senders finish, then the mailbox is closed to end the worker.
+//! - Ctx groups the flow: spawnSenders, then awaitSendersAndClose.
+//!
+//! Ownership:
+//!
+//! ```
+//!  timerSenderFn ──Timer×2──►
+//!  eventSenderFn ──Event×3──► mailbox ──► workerFn (tag dispatch; close-based exit)
+//!  signalSenderFn ──ShutdownCommand──►
+//!  senders await → mailbox.close → workerFn exits → fut_worker.await
+//! ```
+pub fn multiple_event_sources_one_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

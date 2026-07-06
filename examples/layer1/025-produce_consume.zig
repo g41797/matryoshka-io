@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Produce-consume with defer cleanup.
-///
-/// - Push 5 Events into a list (producer).
-/// - Pop each, sum the codes (consumer).
-/// - defer frees any items remaining on error, before or after the loop.
-///
-/// Ownership:
-///
-///  alloc.create × 5 ──► list (producer)
-///       │ list.popFirst × 5
-///       ▼
-///  freeItem per node (consumer)
-pub fn @"Produce-consume with defer cleanup"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Produce-consume with defer cleanup.
+//!
+//! - Push 5 Events into a list (producer).
+//! - Pop each, sum the codes (consumer).
+//! - defer frees any items remaining on error, before or after the loop.
+//!
+//! Ownership:
+//!
+//! ```
+//!  alloc.create × 5 ──► list (producer)
+//!       │ list.popFirst × 5
+//!       ▼
+//!  freeItem per node (consumer)
+//! ```
+pub fn produce_consume_with_defer_cleanup(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};
 

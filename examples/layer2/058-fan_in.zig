@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Fan-in.
-///
-/// - 3 concurrent senders: Events, Sensors, and a mixed sender.
-/// - All send into one shared mailbox.
-/// - Single receiver empties it with mailbox.receive_batch.
-/// - Counts events and sensors received, verifies the total.
-///
-/// Ownership:
-///
-///  eventSenderFn ──Event×5──►
-///  sensorSenderFn ──Sensor×5──► mailbox ──receive_batch──► freeItem per node
-///  altSenderFn ──mixed×4──►
-///  (3 concurrent senders fan-in to one mailbox)
-pub fn @"Fan-in"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Fan-in.
+//!
+//! - 3 concurrent senders: Events, Sensors, and a mixed sender.
+//! - All send into one shared mailbox.
+//! - Single receiver empties it with mailbox.receive_batch.
+//! - Counts events and sensors received, verifies the total.
+//!
+//! Ownership:
+//!
+//! ```
+//!  eventSenderFn ──Event×5──►
+//!  sensorSenderFn ──Sensor×5──► mailbox ──receive_batch──► freeItem per node
+//!  altSenderFn ──mixed×4──►
+//!  (3 concurrent senders fan-in to one mailbox)
+//! ```
+pub fn fan_in(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

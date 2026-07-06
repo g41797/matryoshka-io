@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Builder pattern.
-///
-/// - Builder wraps an allocator, no other state.
-/// - createEvent / createSensor build a typed item into a Slot.
-/// - identifyNodeAs recovers the typed pointer for field access.
-/// - destroyByTag frees whichever type the Slot holds.
-///
-/// Ownership:
-///
-///  alloc.create ──► slot (non-null)
-///       │
-///  Builder.identifyNodeAs ──► field access (no transfer)
-///       │
-///  Builder.destroyByTag ──► slot = null (freed)
-pub fn @"Builder pattern"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Builder pattern.
+//!
+//! - Builder wraps an allocator, no other state.
+//! - createEvent / createSensor build a typed item into a Slot.
+//! - identifyNodeAs recovers the typed pointer for field access.
+//! - destroyByTag frees whichever type the Slot holds.
+//!
+//! Ownership:
+//!
+//! ```
+//!  alloc.create ──► slot (non-null)
+//!       │
+//!  Builder.identifyNodeAs ──► field access (no transfer)
+//!       │
+//!  Builder.destroyByTag ──► slot = null (freed)
+//! ```
+pub fn builder_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     const b: Builder = .{ .alloc = allocator };
 

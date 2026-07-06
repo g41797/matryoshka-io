@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Master with Pool.
-///
-/// - Master owns a pool (with hooks) and a mailbox.
-/// - sendItems fills 3 pool items with Event data, sends each into the mailbox.
-/// - Worker loops on mailbox.receive, returns each item to the pool via pool.put.
-/// - Shutdown cancels the worker future, then destroy releases pool and mailbox in order.
-///
-/// Ownership:
-///
-///  master ──pool.get──► slot ──mailbox.send──► mailbox
-///                                                 │ worker (io.concurrent)
-///                                                 │ mailbox.receive ──► slot
-///                                                 │ pool.put (defer) ──► pool (recycled)
-///  fut.cancel ──► worker exits at next mailbox.receive
-///  master.destroy ──► pool.close ──► mailbox.close ──► free remaining
-pub fn @"Master with Pool"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Master with Pool.
+//!
+//! - Master owns a pool (with hooks) and a mailbox.
+//! - sendItems fills 3 pool items with Event data, sends each into the mailbox.
+//! - Worker loops on mailbox.receive, returns each item to the pool via pool.put.
+//! - Shutdown cancels the worker future, then destroy releases pool and mailbox in order.
+//!
+//! Ownership:
+//!
+//! ```
+//!  master ──pool.get──► slot ──mailbox.send──► mailbox
+//!                                                 │ worker (io.concurrent)
+//!                                                 │ mailbox.receive ──► slot
+//!                                                 │ pool.put (defer) ──► pool (recycled)
+//!  fut.cancel ──► worker exits at next mailbox.receive
+//!  master.destroy ──► pool.close ──► mailbox.close ──► free remaining
+//! ```
+pub fn master_with_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MasterWithPool.init(allocator, io);
     defer master.destroy();
     try master.run();

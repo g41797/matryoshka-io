@@ -1,20 +1,22 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Basic recycler.
-///
-/// - Create a pool with hooks for the Event tag.
-/// - pool.get with available_or_new allocates a fresh item.
-/// - pool.put returns it, pool.get again recycles the same item.
-/// - Verify the recycled item kept its data.
-///
-/// Ownership:
-///
-///  pool.get (available_or_new) ──► slot (new via on_get)
-///       │ pool.put ──► pool (recycled)
-///       │ pool.get (available_or_new) ──► slot (same item, data intact)
-///       │ EventPolyHelper.destroy ──► freed
-pub fn @"Basic recycler"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Basic recycler.
+//!
+//! - Create a pool with hooks for the Event tag.
+//! - pool.get with available_or_new allocates a fresh item.
+//! - pool.put returns it, pool.get again recycles the same item.
+//! - Verify the recycled item kept its data.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool.get (available_or_new) ──► slot (new via on_get)
+//!       │ pool.put ──► pool (recycled)
+//!       │ pool.get (available_or_new) ──► slot (same item, data intact)
+//!       │ EventPolyHelper.destroy ──► freed
+//! ```
+pub fn basic_recycler(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
 

@@ -1,27 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool + Group: worker pool.
-///
-/// - Pool seeded with N empty containers, N workers spawned via Io.Group with a task index each.
-/// - Each worker gets its own container, writes its index, returns it.
-/// - group.cancel stops any workers still running, then pool.close frees the rest.
-/// - No mailbox — each worker's own container is the coordination surface.
-///
-/// Ownership (mailbox-less):
-///
-///  pool (N_WORKERS empty containers seeded — code=0)
-///  │ Io.Group (N_WORKERS workers, each with own task index at spawn time)
-///  ├──► worker 0 ──pool.get──► slot (empty) ──► ev.code = 0 ──► pool.put ──► pool
-///  ├──► worker 1 ──pool.get──► slot (empty) ──► ev.code = 1 ──► pool.put ──► pool
-///  └──► worker 2 ──pool.get──► slot (empty) ──► ev.code = 2 ──► pool.put ──► pool
-///  │
-///  group.cancel ──► any worker that has not yet returned exits (all likely done)
-///  pool.close ──► on_close ──► freeList (remaining items freed)
-///
-///  Work input: task index passed at spawn time. Pool item is an empty container.
-///  Each worker gets its own container, writes its index, returns it. No mailbox needed.
-pub fn @"Pool + Group: worker pool"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool + Group: worker pool.
+//!
+//! - Pool seeded with N empty containers, N workers spawned via Io.Group with a task index each.
+//! - Each worker gets its own container, writes its index, returns it.
+//! - group.cancel stops any workers still running, then pool.close frees the rest.
+//! - No mailbox — each worker's own container is the coordination surface.
+//!
+//! Ownership (mailbox-less):
+//!
+//! ```
+//!  pool (N_WORKERS empty containers seeded — code=0)
+//!  │ Io.Group (N_WORKERS workers, each with own task index at spawn time)
+//!  ├──► worker 0 ──pool.get──► slot (empty) ──► ev.code = 0 ──► pool.put ──► pool
+//!  ├──► worker 1 ──pool.get──► slot (empty) ──► ev.code = 1 ──► pool.put ──► pool
+//!  └──► worker 2 ──pool.get──► slot (empty) ──► ev.code = 2 ──► pool.put ──► pool
+//!  │
+//!  group.cancel ──► any worker that has not yet returned exits (all likely done)
+//!  pool.close ──► on_close ──► freeList (remaining items freed)
+//! ```
+//!
+//!  Work input: task index passed at spawn time. Pool item is an empty container.
+//!  Each worker gets its own container, writes its index, returns it. No mailbox needed.
+pub fn pool_group_worker_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

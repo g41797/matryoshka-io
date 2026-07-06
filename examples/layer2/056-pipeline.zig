@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pipeline.
-///
-/// - Chain of 3 stages: producer, transformer, consumer.
-/// - Producer sends 5 Events, then a sentinel (code == -1).
-/// - Transformer squares each code, forwards the sentinel, then exits.
-/// - Consumer sums results, frees the sentinel, exits.
-///
-/// Ownership:
-///
-///  producer ──Event──► stage1 mailbox ──► transformer
-///                                              │ Event→Event (code²)
-///                                              ▼
-///  consumer ◄──Event── stage2 mailbox ◄── transformer
-///  (sentinel: Event code=-1 terminates each stage; consumer frees)
-pub fn Pipeline(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pipeline.
+//!
+//! - Chain of 3 stages: producer, transformer, consumer.
+//! - Producer sends 5 Events, then a sentinel (code == -1).
+//! - Transformer squares each code, forwards the sentinel, then exits.
+//! - Consumer sums results, frees the sentinel, exits.
+//!
+//! Ownership:
+//!
+//! ```
+//!  producer ──Event──► stage1 mailbox ──► transformer
+//!                                              │ Event→Event (code²)
+//!                                              ▼
+//!  consumer ◄──Event── stage2 mailbox ◄── transformer
+//!  (sentinel: Event code=-1 terminates each stage; consumer frees)
+//! ```
+pub fn pipeline(allocator: std.mem.Allocator, io: std.Io) !void {
     const stage1: MailboxHandle = try mailbox.new(io, allocator);
     const stage2: MailboxHandle = try mailbox.new(io, allocator);
     defer {

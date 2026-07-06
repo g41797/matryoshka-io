@@ -1,28 +1,30 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool fan-in: many workers return.
-///
-/// - Seed the pool with N empty containers, one per worker mailbox.
-/// - dispatch fills each container from the Master's job list, sends it to its worker.
-/// - Each worker doubles the value, returns the container to the pool.
-/// - collectResults reads all N results back from the pool, sums them.
-///
-/// Ownership:
-///
-///  Master job list: [{code=1},{code=2},{code=3}]
-///  pool (3 empty containers seeded)
-///  │
-///  master: pool.get ──► fill from job list ──► mailbox.send ──► mbh[0..2]
-///                                                                   │ worker[i] (io.concurrent)
-///                                                                   │ mailbox.receive ──► process ──► pool.put ──► pool
-///  master: fut[i].await ──► all workers done
-///  master: pool.get ×3 ──► verify results
-///  pool.close ──► on_close ──► freeList
-///
-///  Ownership: Master list → pool containers → worker mailboxes → workers → pool → master.
-///  Pool items are empty containers: Master fills from job list, worker writes result back.
-pub fn @"Pool fan-in: many workers return"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool fan-in: many workers return.
+//!
+//! - Seed the pool with N empty containers, one per worker mailbox.
+//! - dispatch fills each container from the Master's job list, sends it to its worker.
+//! - Each worker doubles the value, returns the container to the pool.
+//! - collectResults reads all N results back from the pool, sums them.
+//!
+//! Ownership:
+//!
+//! ```
+//!  Master job list: [{code=1},{code=2},{code=3}]
+//!  pool (3 empty containers seeded)
+//!  │
+//!  master: pool.get ──► fill from job list ──► mailbox.send ──► mbh[0..2]
+//!                                                                   │ worker[i] (io.concurrent)
+//!                                                                   │ mailbox.receive ──► process ──► pool.put ──► pool
+//!  master: fut[i].await ──► all workers done
+//!  master: pool.get ×3 ──► verify results
+//!  pool.close ──► on_close ──► freeList
+//! ```
+//!
+//!  Ownership: Master list → pool containers → worker mailboxes → workers → pool → master.
+//!  Pool items are empty containers: Master fills from job list, worker writes result back.
+pub fn pool_fan_in_many_workers_return(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try PoolFanInMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

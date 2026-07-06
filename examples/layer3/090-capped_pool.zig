@@ -1,23 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Backpressure pool.
-///
-/// - 4 threads concurrently pool.get and pool.put, 8 iterations each.
-/// - on_put caps the pool at 2 items, destroys anything past the cap.
-/// - After all threads join, empty the pool and count what remains.
-/// - Verify the remaining count never exceeds the cap.
-///
-/// Ownership:
-///
-///  CappedPool (cap=2)
-///       │ pool.get (available_or_new) — 4 threads concurrently
-///       ▼
-///  worker thread (processes)
-///       │ pool.put (defer) — on_put destroys excess above cap
-///       ▼
-///  CappedPool (≤ cap items retained)
-pub fn @"Backpressure pool"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Backpressure pool.
+//!
+//! - 4 threads concurrently pool.get and pool.put, 8 iterations each.
+//! - on_put caps the pool at 2 items, destroys anything past the cap.
+//! - After all threads join, empty the pool and count what remains.
+//! - Verify the remaining count never exceeds the cap.
+//!
+//! Ownership:
+//!
+//! ```
+//!  CappedPool (cap=2)
+//!       │ pool.get (available_or_new) — 4 threads concurrently
+//!       ▼
+//!  worker thread (processes)
+//!       │ pool.put (defer) — on_put destroys excess above cap
+//!       ▼
+//!  CappedPool (≤ cap items retained)
+//! ```
+pub fn backpressure_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const cap: usize = 2;
     var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = cap, .io = io };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

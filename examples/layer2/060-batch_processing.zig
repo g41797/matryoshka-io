@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Batch processing.
-///
-/// - Main sends 10 Events, then a ShutdownCommand sentinel.
-/// - Worker blocks on the first item via mailbox.receive.
-/// - Worker then empties the rest with mailbox.receive_batch.
-/// - Sentinel found in either place ends the worker.
-///
-/// Ownership:
-///
-///  main ──Event×10 + ShutdownCommand──► mailbox
-///       │
-///  worker: receive (first item) ──► freeSlot
-///          receive_batch (rest) ──► walk + freeItem
-///          (ShutdownCommand in batch → exit)
-pub fn @"Batch processing"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Batch processing.
+//!
+//! - Main sends 10 Events, then a ShutdownCommand sentinel.
+//! - Worker blocks on the first item via mailbox.receive.
+//! - Worker then empties the rest with mailbox.receive_batch.
+//! - Sentinel found in either place ends the worker.
+//!
+//! Ownership:
+//!
+//! ```
+//!  main ──Event×10 + ShutdownCommand──► mailbox
+//!       │
+//!  worker: receive (first item) ──► freeSlot
+//!          receive_batch (rest) ──► walk + freeItem
+//!          (ShutdownCommand in batch → exit)
+//! ```
+pub fn batch_processing(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

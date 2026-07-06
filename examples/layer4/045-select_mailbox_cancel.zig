@@ -1,24 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Select cancel propagation.
-///
-/// - Mailbox is empty; receiveResult blocks as a Select event source.
-/// - A timer triggers first, calls sel.cancel().
-/// - The blocked receive reports .canceled, propagated through the cancel loop.
-///
-/// Ownership:
-///
-///  mailbox (empty)
-///  │ receiveResult (blocking)
-///  ▼
-///  Select(MasterEvent) ◄── sleepFn (timer)
-///  │
-///  .timer ──► sel.cancel() loop ──► .inbox .canceled
-///             (group.cancel signals receiveResult to stop)
-///  │
-///  mailbox.close ──► freeList ──► mailbox.destroy
-pub fn @"Select cancel propagation"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Select cancel propagation.
+//!
+//! - Mailbox is empty; receiveResult blocks as a Select event source.
+//! - A timer triggers first, calls sel.cancel().
+//! - The blocked receive reports .canceled, propagated through the cancel loop.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (empty)
+//!  │ receiveResult (blocking)
+//!  ▼
+//!  Select(MasterEvent) ◄── sleepFn (timer)
+//!  │
+//!  .timer ──► sel.cancel() loop ──► .inbox .canceled
+//!             (group.cancel signals receiveResult to stop)
+//!  │
+//!  mailbox.close ──► freeList ──► mailbox.destroy
+//! ```
+pub fn select_cancel_propagation(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

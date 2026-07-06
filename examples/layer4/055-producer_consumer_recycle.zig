@@ -1,25 +1,27 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Producer → consumer with recycling.
-///
-/// - produce: pool.get fills an item, mailbox.send transfers it.
-/// - consume: mailbox.receive gets it back, verifies same pointer, pool.put recycles it.
-/// - verifyRecycle: pool.get(available_only) confirms the same pointer, same data.
-///
-/// Ownership:
-///
-///  pool.get ──► slot ──► producer fills (code=1)
-///  mailbox.send ──► mailbox
-///  │
-///  consumer: mailbox.receive ──► slot (same pointer)
-///            verify code==1
-///            pool.put ──► pool (item recycled)
-///  │
-///  pool.get ──► slot (same pointer, code still 1)
-///  verify recycled ──► pool.put ──► pool
-///  pool.close ──► on_close ──► freeList
-pub fn @"Producer → consumer with recycling"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Producer → consumer with recycling.
+//!
+//! - produce: pool.get fills an item, mailbox.send transfers it.
+//! - consume: mailbox.receive gets it back, verifies same pointer, pool.put recycles it.
+//! - verifyRecycle: pool.get(available_only) confirms the same pointer, same data.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool.get ──► slot ──► producer fills (code=1)
+//!  mailbox.send ──► mailbox
+//!  │
+//!  consumer: mailbox.receive ──► slot (same pointer)
+//!            verify code==1
+//!            pool.put ──► pool (item recycled)
+//!  │
+//!  pool.get ──► slot (same pointer, code still 1)
+//!  verify recycled ──► pool.put ──► pool
+//!  pool.close ──► on_close ──► freeList
+//! ```
+pub fn producer_consumer_with_recycling(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

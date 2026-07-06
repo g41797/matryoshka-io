@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool + Mailbox flow.
-///
-/// - getAndSend: pool.get fills an item, mailbox.send transfers it.
-/// - receiveAndVerify: mailbox.receive gets it back, pool.put returns it.
-/// - One ownership circuit, single-threaded — the minimal cross-layer flow.
-///
-/// Ownership:
-///
-///  pool.get ──► slot (code=7)
-///  mailbox.send ──► mailbox owns item
-///  mailbox.receive ──► slot (same item)
-///  pool.put ──► pool free-list
-///  pool.close ──► on_close ──► freed
-///
-///  Pattern: pool → mailbox → pool. One ownership circuit, single-threaded.
-pub fn @"Pool + Mailbox flow"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool + Mailbox flow.
+//!
+//! - getAndSend: pool.get fills an item, mailbox.send transfers it.
+//! - receiveAndVerify: mailbox.receive gets it back, pool.put returns it.
+//! - One ownership circuit, single-threaded — the minimal cross-layer flow.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool.get ──► slot (code=7)
+//!  mailbox.send ──► mailbox owns item
+//!  mailbox.receive ──► slot (same item)
+//!  pool.put ──► pool free-list
+//!  pool.close ──► on_close ──► freed
+//! ```
+//!
+//!  Pattern: pool → mailbox → pool. One ownership circuit, single-threaded.
+pub fn pool_mailbox_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

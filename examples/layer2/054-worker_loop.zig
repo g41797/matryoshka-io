@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Worker loop pattern.
-///
-/// - Main sends 3 Events and 2 Sensors into a mailbox.
-/// - Worker thread loops on mailbox.receive, dispatches on tag.
-/// - Worker exits on error.Closed.
-/// - Main closes the mailbox, frees any items left unreceived.
-///
-/// Ownership:
-///
-///  main ──alloc.create──► slot ──mailbox.send──► mailbox
-///                                                    │
-///                                              worker thread
-///                                              mailbox.receive
-///                                                    │ freeSlot
-///  mailbox.close ──► remaining list ──► freeList (main)
-pub fn @"Worker loop pattern"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Worker loop pattern.
+//!
+//! - Main sends 3 Events and 2 Sensors into a mailbox.
+//! - Worker thread loops on mailbox.receive, dispatches on tag.
+//! - Worker exits on error.Closed.
+//! - Main closes the mailbox, frees any items left unreceived.
+//!
+//! Ownership:
+//!
+//! ```
+//!  main ──alloc.create──► slot ──mailbox.send──► mailbox
+//!                                                    │
+//!                                              worker thread
+//!                                              mailbox.receive
+//!                                                    │ freeSlot
+//!  mailbox.close ──► remaining list ──► freeList (main)
+//! ```
+pub fn worker_loop_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

@@ -1,28 +1,30 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Job pool circular flow.
-///
-/// - Master pre-loads a job list, seeds the pool with 1 container.
-/// - runEventLoop: pool availability triggers the next dispatch from the job list.
-/// - Worker doubles the value, returns the container — which triggers the next dispatch.
-/// - Loop ends once all jobs are dispatched and the last result returns.
-///
-/// Ownership (circular):
-///
-///  Master job list: [{code=10},{code=20},{code=30}]
-///  pool (1 empty container seeded)
-///  │ getWaitResult drives pace
-///  ▼
-///  master: fill container from job list ──► mailbox.send ──► mbh
-///                                                              │ worker
-///                                                              │ process (code *= 2) ──► pool.put ──► pool
-///  pool triggers again ──► master dispatches next job (or breaks when all N sent + last returned)
-///
-///  Container circulates: pool → master fills → mailbox → worker → pool.
-///  Work input: Master's pre-loaded job list. Pool provides the container and controls pacing.
-///  Master counter tracks completed jobs.
-pub fn @"Job pool circular flow"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Job pool circular flow.
+//!
+//! - Master pre-loads a job list, seeds the pool with 1 container.
+//! - runEventLoop: pool availability triggers the next dispatch from the job list.
+//! - Worker doubles the value, returns the container — which triggers the next dispatch.
+//! - Loop ends once all jobs are dispatched and the last result returns.
+//!
+//! Ownership (circular):
+//!
+//! ```
+//!  Master job list: [{code=10},{code=20},{code=30}]
+//!  pool (1 empty container seeded)
+//!  │ getWaitResult drives pace
+//!  ▼
+//!  master: fill container from job list ──► mailbox.send ──► mbh
+//!                                                              │ worker
+//!                                                              │ process (code *= 2) ──► pool.put ──► pool
+//!  pool triggers again ──► master dispatches next job (or breaks when all N sent + last returned)
+//! ```
+//!
+//!  Container circulates: pool → master fills → mailbox → worker → pool.
+//!  Work input: Master's pre-loaded job list. Pool provides the container and controls pacing.
+//!  Master counter tracks completed jobs.
+pub fn job_pool_circular_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

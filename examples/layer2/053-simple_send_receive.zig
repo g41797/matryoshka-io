@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Simple send-receive.
-///
-/// - One thread sends an Event, then a Sensor, into a mailbox.
-/// - Same thread receives both back, in order.
-/// - Verifies each roundtrip value.
-///
-/// Ownership:
-///
-///  alloc.create ──► slot ──mailbox.send──► mailbox (owns)
-///                                              │ mailbox.receive
-///                                              ▼
-///                                         slot ──► freeSlot
-pub fn @"Simple send-receive"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Simple send-receive.
+//!
+//! - One thread sends an Event, then a Sensor, into a mailbox.
+//! - Same thread receives both back, in order.
+//! - Verifies each roundtrip value.
+//!
+//! Ownership:
+//!
+//! ```
+//!  alloc.create ──► slot ──mailbox.send──► mailbox (owns)
+//!                                              │ mailbox.receive
+//!                                              ▼
+//!                                         slot ──► freeSlot
+//! ```
+pub fn simple_send_receive(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

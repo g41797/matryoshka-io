@@ -1,27 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Two mailboxes + timer in Select.
-///
-/// - Both mailboxes use mailbox.receiveResult as Select event sources.
-/// - A short timer triggers first, before either mailbox has an item.
-/// - Timer seeds both mailboxes, re-spawns itself with a longer duration.
-/// - Loop exits once both mailboxes have delivered one item each.
-///
-/// Ownership:
-///
-///  mbh1 (empty)    mbh2 (empty)
-///  │ receiveResult  │ receiveResult
-///  └────────┬───────┘
-///           ▼
-///  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
-///  │
-///  .timer ──► send item to mbh1, send item to mbh2
-///             re-spawn timer (longer)
-///  .inbox1 .item ──► freeSlot, re-spawn inbox1
-///  .inbox2 .item ──► freeSlot
-///  sel.cancelDiscard()
-pub fn @"Two mailboxes + timer in Select"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Two mailboxes + timer in Select.
+//!
+//! - Both mailboxes use mailbox.receiveResult as Select event sources.
+//! - A short timer triggers first, before either mailbox has an item.
+//! - Timer seeds both mailboxes, re-spawns itself with a longer duration.
+//! - Loop exits once both mailboxes have delivered one item each.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mbh1 (empty)    mbh2 (empty)
+//!  │ receiveResult  │ receiveResult
+//!  └────────┬───────┘
+//!           ▼
+//!  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
+//!  │
+//!  .timer ──► send item to mbh1, send item to mbh2
+//!             re-spawn timer (longer)
+//!  .inbox1 .item ──► freeSlot, re-spawn inbox1
+//!  .inbox2 .item ──► freeSlot
+//!  sel.cancelDiscard()
+//! ```
+pub fn two_mailboxes_timer_in_select(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh1: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh1);

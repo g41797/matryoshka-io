@@ -1,27 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Cancel → Master close → pool.put_all.
-///
-/// - Pool seeded with 3 Events, used as a Select event source via getWaitResult.
-/// - eventLoop processes one item, then a timer triggers, ending the loop.
-/// - cancelAndRecycle empties sel.cancel(), recycles any in-flight item via pool.put.
-/// - pool.close then frees everything recycled — no item is lost or double-freed.
-///
-/// Ownership:
-///
-///  pool (seeded: Event×3)
-///  │ getWaitResult
-///  ▼
-///  Select(MasterEvent) ◄── sleepFn (timer)
-///  │
-///  .pool_ev .item ──► process ──pool.put──► pool   (1 item processed)
-///  .timer ──► sel.cancel() loop
-///             .pool_ev .item ──► pool.put (recycle, not freed!)
-///             .pool_ev .canceled ──► (no item, skip)
-///  │
-///  pool.close ──► on_close ──► freeList (all recycled items freed cleanly)
-pub fn @"Cancel → Master close → pool.put_all"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Cancel → Master close → pool.put_all.
+//!
+//! - Pool seeded with 3 Events, used as a Select event source via getWaitResult.
+//! - eventLoop processes one item, then a timer triggers, ending the loop.
+//! - cancelAndRecycle empties sel.cancel(), recycles any in-flight item via pool.put.
+//! - pool.close then frees everything recycled — no item is lost or double-freed.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool (seeded: Event×3)
+//!  │ getWaitResult
+//!  ▼
+//!  Select(MasterEvent) ◄── sleepFn (timer)
+//!  │
+//!  .pool_ev .item ──► process ──pool.put──► pool   (1 item processed)
+//!  .timer ──► sel.cancel() loop
+//!             .pool_ev .item ──► pool.put (recycle, not freed!)
+//!             .pool_ev .canceled ──► (no item, skip)
+//!  │
+//!  pool.close ──► on_close ──► freeList (all recycled items freed cleanly)
+//! ```
+pub fn cancel_master_close_pool_put_all(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

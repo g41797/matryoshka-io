@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// OOB via send_oob.
-///
-/// - Send 3 Events via mailbox.send, queued in order.
-/// - Send 1 Sensor via mailbox.send_oob, jumps to queue front.
-/// - Receive 4 items: OOB Sensor arrives first, then the 3 Events.
-/// - Free every received item.
-///
-/// Ownership:
-///
-///  mailbox.send (Event×3) ──► queue tail
-///  mailbox.send_oob (Sensor) ──► queue front
-///       │ mailbox.receive ×4
-///       ▼
-///  OOB Sensor arrives first, then Events in send order
-///  freeSlot per item
-pub fn @"OOB via send_oob"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! OOB via send_oob.
+//!
+//! - Send 3 Events via mailbox.send, queued in order.
+//! - Send 1 Sensor via mailbox.send_oob, jumps to queue front.
+//! - Receive 4 items: OOB Sensor arrives first, then the 3 Events.
+//! - Free every received item.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox.send (Event×3) ──► queue tail
+//!  mailbox.send_oob (Sensor) ──► queue front
+//!       │ mailbox.receive ×4
+//!       ▼
+//!  OOB Sensor arrives first, then Events in send order
+//!  freeSlot per item
+//! ```
+pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

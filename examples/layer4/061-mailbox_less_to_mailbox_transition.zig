@@ -1,29 +1,31 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// When to add Mailbox.
-///
-/// - Same pool + Select setup as scenario 60, plus multiple independent mock clients.
-/// - Clients are unknown and independent — fan-in requires a mailbox as a third source.
-/// - Shows the transition point: mailbox-less works until senders multiply and diverge.
-///
-/// Ownership (transition: mailbox-less → mailbox needed):
-///
-///  pool (seeded)       mock clients (io.concurrent ×N_CLIENTS → mailbox.send)
-///  │ getWaitResult      │ receiveResult
-///  └────────┬───────────┘
-///           ▼
-///  Select(MasterEvent)
-///  │
-///  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
-///  .inbox .item   ──► freeSlot               (re-spawn receiveResult)
-///  │
-///  clients finish → mailbox.close → inbox returns .closed
-///  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
-///
-///  Transition: when senders are multiple and independent, fan-in via mailbox
-///  becomes necessary. Mailbox is the third event source in Select.
-pub fn @"When to add Mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! When to add Mailbox.
+//!
+//! - Same pool + Select setup as scenario 60, plus multiple independent mock clients.
+//! - Clients are unknown and independent — fan-in requires a mailbox as a third source.
+//! - Shows the transition point: mailbox-less works until senders multiply and diverge.
+//!
+//! Ownership (transition: mailbox-less → mailbox needed):
+//!
+//! ```
+//!  pool (seeded)       mock clients (io.concurrent ×N_CLIENTS → mailbox.send)
+//!  │ getWaitResult      │ receiveResult
+//!  └────────┬───────────┘
+//!           ▼
+//!  Select(MasterEvent)
+//!  │
+//!  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
+//!  .inbox .item   ──► freeSlot               (re-spawn receiveResult)
+//!  │
+//!  clients finish → mailbox.close → inbox returns .closed
+//!  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
+//! ```
+//!
+//!  Transition: when senders are multiple and independent, fan-in via mailbox
+//!  becomes necessary. Mailbox is the third event source in Select.
+pub fn when_to_add_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

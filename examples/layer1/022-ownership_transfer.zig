@@ -1,26 +1,28 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Ownership transfer via Slot.
-///
-/// - Create an Event, wrap it in a Slot.
-/// - Transfer the Slot into a list, clear the Slot.
-/// - Pop the item back out of the list, assign it to a Slot.
-/// - Verify the recovered data, then free it.
-///
-/// Ownership:
-///
-///  alloc.create ──► slot (non-null)
-///       │ list.append + slot=null
-///       ▼
-///  list (owns item)
-///       │ list.popFirst + slot=item
-///       ▼
-///  slot (owns item again)
-///       │ freeSlot
-///       ▼
-///  freed
-pub fn @"Ownership transfer via Slot"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Ownership transfer via Slot.
+//!
+//! - Create an Event, wrap it in a Slot.
+//! - Transfer the Slot into a list, clear the Slot.
+//! - Pop the item back out of the list, assign it to a Slot.
+//! - Verify the recovered data, then free it.
+//!
+//! Ownership:
+//!
+//! ```
+//!  alloc.create ──► slot (non-null)
+//!       │ list.append + slot=null
+//!       ▼
+//!  list (owns item)
+//!       │ list.popFirst + slot=item
+//!       ▼
+//!  slot (owns item again)
+//!       │ freeSlot
+//!       ▼
+//!  freed
+//! ```
+pub fn ownership_transfer_via_slot(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
 
     var slot: Slot = null;

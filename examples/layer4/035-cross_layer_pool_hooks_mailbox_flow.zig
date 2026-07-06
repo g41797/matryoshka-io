@@ -1,27 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool hooks + mailbox flow.
-///
-/// - round1: on_get creates an item, mailbox carries it, on_put keeps it (cap not yet reached).
-/// - round2: on_get creates a fresh item, mailbox carries it, on_put destroys it (cap reached).
-/// - verifyRecycled confirms the kept item (code=1) is the one still in the pool.
-///
-/// Ownership:
-///
-///  pool.get (new_only) ──► on_get creates ──► slot (code=1)
-///  mailbox.send ──► mailbox owns item
-///  mailbox.receive ──► slot (same item)
-///  pool.put ──► on_put: count<cap → keep ──► pool free-list
-///  │
-///  pool.get (new_only) ──► on_get creates fresh ──► slot (code=2)
-///  mailbox.send ──► mailbox owns item
-///  mailbox.receive ──► slot (same item)
-///  pool.put ──► on_put: count>=cap → destroy ──► freed
-///  │
-///  pool.get (.available_only) ──► recycled (code=1) ──► verify
-///  pool.close ──► on_close ──► freeList
-pub fn @"Pool hooks + mailbox flow"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool hooks + mailbox flow.
+//!
+//! - round1: on_get creates an item, mailbox carries it, on_put keeps it (cap not yet reached).
+//! - round2: on_get creates a fresh item, mailbox carries it, on_put destroys it (cap reached).
+//! - verifyRecycled confirms the kept item (code=1) is the one still in the pool.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool.get (new_only) ──► on_get creates ──► slot (code=1)
+//!  mailbox.send ──► mailbox owns item
+//!  mailbox.receive ──► slot (same item)
+//!  pool.put ──► on_put: count<cap → keep ──► pool free-list
+//!  │
+//!  pool.get (new_only) ──► on_get creates fresh ──► slot (code=2)
+//!  mailbox.send ──► mailbox owns item
+//!  mailbox.receive ──► slot (same item)
+//!  pool.put ──► on_put: count>=cap → destroy ──► freed
+//!  │
+//!  pool.get (.available_only) ──► recycled (code=1) ──► verify
+//!  pool.close ──► on_close ──► freeList
+//! ```
+pub fn pool_hooks_mailbox_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     // CappedPoolCtx: cap=1 — first put keeps, second put destroys.
     var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = 1, .io = io };

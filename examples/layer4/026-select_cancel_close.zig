@@ -1,28 +1,30 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Timer cancel → close → walk remaining.
-///
-/// - Two mailboxes + timer in Select, both mailboxes empty.
-/// - Timer triggers first, calls sel.cancel() on both mailbox sources.
-/// - Both return .canceled; cancel and close are kept as separate operations.
-/// - Both mailboxes are then closed, remaining items freed via freeList.
-///
-/// Ownership:
-///
-///  mbh1 (empty)    mbh2 (empty)
-///  │ receiveResult  │ receiveResult
-///  └────────┬───────┘
-///           ▼
-///  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
-///  │
-///  .timer ──► sel.cancel() loop
-///             .inbox1 .canceled ──► log
-///             .inbox2 .canceled ──► log
-///  │
-///  mailbox.close(mbh1) ──► freeList
-///  mailbox.close(mbh2) ──► freeList
-pub fn @"Timer cancel → close → walk remaining"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Timer cancel → close → walk remaining.
+//!
+//! - Two mailboxes + timer in Select, both mailboxes empty.
+//! - Timer triggers first, calls sel.cancel() on both mailbox sources.
+//! - Both return .canceled; cancel and close are kept as separate operations.
+//! - Both mailboxes are then closed, remaining items freed via freeList.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mbh1 (empty)    mbh2 (empty)
+//!  │ receiveResult  │ receiveResult
+//!  └────────┬───────┘
+//!           ▼
+//!  Select(MasterEvent) ◄── sleepFn (short timer triggers first)
+//!  │
+//!  .timer ──► sel.cancel() loop
+//!             .inbox1 .canceled ──► log
+//!             .inbox2 .canceled ──► log
+//!  │
+//!  mailbox.close(mbh1) ──► freeList
+//!  mailbox.close(mbh2) ──► freeList
+//! ```
+pub fn timer_cancel_close_walk_remaining(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh1: MailboxHandle = try mailbox.new(io, allocator);
     const mbh2: MailboxHandle = try mailbox.new(io, allocator);
     defer {

@@ -1,34 +1,36 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Job pool pattern.
-///
-/// - Master pre-loads a job queue, seeds the pool with N empty containers.
-/// - dispatchJobs: pool availability (getWaitResult) gates dispatch to N workers.
-/// - Each worker doubles its job's code, returns the container via pool.put.
-/// - shutdown closes all worker mailboxes, awaits every worker future.
-///
-/// Ownership:
-///
-///  Master job queue: [{code=10},{code=20},{code=30}] (pre-loaded before loop)
-///  pool (N empty containers seeded)
-///  │ getWaitResult — triggers when a container is returned by a worker (or initially available)
-///  ▼
-///  Select(MasterEvent)
-///  │
-///  .pool_ev .item ──► pop job from Master queue ──► fill container ──► mailbox.send ──► mbh[worker_i]
-///                 ──► re-spawn getWaitResult (until queue exhausted)
-///                 ──► break (queue empty — no more jobs to dispatch)
-///  │
-///  worker[i]: mailbox.receive ──► process (code *= 2) ──► pool.put ──► pool (triggers next pool_ev)
-///  │
-///  master: mailbox.close (×N) ──► workers exit ──► futs.await
-///  pool.close ──► on_close ──► freeList (returns all remaining containers)
-///
-///  Pool availability gates job submission. Work input: Master's pre-loaded queue.
-///  Pool provides empty containers. One container per in-flight job.
-///  Master dispatches jobs until queue exhausted, then shuts down workers.
-pub fn @"Job pool pattern"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Job pool pattern.
+//!
+//! - Master pre-loads a job queue, seeds the pool with N empty containers.
+//! - dispatchJobs: pool availability (getWaitResult) gates dispatch to N workers.
+//! - Each worker doubles its job's code, returns the container via pool.put.
+//! - shutdown closes all worker mailboxes, awaits every worker future.
+//!
+//! Ownership:
+//!
+//! ```
+//!  Master job queue: [{code=10},{code=20},{code=30}] (pre-loaded before loop)
+//!  pool (N empty containers seeded)
+//!  │ getWaitResult — triggers when a container is returned by a worker (or initially available)
+//!  ▼
+//!  Select(MasterEvent)
+//!  │
+//!  .pool_ev .item ──► pop job from Master queue ──► fill container ──► mailbox.send ──► mbh[worker_i]
+//!                 ──► re-spawn getWaitResult (until queue exhausted)
+//!                 ──► break (queue empty — no more jobs to dispatch)
+//!  │
+//!  worker[i]: mailbox.receive ──► process (code *= 2) ──► pool.put ──► pool (triggers next pool_ev)
+//!  │
+//!  master: mailbox.close (×N) ──► workers exit ──► futs.await
+//!  pool.close ──► on_close ──► freeList (returns all remaining containers)
+//! ```
+//!
+//!  Pool availability gates job submission. Work input: Master's pre-loaded queue.
+//!  Pool provides empty containers. One container per in-flight job.
+//!  Master dispatches jobs until queue exhausted, then shuts down workers.
+pub fn job_pool_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try JobPoolMaster.init(allocator, io);
     defer master.destroy();
     try master.run();

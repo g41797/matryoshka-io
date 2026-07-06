@@ -1,27 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool + Select + Network.
-///
-/// - Pool seeded with items, a mock network read runs alongside it in Select.
-/// - Two independent event sources: pool availability and simulated network data.
-/// - Both re-spawn until their target counts are met; no mailbox anywhere.
-///
-/// Ownership (mailbox-less):
-///
-///  pool (seeded)            mock network (sleepFn)
-///  │ getWaitResult           │ networkReadFn
-///  └──────────┬──────────────┘
-///             ▼
-///  Select(MasterEvent)
-///  │
-///  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
-///  .network       ──► log receipt ──► re-spawn (until targets met)
-///  │
-///  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
-///
-///  No mailbox. Pool + Select + external Io: two independent event sources.
-pub fn @"Pool + Select + Network"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool + Select + Network.
+//!
+//! - Pool seeded with items, a mock network read runs alongside it in Select.
+//! - Two independent event sources: pool availability and simulated network data.
+//! - Both re-spawn until their target counts are met; no mailbox anywhere.
+//!
+//! Ownership (mailbox-less):
+//!
+//! ```
+//!  pool (seeded)            mock network (sleepFn)
+//!  │ getWaitResult           │ networkReadFn
+//!  └──────────┬──────────────┘
+//!             ▼
+//!  Select(MasterEvent)
+//!  │
+//!  .pool_ev .item ──► process ──► pool.put ──► pool (re-spawn)
+//!  .network       ──► log receipt ──► re-spawn (until targets met)
+//!  │
+//!  sel.cancelDiscard ──► pool.close ──► on_close ──► freed
+//! ```
+//!
+//!  No mailbox. Pool + Select + external Io: two independent event sources.
+pub fn pool_select_network(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

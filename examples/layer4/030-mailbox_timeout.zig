@@ -1,23 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Timeout on mailbox.
-///
-/// - receiveTimeouts calls mailbox.receive with a non-null timeout, twice, on an empty mailbox.
-/// - Each call returns error.Timeout; Io.sleep runs between retries.
-/// - sendAndReceive sends one Event, then receives it back within the same timeout.
-///
-/// Ownership:
-///
-///  mailbox (initially empty)
-///  │
-///  master: receive(50ms) ──► error.Timeout ──► Io.sleep retry
-///          receive(50ms) ──► error.Timeout ──► (second retry)
-///  │
-///  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
-///  │
-///  master: receive(50ms) ──► slot ──► freeSlot
-pub fn @"Timeout on mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Timeout on mailbox.
+//!
+//! - receiveTimeouts calls mailbox.receive with a non-null timeout, twice, on an empty mailbox.
+//! - Each call returns error.Timeout; Io.sleep runs between retries.
+//! - sendAndReceive sends one Event, then receives it back within the same timeout.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (initially empty)
+//!  │
+//!  master: receive(50ms) ──► error.Timeout ──► Io.sleep retry
+//!          receive(50ms) ──► error.Timeout ──► (second retry)
+//!  │
+//!  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
+//!  │
+//!  master: receive(50ms) ──► slot ──► freeSlot
+//! ```
+pub fn timeout_on_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

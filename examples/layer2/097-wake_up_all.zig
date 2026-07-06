@@ -1,23 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Wake blocked receiver without a message.
-///
-/// - Worker thread blocks in mailbox.receive with no item ever sent.
-/// - Coordinator flips a shutdown flag, then calls mailbox.wakeUpAll —
-///   no item is sent, no message crosses the mailbox.
-/// - Worker wakes with error.Wakeup, re-checks the flag, exits.
-///
-/// Ownership:
-///
-///  worker thread
-///  mailbox.receive (blocks — mailbox stays empty)
-///       │
-///  coordinator: shutdown.store(true) ──► mailbox.wakeUpAll
-///       │ error.Wakeup
-///       ▼
-///  worker re-checks shutdown flag ──► exits
-pub fn @"Wake blocked receiver without a message"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Wake blocked receiver without a message.
+//!
+//! - Worker thread blocks in mailbox.receive with no item ever sent.
+//! - Coordinator flips a shutdown flag, then calls mailbox.wakeUpAll —
+//!   no item is sent, no message crosses the mailbox.
+//! - Worker wakes with error.Wakeup, re-checks the flag, exits.
+//!
+//! Ownership:
+//!
+//! ```
+//!  worker thread
+//!  mailbox.receive (blocks — mailbox stays empty)
+//!       │
+//!  coordinator: shutdown.store(true) ──► mailbox.wakeUpAll
+//!       │ error.Wakeup
+//!       ▼
+//!  worker re-checks shutdown flag ──► exits
+//! ```
+pub fn wake_blocked_receiver_without_a_message(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

@@ -15,11 +15,11 @@ Latest context: [collected-context-004.md](collected-context-004.md) — project
 
 Thinking model: [matryoshka-model-003.md](matryoshka-model-003.md) — ownership mantra, three-category model, story structure, pool items are empty containers, when to allocate a Master
 
-Rules: [rules-013.md](rules-013.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item + Description as code rule + descriptive entry-point name rule + src/ doc comment rule + src/ terminology rule + src/ header staccato standard + sweep verification rule)
+Rules: [rules-015.md](rules-015.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item + Description as code rule + descriptive entry-point name rule (plain snake_case, not a quoted identifier — DOC 17) + example doc comment is file-level `//!`, not `///` on the entry point, and ASCII diagrams are fenced code blocks (DOC 17b/17c) + src/ doc comment rule + src/ terminology rule + src/ header staccato standard + sweep verification rule)
 
 Patterns: [patterns-011.md](patterns-011.md) — unified pattern and idiom catalog (DOC 13 + DOC 14): slot/ownership idioms, PolyNode, Mailbox, Topology patterns (Request-Response, Pipeline, Fan-In, Fan-Out), Pool, Futures, Select, Group, cancellation, graceful shutdown, Master patterns — one entry per concept, absorbs the api-reference pattern idioms and the Odin-docs audit findings
 
-Plan: [matryoshka-io-implementation-plan-038.md](matryoshka-io-implementation-plan-038.md) — slim state-only plan; rules live in rules-013.md
+Plan: [matryoshka-io-implementation-plan-038.md](matryoshka-io-implementation-plan-038.md) — slim state-only plan; rules live in rules-015.md
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 

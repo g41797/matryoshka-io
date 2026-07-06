@@ -1,19 +1,21 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Request-response.
-///
-/// - Main sends an Event (code=42) to the worker's request mailbox.
-/// - Worker adds 1000 to the code, sends it to the response mailbox.
-/// - Main receives the response, verifies the value.
-///
-/// Ownership:
-///
-///  main ──Event(code=42)──► req_mbh ──► worker
-///                                          │ code += 1000
-///                                          ▼
-///  main ◄──Event(code=1042)── resp_mbh ◄── worker
-pub fn @"Request-response"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Request-response.
+//!
+//! - Main sends an Event (code=42) to the worker's request mailbox.
+//! - Worker adds 1000 to the code, sends it to the response mailbox.
+//! - Main receives the response, verifies the value.
+//!
+//! Ownership:
+//!
+//! ```
+//!  main ──Event(code=42)──► req_mbh ──► worker
+//!                                          │ code += 1000
+//!                                          ▼
+//!  main ◄──Event(code=1042)── resp_mbh ◄── worker
+//! ```
+pub fn request_response(allocator: std.mem.Allocator, io: std.Io) !void {
     const req_mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(req_mbh, allocator);
 

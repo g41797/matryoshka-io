@@ -33,7 +33,7 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-038.md (slim, state-only)
-- Rules: rules-013.md
+- Rules: rules-015.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-011.md
 - Docs plan: matryoshka-io-docs-plan-012.md
@@ -175,9 +175,140 @@ DOC 16b — gap-fix: 6 missed ownership hits reworded, `mailbox.zig`/`pool.zig`/
 line removed; new rule `rules-012.md` → `rules-013.md` (sweep-verification
 rule + header staccato standard). DONE (167/167 tests unchanged, `zig build
 docs` clean).
-Current: 167/167 tests. DOC 16b DONE.
+DOC 17 — snake_case entry points, fix autodoc "Declaration not found" bug.
+DONE (167/167 tests unchanged). rules-013.md → rules-014.md.
+DOC 17b/17c — example doc comments moved to file-level `//!`; ASCII
+Ownership diagrams wrapped in fenced code blocks; fixed 056-pipeline's
+un-renamed `Pipeline` entry point. DONE (167/167 tests unchanged).
+rules-014.md → rules-015.md.
+Current: 167/167 tests. DOC 17c DONE.
 
 ## Session Log
+
+### 2026-07-06 — DOC 17b/17c (example doc comments → file-level `//!` + fenced diagrams: rules-014 → -015)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Follow-up to DOC 17. While verifying the entry-point rename, the owner
+manually tested moving `021-define_type.zig`'s doc comment from `///`
+(per-function) to `//!` (file-level) for the intro+bullets, keeping
+`///` for the Ownership diagram — then rebuilt the docs site from
+scratch to rule out stale-cache effects. Confirmed result: the file's
+container page showed the `//!` part in full, but the function's own
+declaration page showed only the leftover `///` part. Root cause:
+`//!` and `///` are different token kinds to the autodoc parser
+(`container_doc_comment` vs `doc_comment`); a function's doc comment
+is built by walking backward through *contiguous* same-kind tokens, so
+mixing the two above one function truncates it. Owner's decision:
+don't split — convert the whole block (intro + bullets + diagram) to
+`//!`, same position (top of file, after the SPDX header), since every
+example file has exactly one public entry point and the file-level
+description is sufficient.
+
+Piloted on the 5 layer1 example files first (owner-directed), rebuilt
+the site, confirmed. Owner then reported the ASCII Ownership diagrams
+rendered flat (line breaks collapsed) — traced to Zig's autodoc
+parsing doc comments as CommonMark markdown, which collapses single
+line breaks into one paragraph outside a code block. Fix: wrap each
+diagram in a ` ``` ` fenced code block. Folded into the same pilot,
+re-verified on the 5 layer1 files, then rolled out to all remaining 62
+example files in one pass (script-driven, not hand-edited).
+
+While sweeping all example files for the `//!` conversion, found
+`examples/layer2/056-pipeline.zig` had an un-renamed entry point
+(`pub fn Pipeline`, PascalCase) — missed by DOC 17 because it was
+never a quoted identifier, so DOC 17's `@"..."` grep didn't catch it.
+Fixed in the same pass: renamed to `pipeline` (snake_case), test
+wrapper call site updated.
+
+**Changes**:
+- 67 example files (5 layer1 pilot + 62 layer2/3/4 rollout) — doc
+  comment marker converted `///` → `//!` at the top of the file, same
+  content, same position; each Ownership/flow diagram wrapped in a
+  ` ``` ` fenced code block; trailing prose after a diagram (where
+  present) left as a normal paragraph outside the fence.
+- `examples/layer2/056-pipeline.zig` — entry point renamed
+  `Pipeline` → `pipeline`; `tests/layer2_examples.zig` call site
+  updated to match.
+- `design/rules-014.md` → `rules-015.md` — "Description as code" and
+  "Coding Rules — Examples" updated: example doc comment is `//!` at
+  the top of the file (not `///` on the entry point); any ASCII
+  diagram inside a doc comment must be fenced.
+- `design/context.md`, `design/STATUS.md` — rules pointer bumped to
+  -015; this entry (covers 17b execution + 17c rollout together, since
+  17b had no separate log entry pending owner confirmation).
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| Live grep for `^///` across `examples/` | none |
+| Fenced-block pairing check (` ``` ` count even per file) | all paired, 67 files |
+| `kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167), pilot run and full-rollout run |
+| Docs/site rebuild + visual spot-check | owner to run and confirm across layer2/3/4 (not just layer1) |
+
+**Next**: owner rebuilds docs/site and spot-checks pages across
+layer2/3/4; Stage 9 — README + autodocs continues.
+
+---
+
+### 2026-07-06 — DOC 17 (snake_case entry points: rules-013 → -014)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner reported every example description link in the generated
+`examplesdocs` (`zig build docs` autodoc viewer) failed with
+"Declaration not found." (e.g.
+`http://127.0.0.1:8000/examplesdocs/#examples.layer1.024-builder.@`).
+Owner tested directly: renaming `024-builder.zig`'s entry point from
+the quoted identifier `@"Builder pattern"` to a plain identifier fixed
+the link. Root cause confirmed: Zig's built-in autodoc (wasm) viewer
+cannot resolve declaration links for quoted identifiers (`@"..."`
+syntax) — not the space inside them, as first suspected. Since
+`zig build docs` is Zig's own stdlib tool, this is a viewer limitation
+worked around by renaming, not a bug patched in our own code. This
+reverses EXMPL 4b's `pub fn @"<description>"` decision; owner directed
+the fix explicitly in this session.
+
+**Fix**: every example/story entry point renamed from
+`pub fn @"<description>"` to a plain snake_case identifier derived
+from the description (e.g. `@"Builder pattern"` → `builder_pattern`).
+The staccato description text itself is unchanged — still the first
+line of the `///` doc comment. Only the identifier syntax changed.
+
+**Changes**:
+- 65 example files across `examples/layer1..4/` — entry point renamed
+  quoted-identifier → snake_case (scripted rename, description text
+  untouched).
+- `examples/layer1/024-builder.zig` — owner's manual mid-session edit
+  (`Builder_pattern`) normalized to `builder_pattern`; stray leftover
+  commented-out `@"..."` line removed.
+- 6 test-wrapper files' call sites updated to match:
+  `tests/layer1_examples.zig`, `tests/layer2_examples.zig`,
+  `tests/layer3_examples.zig`, `tests/layer4_examples.zig`,
+  `tests/layer4_cross.zig`, `tests/layer4_select.zig`.
+- `design/rules-013.md` → `rules-014.md` — "Coding Rules — Examples"
+  signature rule and "Description as code" entry-point references
+  changed from `pub fn @"<description>"` to `pub fn <snake_case>`; new
+  documented constraint: autodoc generator restriction on quoted
+  identifiers.
+- `design/context.md`, `design/STATUS.md` — rules pointer bumped to
+  -014; this entry.
+
+**Verification**:
+
+| Check | Result |
+| :---- | :----- |
+| Live grep for `@"` across `examples/`, `tests/`, `stories/` | none |
+| `kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167) |
+| `zig build docs` / site rebuild | owner to run and confirm visually |
+
+**Next**: owner runs `zig build docs` / site creation and confirms the
+example description links resolve in the browser.
+
+---
 
 ### 2026-07-06 — DOC 16 (terminology polish for src/*.zig: rules-011 → -012)
 

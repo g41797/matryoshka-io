@@ -1,24 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Close ordering: mailbox then pool.
-///
-/// - Seed the pool with 1 item, the mailbox with 1 item.
-/// - closeMailbox closes the mailbox, returns its list.
-/// - returnCloseListToPool walks that list, returns each item to the still-open pool.
-/// - pool.close (deferred) then frees both items via on_close.
-///
-/// Ownership:
-///
-///  pool (1 item in free-list)    mailbox (1 item in queue)
-///  │
-///  mailbox.close ──► std.DoublyLinkedList (1 item)
-///  walk list: popFirst ──► identifyNodeAs ──► pool.put (pool still open)
-///  │                                        └──► pool free-list (now 2 items)
-///  pool.close ──► on_close ──► freeList (both items freed)
-///  │
-///  Verify: pool received the item from mailbox close list.
-pub fn @"Close ordering: mailbox then pool"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Close ordering: mailbox then pool.
+//!
+//! - Seed the pool with 1 item, the mailbox with 1 item.
+//! - closeMailbox closes the mailbox, returns its list.
+//! - returnCloseListToPool walks that list, returns each item to the still-open pool.
+//! - pool.close (deferred) then frees both items via on_close.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool (1 item in free-list)    mailbox (1 item in queue)
+//!  │
+//!  mailbox.close ──► std.DoublyLinkedList (1 item)
+//!  walk list: popFirst ──► identifyNodeAs ──► pool.put (pool still open)
+//!  │                                        └──► pool free-list (now 2 items)
+//!  pool.close ──► on_close ──► freeList (both items freed)
+//!  │
+//!  Verify: pool received the item from mailbox close list.
+//! ```
+pub fn close_ordering_mailbox_then_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

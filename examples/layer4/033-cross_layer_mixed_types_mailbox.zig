@@ -1,24 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Mixed types through shared mailbox.
-///
-/// - Send one Event and one Sensor into the same mailbox.
-/// - receiveAndDispatch pops both, dispatches on tag via identifyNodeAs.
-/// - Verifies each payload, frees each item.
-///
-/// Ownership:
-///
-///  EventPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
-///  SensorPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
-///  │
-///  mailbox.receive ──► slot (Event or Sensor)
-///    dispatch on poly.tag:
-///    == EventPolyHelper.TAG  ──► identifyNodeAs ──► *Event  ──► verify code==10 ──► freeSlot
-///    == SensorPolyHelper.TAG ──► identifyNodeAs ──► *Sensor ──► verify value==3.14 ──► freeSlot
-///  │
-///  mailbox.close ──► freeList (empty: all received)
-pub fn @"Mixed types through shared mailbox"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Mixed types through shared mailbox.
+//!
+//! - Send one Event and one Sensor into the same mailbox.
+//! - receiveAndDispatch pops both, dispatches on tag via identifyNodeAs.
+//! - Verifies each payload, frees each item.
+//!
+//! Ownership:
+//!
+//! ```
+//!  EventPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
+//!  SensorPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
+//!  │
+//!  mailbox.receive ──► slot (Event or Sensor)
+//!    dispatch on poly.tag:
+//!    == EventPolyHelper.TAG  ──► identifyNodeAs ──► *Event  ──► verify code==10 ──► freeSlot
+//!    == SensorPolyHelper.TAG ──► identifyNodeAs ──► *Sensor ──► verify value==3.14 ──► freeSlot
+//!  │
+//!  mailbox.close ──► freeList (empty: all received)
+//! ```
+pub fn mixed_types_through_shared_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

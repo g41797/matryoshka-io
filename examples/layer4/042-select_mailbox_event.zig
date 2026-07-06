@@ -1,26 +1,28 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Mailbox receive as Select event source.
-///
-/// - Mailbox pre-loaded with 3 Events; a timer runs alongside it in Select.
-/// - runEventLoop re-spawns mailbox.receiveResult after each item, re-spawns the timer per tick.
-/// - Loop exits once all 3 items are received; sel.cancelDiscard cleans up the rest.
-///
-/// Ownership:
-///
-///  mailbox (pre-loaded: Event×3)
-///     │ receiveResult
-///     ▼
-///  Select(MasterEvent) ◄── sleepFn (timer, re-spawned each tick)
-///     │ sel.await()
-///     ▼
-///  .inbox .item ──► freeSlot (re-spawn receiveResult)
-///  .timer        ──► re-spawn sleepFn
-///  .inbox .closed ──► exit loop
-///  │
-///  sel.cancelDiscard()
-pub fn @"Mailbox receive as Select event source"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Mailbox receive as Select event source.
+//!
+//! - Mailbox pre-loaded with 3 Events; a timer runs alongside it in Select.
+//! - runEventLoop re-spawns mailbox.receiveResult after each item, re-spawns the timer per tick.
+//! - Loop exits once all 3 items are received; sel.cancelDiscard cleans up the rest.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (pre-loaded: Event×3)
+//!     │ receiveResult
+//!     ▼
+//!  Select(MasterEvent) ◄── sleepFn (timer, re-spawned each tick)
+//!     │ sel.await()
+//!     ▼
+//!  .inbox .item ──► freeSlot (re-spawn receiveResult)
+//!  .timer        ──► re-spawn sleepFn
+//!  .inbox .closed ──► exit loop
+//!  │
+//!  sel.cancelDiscard()
+//! ```
+pub fn mailbox_receive_as_select_event_source(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);

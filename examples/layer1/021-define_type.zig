@@ -1,22 +1,24 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Define a PolyNode type.
-///
-/// - Message struct embeds a poly: PolyNode field.
-/// - PolyHelper(Message) gives tag identity and identifyNodeAs.
-/// - init sets the tag on a stack value, no heap.
-/// - isIt checks the tag; identifyNodeAs recovers the typed pointer.
-///
-/// Ownership:
-///
-///  stack: var msg: Message
-///       │
-///  PolyHelper.init ──► msg.poly.tag set (no alloc)
-///       │
-///  MessagePolyHelper.identifyNodeAs ──► field access (no transfer)
-///  (stack-allocated — no free needed)
-pub fn @"Define a PolyNode type"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Define a PolyNode type.
+//!
+//! - Message struct embeds a poly: PolyNode field.
+//! - PolyHelper(Message) gives tag identity and identifyNodeAs.
+//! - init sets the tag on a stack value, no heap.
+//! - isIt checks the tag; identifyNodeAs recovers the typed pointer.
+//!
+//! Ownership:
+//!
+//! ```
+//!  stack: var msg: Message
+//!       │
+//!  PolyHelper.init ──► msg.poly.tag set (no alloc)
+//!       │
+//!  MessagePolyHelper.identifyNodeAs ──► field access (no transfer)
+//!  (stack-allocated — no free needed)
+//! ```
+pub fn define_a_polynode_type(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = .{ allocator, io };
 
     var msg: Message = .{ .text = "hello", .priority = 1 };

@@ -1,23 +1,25 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Master batch collect: receive_batch → put_all.
-///
-/// - Fill the mailbox with 5 items.
-/// - batchCollectToPool: mailbox.receive_batch returns a std.DoublyLinkedList,
-///   passed directly to pool.put_all — no per-item conversion.
-/// - verifyPool confirms the pool has items after the transfer.
-///
-/// Ownership:
-///
-///  mailbox (5 items)
-///  │
-///  mailbox.receive_batch ──► std.DoublyLinkedList
-///  pool.put_all ──► pool free-list (5 items recycled)
-///  │
-///  std.DoublyLinkedList flows from mailbox to pool without conversion.
-///  pool.close ──► on_close ──► freeList
-pub fn @"Master batch collect: receive_batch → put_all"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Master batch collect: receive_batch → put_all.
+//!
+//! - Fill the mailbox with 5 items.
+//! - batchCollectToPool: mailbox.receive_batch returns a std.DoublyLinkedList,
+//!   passed directly to pool.put_all — no per-item conversion.
+//! - verifyPool confirms the pool has items after the transfer.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (5 items)
+//!  │
+//!  mailbox.receive_batch ──► std.DoublyLinkedList
+//!  pool.put_all ──► pool free-list (5 items recycled)
+//!  │
+//!  std.DoublyLinkedList flows from mailbox to pool without conversion.
+//!  pool.close ──► on_close ──► freeList
+//! ```
+pub fn master_batch_collect_receive_batch_put_all(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

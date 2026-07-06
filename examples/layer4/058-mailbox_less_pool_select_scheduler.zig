@@ -1,32 +1,34 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool + Select: job scheduler.
-///
-/// - Pool seeded with N empty containers, used as a Select source alongside a timer.
-/// - runEventLoop fills each container with the Master's cycle counter, re-spawns.
-/// - Timer just logs progress from Master state; pool gates the processing rate.
-/// - No mailbox anywhere in this example.
-///
-/// Ownership (mailbox-less):
-///
-///  pool (N_ITEMS empty containers seeded — code=0)
-///  │ getWaitResult         timer (sleepFn)
-///  └──────┬────────────────────────┘
-///         ▼
-///  Select(MasterEvent)
-///  │
-///  .pool_ev .item ──► fill ev.code from Master cycle index ──► pool.put ──► pool
-///                 ──► re-spawn getWaitResult (while cycle < TARGET)
-///                 ──► break (at TARGET, no getWaitResult re-spawned)
-///  .timer         ──► log cycle from Master state ──► re-spawn timer (while cycle < TARGET)
-///  │
-///  sel.cancelDiscard ──► timer cancelled (no items in-flight at this point)
-///  pool.close ──► on_close ──► freed
-///
-///  Work input: Master's own cycle counter. Pool item is an empty container — the processing slot.
-///  No mailbox. Pool + Select gates the processing loop.
-pub fn @"Pool + Select: job scheduler"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool + Select: job scheduler.
+//!
+//! - Pool seeded with N empty containers, used as a Select source alongside a timer.
+//! - runEventLoop fills each container with the Master's cycle counter, re-spawns.
+//! - Timer just logs progress from Master state; pool gates the processing rate.
+//! - No mailbox anywhere in this example.
+//!
+//! Ownership (mailbox-less):
+//!
+//! ```
+//!  pool (N_ITEMS empty containers seeded — code=0)
+//!  │ getWaitResult         timer (sleepFn)
+//!  └──────┬────────────────────────┘
+//!         ▼
+//!  Select(MasterEvent)
+//!  │
+//!  .pool_ev .item ──► fill ev.code from Master cycle index ──► pool.put ──► pool
+//!                 ──► re-spawn getWaitResult (while cycle < TARGET)
+//!                 ──► break (at TARGET, no getWaitResult re-spawned)
+//!  .timer         ──► log cycle from Master state ──► re-spawn timer (while cycle < TARGET)
+//!  │
+//!  sel.cancelDiscard ──► timer cancelled (no items in-flight at this point)
+//!  pool.close ──► on_close ──► freed
+//! ```
+//!
+//!  Work input: Master's own cycle counter. Pool item is an empty container — the processing slot.
+//!  No mailbox. Pool + Select gates the processing loop.
+pub fn pool_select_job_scheduler(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

@@ -1,24 +1,26 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// Pool → Mailbox → Pool roundtrip.
-///
-/// - getAndSend: pool.get fills an item, mailbox.send transfers it.
-/// - receiveAndVerify: mailbox.receive gets it back, verifies same pointer and data.
-/// - verifyRecycle: pool.put then pool.get(available_only) confirms the same pointer recycles.
-/// - Single-threaded — no concurrency needed to prove the ownership path.
-///
-/// Ownership:
-///
-///  pool.get ──► slot (code=42, ptr=P)
-///  mailbox.send ──► mailbox owns P
-///  mailbox.receive ──► slot (same ptr P, code still 42)
-///  verify code==42, ptr==P
-///  pool.put ──► pool free-list (P recycled)
-///  pool.get (.available_only) ──► slot (same ptr P)
-///  verify ptr==P ──► pool.put ──► pool
-///  pool.close ──► on_close ──► freed
-pub fn @"Pool → Mailbox → Pool roundtrip"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! Pool → Mailbox → Pool roundtrip.
+//!
+//! - getAndSend: pool.get fills an item, mailbox.send transfers it.
+//! - receiveAndVerify: mailbox.receive gets it back, verifies same pointer and data.
+//! - verifyRecycle: pool.put then pool.get(available_only) confirms the same pointer recycles.
+//! - Single-threaded — no concurrency needed to prove the ownership path.
+//!
+//! Ownership:
+//!
+//! ```
+//!  pool.get ──► slot (code=42, ptr=P)
+//!  mailbox.send ──► mailbox owns P
+//!  mailbox.receive ──► slot (same ptr P, code still 42)
+//!  verify code==42, ptr==P
+//!  pool.put ──► pool free-list (P recycled)
+//!  pool.get (.available_only) ──► slot (same ptr P)
+//!  verify ptr==P ──► pool.put ──► pool
+//!  pool.close ──► on_close ──► freed
+//! ```
+pub fn pool_mailbox_pool_roundtrip(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

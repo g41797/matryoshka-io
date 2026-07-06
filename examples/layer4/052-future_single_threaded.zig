@@ -1,21 +1,23 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-/// ConcurrencyUnavailable on single-threaded.
-///
-/// - On a single-threaded Io backend, mailbox.receive_future returns error.ConcurrencyUnavailable.
-/// - No concurrent task can be spawned to service the future.
-/// - Synchronous mailbox.receive still works — it needs no concurrency.
-///
-/// Ownership:
-///
-///  mailbox (single-threaded io)
-///  │
-///  receive_future ──► error.ConcurrencyUnavailable
-///  (no concurrent task can be spawned on single-threaded backend)
-///  │
-///  mailbox.receive (synchronous) still works
-pub fn @"ConcurrencyUnavailable on single-threaded"(allocator: std.mem.Allocator, io: std.Io) !void {
+//! ConcurrencyUnavailable on single-threaded.
+//!
+//! - On a single-threaded Io backend, mailbox.receive_future returns error.ConcurrencyUnavailable.
+//! - No concurrent task can be spawned to service the future.
+//! - Synchronous mailbox.receive still works — it needs no concurrency.
+//!
+//! Ownership:
+//!
+//! ```
+//!  mailbox (single-threaded io)
+//!  │
+//!  receive_future ──► error.ConcurrencyUnavailable
+//!  (no concurrent task can be spawned on single-threaded backend)
+//!  │
+//!  mailbox.receive (synchronous) still works
+//! ```
+pub fn concurrencyunavailable_on_single_threaded(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
