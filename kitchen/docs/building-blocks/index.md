@@ -1,11 +1,11 @@
 # Building Blocks
 
-The rules and shapes for writing Matryoshka code.
+Four ideas, named and diagrammed. No Zig syntax yet — see
+[API Reference](../api/polynode.md) once you want to write code.
 
-- [Core Concepts](core-concepts.md) — PolyNode, Mailbox, Pool, Master: the four
-  ideas everything else is built from.
-- [Observable by Human](observable-by-human.md) — every function with distinct
-  phases is a coordinator plus named steps.
+- [PolyNode](polynode.md) — everything exchanged.
+- [Mailbox](mailbox.md) — everything communicates.
+- [Pool](pool.md) — everything reusable lives here.
+- [Master](master.md) — everything runs inside one. A role, not a type.
 
-More topics — Select event loops, spawn/await coordination, Master
-composition, pool patterns, API reference — will be added in later stages.
+Content for each page planned for Stage C of the docs restructuring.

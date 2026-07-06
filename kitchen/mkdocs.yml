@@ -32,31 +32,43 @@ theme:
 
 nav:
   - Home: index.md
-  - Matryoshka Based Systems: matryoshka-based-systems.md
-  - Concepts:
-      - Overview: concepts/index.md
-      - "The System: Print Server": concepts/print-server-the-system.md
-      - "With Matryoshka: Print Server": concepts/print-server-with-matryoshka.md
+  - The Manifesto: manifesto.md
+  - Story — Print Server:
+      - Discussion: story/print-server/discussion.md
+      - Requirements: story/print-server/requirements.md
+      - Matryoshka Translation: story/print-server/translation.md
+      - Flow Diagram: story/print-server/flow.md
   - Building Blocks:
       - Overview: building-blocks/index.md
-      - Core Concepts: building-blocks/core-concepts.md
-      - Observable by Human: building-blocks/observable-by-human.md
-  - Cookbook: cookbook/index.md
+      - PolyNode: building-blocks/polynode.md
+      - Mailbox: building-blocks/mailbox.md
+      - Pool: building-blocks/pool.md
+      - Master: building-blocks/master.md
+  - API Reference:
+      - PolyNode & NodeHandle & Slot: api/polynode.md
+      - Mailbox: api/mailbox.md
+      - Pool: api/pool.md
+      - Tag Identity & Slot Programming: api/tags-and-slots.md
+      - Cooperative Cleanup: api/cleanup.md
+      - matryoshka (root) & Master: api/root-and-master.md
+      - Cancel Model & Object Lifecycle: api/cancel-and-lifecycle.md
+      - Invariants & Contracts: api/invariants.md
+  - Patterns & Cookbook:
+      - Overview: patterns/index.md
+      - Slot & PolyNode Idioms: patterns/slot-and-polynode.md
+      - Mailbox & Topology Patterns: patterns/mailbox-and-topology.md
+      - Pool Patterns: patterns/pool.md
+      - Futures, Select, Group, Cancellation: patterns/async.md
+      - Shutdown & Master Patterns: patterns/master-and-shutdown.md
+  - Deep Dive — Video Transcoder: deep-dive/video-transcoder.md
+  - Addendums:
+      - Slot vs Ref-Counting: addendums/slot-vs-ref-counting.md
+      - Tag vs Tagged Union: addendums/tag-vs-tagged-union.md
+      - Mailbox vs TypeErasedQueue: addendums/typeErasedQueue-vs-mailbox.md
+      - Io 101: addendums/io-101.md
   - Reference:
-      - API Reference: api_reference.md
+      - API Docs (autodoc): api_reference.md
       - Examples Reference: examples_reference.md
-  - Storytelling:
-      - Storytelling Rhythm: matryoshka-storytelling-001.md
-      - Storytelling (cont.): matryoshka-storytelling-002.md
-      - Storytelling (cont.): matryoshka-storytelling-003.md
-  - Concepts:
-      - Slot vs Ref-Counting: slot-vs-ref-counting.md
-      - Tag vs Tagged Union: tag-vs-tagged-union.md
-      - TypeErasedQueue vs Mailbox: typeErasedQueue-vs-mailbox.md
-      - Test / Example Story: test-example-story.md
-  - Chat Logs:
-      - README Chat: matryoshka-readme-chat.md
-      - Chat Prolog: matryoshka-io-chat-prolog.md
 
 plugins:
   - search
