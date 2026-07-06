@@ -2,7 +2,7 @@
 
 Versioned doc. Replaces [patterns-010.md](patterns-010.md).
 One unified catalog. Every pattern and idiom appears once, in logical order.
-Companion: [rules-010.md](rules-010.md) — what is mandatory.
+Companion: [rules-013.md](rules-013.md) — what is mandatory.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 Companion: [matryoshka-api-reference-019.md](matryoshka-api-reference-019.md) — signatures and contracts.
 
@@ -1150,7 +1150,7 @@ Example: `examples/layer2/062-shutdown_exit.zig`.
 
 ### Observable function shapes
 
-Concrete templates for the "Observable by human" MUST rule. See [rules-010.md](rules-010.md).
+Concrete templates for the "Observable by human" MUST rule. See [rules-013.md](rules-013.md).
 
 #### Coordinator / run
 

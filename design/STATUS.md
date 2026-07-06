@@ -33,7 +33,7 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-038.md (slim, state-only)
-- Rules: rules-010.md
+- Rules: rules-013.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-011.md
 - Docs plan: matryoshka-io-docs-plan-012.md
@@ -160,9 +160,158 @@ to patterns-011.md, all pointing at existing Zig examples; 3 advanced/niche
 patterns with no example (self-send, function-pointer-as-tag,
 descriptor-struct-as-tag) explicitly skipped, owner confirmed. DONE (doc-only,
 167/167 tests unchanged). Plan version 038 created.
-Current: 167/167 tests. DOC 14 DONE.
+DOC 15 — added `///`/`//!` doc comments to `src/polynode.zig`, `src/mailbox.zig`,
+`src/pool.zig`, `src/matryoshka.zig` (file headers + every `pub` declaration),
+sourced from matryoshka-api-reference-019.md; excluded `src/internal/cond_timeout.zig`
+(temporary workaround). Lifted the src/ `///` ban: rules-010.md → rules-011.md.
+DONE (167/167 tests unchanged, `zig build docs` clean). Plan version 039 pending.
+DOC 16 — polish pass on `src/*.zig` doc comments: fixed banned word "ensure"
+in `pool.zig`; dropped "ownership" language for send/place + one-place/one-state
+phrasing; split long comment lines into staccato bullets; new rule
+`rules-011.md` → `rules-012.md` (no ownership language, no `.md` refs in
+`src/` comments). DONE (167/167 tests unchanged, `zig build docs` clean).
+DOC 16b — gap-fix: 6 missed ownership hits reworded, `mailbox.zig`/`pool.zig`/
+`polynode.zig` file headers restructured to std.Io-style intro+bullets, stray
+line removed; new rule `rules-012.md` → `rules-013.md` (sweep-verification
+rule + header staccato standard). DONE (167/167 tests unchanged, `zig build
+docs` clean).
+Current: 167/167 tests. DOC 16b DONE.
 
 ## Session Log
+
+### 2026-07-06 — DOC 16 (terminology polish for src/*.zig: rules-011 → -012)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Follow-up polish pass on the DOC 15 doc comments. Fixed the one genuine
+banned-word hit from the DOC 15 scan (`pool.zig`: "Ensure capacity" → "Grow
+capacity"). Dropped all "ownership"/"ownership transfer"/"owner" language from
+`src/*.zig` comments — owner: too abstract, computer-science-professor
+phrasing. Replaced with concrete send/place language and the invariant "an
+object sits in exactly one place, in exactly one state, at any moment."
+Split several long/dense comment lines into shorter staccato bullets. Confirmed
+no `.md` file references exist in any `src/*.zig` comment — readers of
+source/generated docs never see the design docs.
+
+**Rule change**
+Added a terminology rule to `rules-012.md` (new version, replaces
+`rules-011.md`): no "ownership" language and no `.md` references in `src/`
+comments. Cross-references updated: `context.md`, `patterns-011.md`,
+`STATUS.md` Sources of Truth. Rewriting `matryoshka-api-reference-019.md` to
+match this terminology is explicitly out of scope — a separate future stage.
+
+**Changes**
+- `design/rules-012.md` — new; replaces `design/rules-011.md`.
+- `design/context.md`, `design/patterns-011.md`, `design/STATUS.md` — pointer
+  updated from rules-011 to rules-012.
+- `src/matryoshka.zig` — file header reworded, no "ownership".
+- `src/mailbox.zig` — file header + `send`/`send_oob`/`receive` comments
+  reworded; long lines split into bullets.
+- `src/pool.zig` — `get`/`put` comments reworded; "Ensure capacity" fixed;
+  long lines split into bullets.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | PASS (167/167) |
+| `zig build docs` | PASS — zero errors |
+| Grep for "ownership"/"owner"/"owns" in the 4 files | none |
+| Grep for `.md` references in the 4 files | none |
+| Banned-word scan | clean — remaining "unlock" hits are the real `Io.Mutex.unlock` API name, not prose |
+
+**Next**: Stage 9 — README + autodocs continues. `matryoshka-api-reference-019.md`
+terminology rewrite is a separate future stage.
+
+### 2026-07-06 — DOC 16b (gap-fix: missed ownership hits + file-header style)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner caught two gaps left by DOC 16: (1) a re-grep found 6 remaining
+"ownership"/"owned" hits the earlier sweep missed — `polynode.zig` (file
+header + `create`/`destroy` comments) and one repeated sentence in
+`mailbox.zig`/`pool.zig` result-type docs; (2) the `mailbox.zig` and
+`pool.zig` file headers still read as one run-on paragraph across several
+`//!` lines with no bullets, not real staccato style. Owner pointed at
+`std.Io`'s file header (intro line + flat bullet list) as the reference
+shape. Fixed both: reworded the 6 remaining hits to send/place language,
+restructured the `mailbox.zig`/`pool.zig`/`polynode.zig` headers into
+intro+bullet form matching `matryoshka.zig`'s existing shape. Also removed a
+stray leftover line on `pool.zig`'s `PoolResult` ("Re-spawn the event source
+after handling each result.") that did not describe that type's contract.
+
+**Changes**
+- `src/polynode.zig` — file header restructured to bullets; `create`/
+  `destroy` comments reworded (no "ownership"/"owned").
+- `src/mailbox.zig` — file header restructured to bullets; `ReceiveResult`
+  comment reworded.
+- `src/pool.zig` — file header restructured to bullets; `PoolResult` comment
+  reworded; stray "Re-spawn the event source" line removed.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` | PASS (167/167) |
+| `zig build docs` | PASS — zero errors |
+| Grep for "ownership"/"owner"/"owns"/"owned" in the 4 files | none |
+| Grep for `.md` references in the 4 files | none |
+| Long-line scan (`///`/`//!` over 90 chars) | none |
+
+**Next**: Stage 9 continues; `matryoshka-api-reference-019.md` terminology
+rewrite remains a separate future stage.
+
+### 2026-07-06 — DOC 15 (doc comments for src/*.zig: rules-010 → -011)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Added `///` doc comments to every public declaration in `src/polynode.zig`,
+`src/mailbox.zig`, `src/pool.zig`, plus `//!` file-level headers on those three
+and on `src/matryoshka.zig` (header only — pure barrel file). Content sourced
+from `matryoshka-api-reference-019.md`, written staccato, not copied verbatim.
+Existing `polynode.zig` comments reviewed and rewritten where they drifted from
+current staccato style. `PolyHelper` got one doc comment covering both
+`no_create_destroy` modes and how to select each — not duplicated per branch.
+`src/internal/cond_timeout.zig` excluded — owner: temporary workaround.
+
+**Rule change**
+`rules-010.md` banned `///` in `src/` (line 336). Owner lifted this ban for
+Stage 9 autodocs (`zig build docs` reads doc comments straight from
+`src/*.zig`). New version `rules-011.md` created; ban replaced with a rule
+permitting `///`/`//!` in `src/`, same staccato/comment-rule constraints as
+elsewhere. Cross-references updated: `context.md`, `patterns-011.md`,
+`STATUS.md` Sources of Truth.
+
+**Changes**
+- `design/rules-011.md` — new; replaces `design/rules-010.md`.
+- `design/context.md`, `design/patterns-011.md`, `design/STATUS.md` — pointer
+  updated from rules-010 to rules-011.
+- `src/polynode.zig` — `//!` header; `///` on `PolyTag`, `PolyNode`,
+  `NodeHandle`, `Slot`, `reset`, `is_linked`, `PolyHelper` and its generated
+  members (both branches).
+- `src/mailbox.zig` — `//!` header; `///` on every `pub` declaration.
+- `src/pool.zig` — `//!` header; `///` on every `pub` declaration.
+- `src/matryoshka.zig` — `//!` header only.
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/build_and_test_debug.sh` after each file | PASS ×4 (167/167 each run) |
+| `kitchen/build_and_test_all.sh` | PASS — Debug, ReleaseSafe, ReleaseFast, ReleaseSmall, 167/167 each |
+| `kitchen/build_cross_debug.sh` | PASS — x86_64-macos, aarch64-macos, x86_64-windows |
+| `zig build docs` | PASS — `kitchen/docs/apidocs`, `kitchen/docs/examplesdocs` generated, zero errors |
+| Post-stage cleanup | reviewed `polynode.zig`'s pre-existing comments; rewrote for staccato consistency |
+| AI-sh + banned-word scan | `matryoshka.zig`/`polynode.zig` clean; `mailbox.zig`/`pool.zig` hit banned word "unlock" (real `Io.Mutex.unlock` API name, not prose) and "ensure" (pre-existing `ensureTotalCapacity`/comment, untouched by this stage) — reported to owner, not auto-fixed |
+| Rules audit (rules-011.md) | LE import order, SPDX headers, no `////`, staccato comments — all clean |
+
+**Next**: owner decides on the reported banned-word hits (real API names vs.
+pre-existing comment); Stage 9 — README + autodocs continues.
+
+---
 
 ### 2026-07-06 — DOC 14 (audit Odin docs, add missing patterns/idioms: patterns-010 → -011)
 
