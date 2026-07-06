@@ -7,7 +7,6 @@
 //! - round2: on_get creates a fresh item, mailbox carries it, on_put destroys it (cap reached).
 //! - verifyRecycled confirms the kept item (code=1) is the one still in the pool.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get (new_only) ──► on_get creates ──► slot (code=1)
@@ -23,6 +22,8 @@
 //!  pool.get (.available_only) ──► recycled (code=1) ──► verify
 //!  pool.close ──► on_close ──► freeList
 //! ```
+//!
+
 pub fn pool_hooks_mailbox_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     // CappedPoolCtx: cap=1 — first put keeps, second put destroys.

@@ -8,7 +8,6 @@
 //! - After all threads join, empty the pool and count what remains.
 //! - Verify the remaining count never exceeds the cap.
 //!
-//! Ownership:
 //!
 //! ```
 //!  CappedPool (cap=2)
@@ -19,6 +18,8 @@
 //!       ▼
 //!  CappedPool (≤ cap items retained)
 //! ```
+//!
+
 pub fn backpressure_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const cap: usize = 2;
     var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = cap, .io = io };

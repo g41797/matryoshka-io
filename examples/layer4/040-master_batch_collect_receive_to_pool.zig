@@ -8,7 +8,6 @@
 //!   passed directly to pool.put_all — no per-item conversion.
 //! - verifyPool confirms the pool has items after the transfer.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (5 items)
@@ -19,6 +18,8 @@
 //!  std.DoublyLinkedList flows from mailbox to pool without conversion.
 //!  pool.close ──► on_close ──► freeList
 //! ```
+//!
+
 pub fn master_batch_collect_receive_batch_put_all(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

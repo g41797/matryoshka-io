@@ -7,7 +7,6 @@
 //! - sendAndReceiveItem: sends one Event, then receive_future(null) resolves .item.
 //! - Confirms the future resolves to whichever result actually occurs.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (empty)
@@ -18,6 +17,8 @@
 //!  EventPolyHelper.create ──► slot ──mailbox.send──► mailbox
 //!  receive_future(null) ──► fut.await ──► ReceiveResult .item ──► freeSlot
 //! ```
+//!
+
 pub fn receive_future_with_timeout(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

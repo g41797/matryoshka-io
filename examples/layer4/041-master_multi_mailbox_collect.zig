@@ -7,7 +7,6 @@
 //! - closeAndMerge closes both, merges the lists with concatByMoving.
 //! - collectAndFree walks the combined list once, frees every item.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox_a (2 items)    mailbox_b (3 items)
@@ -19,6 +18,8 @@
 //!  │
 //!  One stdlib walk handles items from multiple mailboxes — no special API.
 //! ```
+//!
+
 pub fn master_pre_shutdown_collect(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh_a: MailboxHandle = try mailbox.new(io, allocator);
     const mbh_b: MailboxHandle = try mailbox.new(io, allocator);

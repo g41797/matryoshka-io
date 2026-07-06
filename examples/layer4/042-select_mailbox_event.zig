@@ -7,7 +7,6 @@
 //! - runEventLoop re-spawns mailbox.receiveResult after each item, re-spawns the timer per tick.
 //! - Loop exits once all 3 items are received; sel.cancelDiscard cleans up the rest.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (pre-loaded: Event×3)
@@ -22,6 +21,8 @@
 //!  │
 //!  sel.cancelDiscard()
 //! ```
+//!
+
 pub fn mailbox_receive_as_select_event_source(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

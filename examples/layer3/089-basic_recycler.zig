@@ -8,7 +8,6 @@
 //! - pool.put returns it, pool.get again recycles the same item.
 //! - Verify the recycled item kept its data.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get (available_or_new) ──► slot (new via on_get)
@@ -16,6 +15,8 @@
 //!       │ pool.get (available_or_new) ──► slot (same item, data intact)
 //!       │ EventPolyHelper.destroy ──► freed
 //! ```
+//!
+
 pub fn basic_recycler(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

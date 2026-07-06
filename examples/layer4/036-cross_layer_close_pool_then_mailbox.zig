@@ -8,7 +8,6 @@
 //! - closeMailboxAndFree: mailbox.close, walk the returned list, free the 1 item.
 //! - Verify all 3 items were accounted for, in this close order.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool (2 items in free-list)    mailbox (1 item in queue)
@@ -19,6 +18,8 @@
 //!  │
 //!  All 3 items accounted for, no leaks.
 //! ```
+//!
+
 pub fn close_ordering_pool_then_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

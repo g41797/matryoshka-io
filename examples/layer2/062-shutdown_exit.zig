@@ -7,13 +7,14 @@
 //! - Worker processes each Event, exits cleanly on the sentinel.
 //! - Mailbox stays open throughout — worker owns every item it received.
 //!
-//! Ownership:
 //!
 //! ```
 //!  main ──Event×3──► mailbox ──► worker (processes, freeSlot)
 //!  main ──ShutdownCommand──► mailbox ──► worker (exits, freeSlot)
 //!  (mailbox stays open; worker owns all received items)
 //! ```
+//!
+
 pub fn shutdown_via_shutdowncommand(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
 

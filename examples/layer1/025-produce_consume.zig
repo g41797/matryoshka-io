@@ -7,7 +7,6 @@
 //! - Pop each, sum the codes (consumer).
 //! - defer frees any items remaining on error, before or after the loop.
 //!
-//! Ownership:
 //!
 //! ```
 //!  alloc.create × 5 ──► list (producer)
@@ -15,6 +14,8 @@
 //!       ▼
 //!  freeItem per node (consumer)
 //! ```
+//!
+
 pub fn produce_consume_with_defer_cleanup(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};

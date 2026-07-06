@@ -7,13 +7,14 @@
 //! - Master B computes a response, sends a Sensor to Master A's inbox.
 //! - Both masters run concurrently; runMasters awaits both.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master A ──Event(request)──► b_inbox ──► master B
 //!  master A ◄──Sensor(response)── a_inbox ◄── master B
 //!  (fut_a + fut_b run concurrently; fut_a.await → fut_b.await)
 //! ```
+//!
+
 pub fn request_response_between_masters(allocator: std.mem.Allocator, io: std.Io) !void {
     const a_inbox: MailboxHandle = try mailbox.new(io, allocator);
     defer {

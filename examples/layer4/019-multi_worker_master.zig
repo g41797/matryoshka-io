@@ -8,7 +8,6 @@
 //! - awaitAll closes the mailbox, frees anything left, awaits the group.
 //! - Shutdown cancels the group on defer, in case a worker is still running.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master ──Event×3──► mailbox ──► worker A (Io.Group)
@@ -16,6 +15,8 @@
 //!                             └──► worker C
 //!  mailbox.close ──► remaining freeList ──► group.await
 //! ```
+//!
+
 pub fn multi_worker_master(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

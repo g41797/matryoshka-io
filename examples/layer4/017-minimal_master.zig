@@ -8,7 +8,6 @@
 //! - awaitWorker closes the mailbox, frees anything left, awaits the worker.
 //! - Shutdown cleanup uses a plain stdlib list — no Matryoshka-specific cleanup API.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master ──alloc.create──► slot ──mailbox.send──► mailbox
@@ -17,6 +16,8 @@
 //!  mailbox.close ──► remaining list ──► freeList
 //!  fut.await ──► worker done
 //! ```
+//!
+
 pub fn minimal_master(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

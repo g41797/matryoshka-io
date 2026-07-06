@@ -8,7 +8,6 @@
 //! - identifyNodeAs recovers the typed pointer for field access.
 //! - destroyByTag frees whichever type the Slot holds.
 //!
-//! Ownership:
 //!
 //! ```
 //!  alloc.create ──► slot (non-null)
@@ -17,6 +16,8 @@
 //!       │
 //!  Builder.destroyByTag ──► slot = null (freed)
 //! ```
+//!
+
 pub fn builder_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     const b: Builder = .{ .alloc = allocator };

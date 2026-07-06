@@ -8,7 +8,6 @@
 //!   passed straight into pool.put_all — no per-item walk needed.
 //! - verifyPool confirms the pool has items again after the bulk return.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get (×10, new_only) ──► mailbox.send (×10) ──► mailbox (10 items)
@@ -19,6 +18,8 @@
 //!  pool.get (.available_only) ×10 ──► verify count==10
 //!  pool.close ──► on_close ──► freeList
 //! ```
+//!
+
 pub fn batch_receive_pool_return(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

@@ -8,7 +8,6 @@
 //! - Each worker doubles its job's code, returns the container via pool.put.
 //! - shutdown closes all worker mailboxes, awaits every worker future.
 //!
-//! Ownership:
 //!
 //! ```
 //!  Master job queue: [{code=10},{code=20},{code=30}] (pre-loaded before loop)
@@ -30,6 +29,8 @@
 //!  Pool availability gates job submission. Work input: Master's pre-loaded queue.
 //!  Pool provides empty containers. One container per in-flight job.
 //!  Master dispatches jobs until queue exhausted, then shuts down workers.
+//!
+
 pub fn job_pool_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try JobPoolMaster.init(allocator, io);
     defer master.destroy();

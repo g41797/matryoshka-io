@@ -7,7 +7,6 @@
 //! - A timer triggers first, closes the mailbox while receiveResult is running.
 //! - The blocked receive unblocks with .closed, propagated through sel.await().
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (empty)
@@ -21,6 +20,8 @@
 //!  sel.await() ──► .inbox .closed
 //!  sel.cancelDiscard()
 //! ```
+//!
+
 pub fn select_mailbox_close_propagation(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     var ctx: Ctx = .{ .mbh = mbh, .alloc = allocator, .io = io };

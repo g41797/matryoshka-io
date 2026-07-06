@@ -8,7 +8,6 @@
 //! - Worker exits on error.Closed.
 //! - Main closes the mailbox, frees any items left unreceived.
 //!
-//! Ownership:
 //!
 //! ```
 //!  main ──alloc.create──► slot ──mailbox.send──► mailbox
@@ -18,6 +17,8 @@
 //!                                                    │ freeSlot
 //!  mailbox.close ──► remaining list ──► freeList (main)
 //! ```
+//!
+
 pub fn worker_loop_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

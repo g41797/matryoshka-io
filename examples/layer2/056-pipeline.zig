@@ -8,7 +8,6 @@
 //! - Transformer squares each code, forwards the sentinel, then exits.
 //! - Consumer sums results, frees the sentinel, exits.
 //!
-//! Ownership:
 //!
 //! ```
 //!  producer ──Event──► stage1 mailbox ──► transformer
@@ -17,6 +16,8 @@
 //!  consumer ◄──Event── stage2 mailbox ◄── transformer
 //!  (sentinel: Event code=-1 terminates each stage; consumer frees)
 //! ```
+//!
+
 pub fn pipeline(allocator: std.mem.Allocator, io: std.Io) !void {
     const stage1: MailboxHandle = try mailbox.new(io, allocator);
     const stage2: MailboxHandle = try mailbox.new(io, allocator);

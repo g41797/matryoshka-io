@@ -8,7 +8,6 @@
 //! - Pop the item back out of the list, assign it to a Slot.
 //! - Verify the recovered data, then free it.
 //!
-//! Ownership:
 //!
 //! ```
 //!  alloc.create ──► slot (non-null)
@@ -22,6 +21,8 @@
 //!       ▼
 //!  freed
 //! ```
+//!
+
 pub fn ownership_transfer_via_slot(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
 

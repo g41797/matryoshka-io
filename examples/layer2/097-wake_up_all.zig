@@ -8,7 +8,6 @@
 //!   no item is sent, no message crosses the mailbox.
 //! - Worker wakes with error.Wakeup, re-checks the flag, exits.
 //!
-//! Ownership:
 //!
 //! ```
 //!  worker thread
@@ -19,6 +18,8 @@
 //!       ▼
 //!  worker re-checks shutdown flag ──► exits
 //! ```
+//!
+
 pub fn wake_blocked_receiver_without_a_message(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

@@ -8,7 +8,6 @@
 //! - Worker then empties the rest with mailbox.receive_batch.
 //! - Sentinel found in either place ends the worker.
 //!
-//! Ownership:
 //!
 //! ```
 //!  main ──Event×10 + ShutdownCommand──► mailbox
@@ -17,6 +16,8 @@
 //!          receive_batch (rest) ──► walk + freeItem
 //!          (ShutdownCommand in batch → exit)
 //! ```
+//!
+
 pub fn batch_processing(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

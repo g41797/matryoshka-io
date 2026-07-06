@@ -7,7 +7,6 @@
 //! - consume: mailbox.receive gets it back, verifies same pointer, pool.put recycles it.
 //! - verifyRecycle: pool.get(available_only) confirms the same pointer, same data.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get ──► slot ──► producer fills (code=1)
@@ -21,6 +20,8 @@
 //!  verify recycled ──► pool.put ──► pool
 //!  pool.close ──► on_close ──► freeList
 //! ```
+//!
+
 pub fn producer_consumer_with_recycling(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

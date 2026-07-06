@@ -7,7 +7,6 @@
 //! - A timer triggers first, calls sel.cancel().
 //! - The blocked receive reports .canceled, propagated through the cancel loop.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (empty)
@@ -20,6 +19,8 @@
 //!  │
 //!  mailbox.close ──► freeList ──► mailbox.destroy
 //! ```
+//!
+
 pub fn select_cancel_propagation(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

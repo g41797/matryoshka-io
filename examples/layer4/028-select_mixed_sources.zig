@@ -8,7 +8,6 @@
 //! - Loop re-spawns each source after handling it, exits once both targets are met.
 //! - Timer just counts ticks; it drives no work in this example.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (Event items)    pool (Sensor items)    timer
@@ -23,6 +22,8 @@
 //!  .timer        ──► re-spawn timer       (count ticks)
 //!  exit when inbox_target + pool_target reached ──► sel.cancelDiscard()
 //! ```
+//!
+
 pub fn multiple_event_source_types_in_one_select(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

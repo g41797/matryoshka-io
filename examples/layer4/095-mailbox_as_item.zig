@@ -8,7 +8,6 @@
 //! - Master confirms the returned item is a MailboxHandle and the expected instance.
 //! - Master closes and destroys the worker's mailbox, then joins the thread.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
@@ -18,6 +17,8 @@
 //!  master ◄──worker_mbh (as NodeHandle)── master_inbox
 //!  master: close + destroy worker_mbh (tag+pointer verified first)
 //! ```
+//!
+
 pub fn worker_finish_signal_via_mailbox_return(allocator: std.mem.Allocator, io: std.Io) !void {
     const master_inbox: MailboxHandle = try mailbox.new(io, allocator);
     defer {

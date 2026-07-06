@@ -7,7 +7,6 @@
 //! - Worker adds 1000 to the code, sends it to the response mailbox.
 //! - Main receives the response, verifies the value.
 //!
-//! Ownership:
 //!
 //! ```
 //!  main ──Event(code=42)──► req_mbh ──► worker
@@ -15,6 +14,8 @@
 //!                                          ▼
 //!  main ◄──Event(code=1042)── resp_mbh ◄── worker
 //! ```
+//!
+
 pub fn request_response(allocator: std.mem.Allocator, io: std.Io) !void {
     const req_mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(req_mbh, allocator);

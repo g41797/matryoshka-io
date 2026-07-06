@@ -7,7 +7,6 @@
 //! - pool.get_wait_future returns an Io.Future(PoolResult), no Select needed.
 //! - fut.await blocks until the item is available, then it's returned to the pool.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get ──► slot ──► pool.put ──► pool
@@ -17,6 +16,8 @@
 //!  │
 //!  pool.put ──► pool ──pool.close──► on_close ──► freeList
 //! ```
+//!
+
 pub fn get_wait_future_awaited_directly(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

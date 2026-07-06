@@ -7,7 +7,6 @@
 //! - receiveAndDispatch pops both, dispatches on tag via identifyNodeAs.
 //! - Verifies each payload, frees each item.
 //!
-//! Ownership:
 //!
 //! ```
 //!  EventPolyHelper.create ──► slot ──► mailbox.send ──► mailbox
@@ -20,6 +19,8 @@
 //!  │
 //!  mailbox.close ──► freeList (empty: all received)
 //! ```
+//!
+
 pub fn mixed_types_through_shared_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

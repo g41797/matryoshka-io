@@ -8,7 +8,6 @@
 //! - Main closes the mailbox, frees any items left unclaimed.
 //! - Verifies every item was either received or freed.
 //!
-//! Ownership:
 //!
 //! ```
 //!  main ──Event×5 + Sensor×4──► mailbox ──► worker A
@@ -16,6 +15,8 @@
 //!                                      └──► worker C
 //!  mailbox.close ──► remaining list ──► freeItem (main)
 //! ```
+//!
+
 pub fn fan_out(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(mbh, allocator);

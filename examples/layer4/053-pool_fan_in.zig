@@ -8,7 +8,6 @@
 //! - Each worker doubles the value, returns the container to the pool.
 //! - collectResults reads all N results back from the pool, sums them.
 //!
-//! Ownership:
 //!
 //! ```
 //!  Master job list: [{code=1},{code=2},{code=3}]
@@ -24,6 +23,8 @@
 //!
 //!  Ownership: Master list → pool containers → worker mailboxes → workers → pool → master.
 //!  Pool items are empty containers: Master fills from job list, worker writes result back.
+//!
+
 pub fn pool_fan_in_many_workers_return(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try PoolFanInMaster.init(allocator, io);
     defer master.destroy();

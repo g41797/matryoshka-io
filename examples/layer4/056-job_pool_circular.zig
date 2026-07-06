@@ -24,6 +24,8 @@
 //!  Container circulates: pool → master fills → mailbox → worker → pool.
 //!  Work input: Master's pre-loaded job list. Pool provides the container and controls pacing.
 //!  Master counter tracks completed jobs.
+//!
+
 pub fn job_pool_circular_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

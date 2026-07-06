@@ -8,7 +8,6 @@
 //! - Worker loops on mailbox.receive, returns each item to the pool via pool.put.
 //! - Shutdown cancels the worker future, then destroy releases pool and mailbox in order.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master ──pool.get──► slot ──mailbox.send──► mailbox
@@ -18,6 +17,8 @@
 //!  fut.cancel ──► worker exits at next mailbox.receive
 //!  master.destroy ──► pool.close ──► mailbox.close ──► free remaining
 //! ```
+//!
+
 pub fn master_with_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MasterWithPool.init(allocator, io);
     defer master.destroy();

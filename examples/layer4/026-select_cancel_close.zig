@@ -8,7 +8,6 @@
 //! - Both return .canceled; cancel and close are kept as separate operations.
 //! - Both mailboxes are then closed, remaining items freed via freeList.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mbh1 (empty)    mbh2 (empty)
@@ -24,6 +23,8 @@
 //!  mailbox.close(mbh1) ──► freeList
 //!  mailbox.close(mbh2) ──► freeList
 //! ```
+//!
+
 pub fn timer_cancel_close_walk_remaining(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh1: MailboxHandle = try mailbox.new(io, allocator);
     const mbh2: MailboxHandle = try mailbox.new(io, allocator);

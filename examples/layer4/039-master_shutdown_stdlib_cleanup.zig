@@ -8,7 +8,6 @@
 //! - closePool: pool.close, on_close frees the pool items.
 //! - Entire cleanup is standard Zig stdlib — no Matryoshka-specific cleanup API.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool (2 items)    mailbox (2 items)
@@ -18,6 +17,8 @@
 //!  │
 //!  Entire shutdown: standard Zig stdlib — no Matryoshka-specific cleanup API.
 //! ```
+//!
+
 pub fn master_shutdown_close_stdlib_walk_free(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

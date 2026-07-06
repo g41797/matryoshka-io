@@ -7,7 +7,6 @@
 //! - Same thread receives both back, in order.
 //! - Verifies each roundtrip value.
 //!
-//! Ownership:
 //!
 //! ```
 //!  alloc.create ──► slot ──mailbox.send──► mailbox (owns)
@@ -15,6 +14,8 @@
 //!                                              ▼
 //!                                         slot ──► freeSlot
 //! ```
+//!
+
 pub fn simple_send_receive(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

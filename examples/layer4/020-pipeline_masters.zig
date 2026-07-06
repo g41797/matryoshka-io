@@ -8,7 +8,6 @@
 //! - Transformer converts each Event to a Sensor, forwards the sentinel, exits.
 //! - Consumer sums received Sensors, exits on the sentinel.
 //!
-//! Ownership:
 //!
 //! ```
 //!  producer ──Event──► transformer_mbh ──► transformer
@@ -18,6 +17,8 @@
 //!  (ShutdownCommand sentinel propagates: producer→transformer→consumer)
 //!  fut_prod.await → fut_trans.await → fut_cons.await
 //! ```
+//!
+
 pub fn pipeline_of_masters(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try PipelineMaster.init(allocator, io);
     defer master.destroy();

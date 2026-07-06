@@ -8,7 +8,6 @@
 //! - returnCloseListToPool walks that list, returns each item to the still-open pool.
 //! - pool.close (deferred) then frees both items via on_close.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool (1 item in free-list)    mailbox (1 item in queue)
@@ -20,6 +19,8 @@
 //!  │
 //!  Verify: pool received the item from mailbox close list.
 //! ```
+//!
+
 pub fn close_ordering_mailbox_then_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

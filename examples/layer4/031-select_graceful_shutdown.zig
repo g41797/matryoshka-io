@@ -8,7 +8,6 @@
 //! - gracefulShutdown empties sel.cancel(), frees inbox items, recycles pool items.
 //! - No item is lost across cancellation, at whatever stage each source was in.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mbh (Event items + ShutdownCommand)    pool (Event items)
@@ -25,6 +24,8 @@
 //!                              .pool_ev .item──► pool.put    (no item lost)
 //!  sel.cancelDiscard() ──► pool.close ──► mailbox.close
 //! ```
+//!
+
 pub fn graceful_shutdown_with_in_flight_items(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try GracefulShutdownMaster.init(allocator, io);
     defer master.destroy();

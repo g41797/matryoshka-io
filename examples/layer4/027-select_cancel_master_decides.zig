@@ -8,7 +8,6 @@
 //! - Master decides: close mbh1 permanently, keep mbh2 for phase 2.
 //! - Phase 2: fresh Select on mbh2 only, sends and receives 2 items.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mbh1 (empty)    mbh2 (empty)
@@ -24,6 +23,8 @@
 //!  Phase 2: new Select, mbh2 only
 //!  send 2 items to mbh2 ──► receive them via fresh Select
 //! ```
+//!
+
 pub fn cancel_reports_master_decides(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try CancelDecideMaster.init(allocator, io);
     defer master.destroy();

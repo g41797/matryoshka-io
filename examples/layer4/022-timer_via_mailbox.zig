@@ -8,7 +8,6 @@
 //! - Worker dispatches on tag: counts Events separately from Timer ticks.
 //! - Worker exits after receiving the expected total — no Select needed.
 //!
-//! Ownership:
 //!
 //! ```
 //!  main ──Event×2──►
@@ -16,6 +15,8 @@
 //!  (workerFn exits after receiving N_EVENTS + N_TICKS items)
 //!  fut_timer.await → fut_worker.await
 //! ```
+//!
+
 pub fn timer_via_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

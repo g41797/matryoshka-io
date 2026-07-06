@@ -8,7 +8,6 @@
 //! - Single receiver empties it with mailbox.receive_batch.
 //! - Counts events and sensors received, verifies the total.
 //!
-//! Ownership:
 //!
 //! ```
 //!  eventSenderFn ──Event×5──►
@@ -16,6 +15,8 @@
 //!  altSenderFn ──mixed×4──►
 //!  (3 concurrent senders fan-in to one mailbox)
 //! ```
+//!
+
 pub fn fan_in(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

@@ -7,7 +7,6 @@
 //! - Close the mailbox — all items come back in the returned list.
 //! - Walk the list with popFirst, free every item.
 //!
-//! Ownership:
 //!
 //! ```
 //!  alloc.create × (n_events + n_sensors) ──► mailbox
@@ -15,6 +14,8 @@
 //!       ▼
 //!  DoublyLinkedList ──► freeItem × N
 //! ```
+//!
+
 pub fn shutdown_with_remaining_item_cleanup(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer mailbox.destroy(mbh, allocator);

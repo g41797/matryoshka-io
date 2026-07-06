@@ -7,7 +7,6 @@
 //! - Consume all 5 with pool.get(available_only) — no allocation.
 //! - Free each consumed item, verify the count.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get (new_only) × 5 ──► pool.put × 5
@@ -16,6 +15,8 @@
 //!       ▼
 //!  slot ──► SensorPolyHelper.destroy per item
 //! ```
+//!
+
 pub fn pool_seeding(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.SensorPolyHelper.TAG};

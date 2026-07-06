@@ -22,7 +22,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-019.md
+- API: matryoshka-api-reference-020.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -33,10 +33,10 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-038.md (slim, state-only)
-- Rules: rules-015.md
+- Rules: rules-017.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-011.md
-- Docs plan: matryoshka-io-docs-plan-012.md
+- Docs plan: matryoshka-io-docs-plan-014.md
 - Manifesto: matryoshka-manifesto-003.md
 
 ## Participants
@@ -181,9 +181,190 @@ DOC 17b/17c — example doc comments moved to file-level `//!`; ASCII
 Ownership diagrams wrapped in fenced code blocks; fixed 056-pipeline's
 un-renamed `Pipeline` entry point. DONE (167/167 tests unchanged).
 rules-014.md → rules-015.md.
-Current: 167/167 tests. DOC 17c DONE.
+DOC 18 — humanized the API reference (api-reference-019 → -020): dropped
+"ownership" framing throughout, staccato pass on remaining prose; re-synced
+src/mailbox.zig and src/pool.zig doc comments to match (src/polynode.zig and
+src/matryoshka.zig already matched). DONE (167/167 tests unchanged).
+DOC 18b — new rule: `//!` file-level block must end with a bare `//!` +
+blank line. rules-015.md → rules-016.md. SUPERSEDED by DOC 18c — the
+blank-line hypothesis was tested against real rendered docs and disproved.
+DOC 18c — root-caused via headless-Chrome render: Zig autodoc splices the
+first declaration's `///` comment onto the container page unconditionally.
+Fix: `const _doc_stub = void;` as first declaration in mailbox.zig/pool.zig/
+polynode.zig. rules-016.md → rules-017.md. DONE (167/167 tests unchanged).
+Current: 167/167 tests. DOC 18c DONE.
 
 ## Session Log
+
+### 2026-07-06 — DOC 18c (first-declaration doc-stub fix: rules-016 → -017,
+supersedes DOC 18b's disproved blank-line theory)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner reported DOC 18b's fix did not work: the container/module page for
+`matryoshka.mailbox` still showed `MailboxHandle`'s `///` comment spliced
+directly onto the module `//!` overview with no separator. Rather than
+guess again, tested empirically: built the real docs (`zig build docs`),
+served them locally, and rendered the actual page with headless Chrome
+(`google-chrome --headless --dump-dom`), extracting visible text from the
+DOM. Confirmed the merge is real and the DOC 18b blank-line fix does not
+address it.
+
+Root-caused by experiment, not inspection: reordered `src/mailbox.zig` so
+`MailboxPolyHelper` came before `MailboxHandle`, rebuilt, re-rendered — the
+merge followed whichever declaration became first (now showed
+`MailboxPolyHelper`'s comment instead). This rules out "plain alias consts
+specifically" and confirms the real cause: Zig's autodoc container page
+always splices the **first declaration's** `///` comment onto the module
+overview, unconditionally, regardless of blank lines or declaration kind.
+
+Owner asked "what if we simply comment[out with a] stub" — tested adding an
+undocumented, non-`pub` `const _doc_stub = void;` as the first declaration
+after the `//!` header. Rebuilt, re-rendered: container page came back
+clean, no splice, and the stub is invisible in the sidebar (private, no
+doc). Verified on `mailbox.zig`, then confirmed by inspection (not
+guesswork) that `pool.zig` and `polynode.zig` have the same first-declaration
+`///` shape and need the same fix; `matryoshka.zig` and all 67
+`examples/`/`stories/` files have no `///` comments at all (whole
+description lives in `//!`), so nothing bleeds and no stub is needed there —
+confirmed by live-rendering one example's container page too.
+
+Separate finding, not fixed by the stub: `MailboxHandle`'s own dedicated
+doc page (`#matryoshka.mailbox.MailboxHandle`) shows `NodeHandle`'s doc, not
+its own — Zig autodoc resolves plain alias consts (`pub const X = Y.Z;`) to
+the aliased type's page. The stub stops the garbled container-page splice;
+it does not make the alias's own `///` comment render anywhere. Accepted as
+a known, separate Zig autodoc limitation (same precedent as the rules-014
+quoted-identifier limitation) — not something further stub tricks can fix.
+
+**Changes**:
+- `src/mailbox.zig`, `src/pool.zig`, `src/polynode.zig` — added
+  `const _doc_stub = void;` as the first declaration after the `//!` file
+  header.
+- `design/rules-016.md` → `-017.md` — replaced the disproved DOC 18b
+  blank-line rule with the first-declaration doc-stub rule, in both the
+  changelog note and the Comment/Doc Rules section; documented the
+  alias-page limitation as a known trade-off.
+- `design/context.md` — rules pointer → -017.
+- `design/STATUS.md` — this entry, DOC 18c stage line.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Headless-Chrome render of `matryoshka.mailbox`/`.pool`/`.polynode` container pages | clean — module `//!` overview only, no spliced declaration text |
+| Headless-Chrome render of one `examples/` container page (`examples.layer1.define_type`) | clean, confirming no stub needed there |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+| `zig build docs` | clean, zero output |
+
+**Next**: Stage 9 continues; DOC 19+ TBD.
+
+---
+
+### 2026-07-06 — DOC 18b (`//!` block termination rule: rules-015 → -016,
+superseded by DOC 18c above — blank-line hypothesis was tested and disproved)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner found, while applying the DOC 18 staccato style to `src/mailbox.zig`/
+`src/pool.zig`, that a `//!` file-level doc comment block must end with a
+bare `//!` line followed by a real blank line — otherwise Zig's autodoc
+parser treats whatever comment follows as a continuation of the same
+file-level block instead of its own declaration doc comment. Same class of
+token-boundary bug as the rules-014 `//!`/`///` mixing issue (DOC 17b), just
+a different trigger: here it's a missing blank line, not a wrong marker.
+Owner had already applied the fix to all 4 `src/*.zig` files; directed
+applying the same fix to the rest of the sources and adding the rule.
+
+**Changes**:
+- 67 `examples/`/`stories/` files with a `//!` file header — added a
+  trailing bare `//!` line (where missing) and a real blank line before the
+  first following comment or code, matching the pattern already applied to
+  `src/*.zig`. Scripted, not hand-edited; content otherwise unchanged.
+- `design/rules-015.md` → `-016.md` — new rule: file-level `//!` block
+  termination, in both the changelog note and the Comment/Doc Rules section.
+- `design/context.md` — rules pointer → -016.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Live check: every `//!`-headed file (`src`+`examples`+`stories`, 71 files) ends its block with a bare `//!` + blank line | all 71 clean |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+| `zig build docs` | clean, zero output |
+
+**Next**: Stage 9 continues; DOC 19+ TBD.
+
+---
+
+### 2026-07-06 — DOC 18 (humanize the API reference: api-reference-019 → -020)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+DOC 16/16b dropped "ownership" language from `src/*.zig` comments but
+explicitly deferred rewriting `matryoshka-api-reference-019.md` itself as "a
+separate future stage" — this is that stage. The reference still used
+"ownership-oriented infrastructure toolkit" / "Ownership model" / "Ownership
+flow" / "Ownership lifecycle" / "Cancellation ownership contract" framing
+(40+ hits) and mixed prose paragraphs into an otherwise staccato doc. Owner
+supplied 3 example files under `/home/g41797/Downloads/` (`polynode.zig`,
+`mailbox.zig`, `pool.zig`) — stripped-down doc-comment-only stubs — as a
+style model: plain send/place verbs, no academic framing, not a literal
+patch (they omit real content that must stay).
+
+On starting, found the working tree already had partial owner-applied edits
+toward this goal on all 4 `src/*.zig` files: `polynode.zig` and
+`matryoshka.zig` fully matched the target style; `pool.zig`'s file header
+matched but its function-level comments were untouched; `mailbox.zig` had a
+partial edit in the wrong style (single sentences split across
+blank-line-separated fragments instead of proper staccato bullets) and had
+introduced a typo ("FIFI order is not guaranteed" — should read "FIFO").
+Owner directed: redo `mailbox.zig` from scratch rather than build on the
+partial edit.
+
+**Changes**:
+- `design/matryoshka-api-reference-019.md` → `-020.md` — dropped all
+  "ownership" section titles, diagram captions, and prose throughout, in
+  favor of the one-place-one-state phrasing already established for `src/`;
+  converted 3 dense run-on sentences (mailbox.receive waiter fairness,
+  pool.get_wait zero-timeout divergence, pool.put_all mid-batch close) into
+  one-fact-per-bullet staccato. Same section order (DOC 9/10 dependency
+  ordering untouched), same facts, same diagrams (captions relabeled only).
+  New Change-log row (020).
+- `src/mailbox.zig` — reverted the partial/typo'd edit, rewrote all
+  `///`/`//!` comments from scratch in the polynode.zig staccato format
+  (short intro line, blank `///`, related facts grouped). No "ownership"
+  language was present — DOC 16b already cleaned it; this pass was pure
+  reformatting plus fixing the "FIFO" typo.
+- `src/pool.zig` — file header left as the owner's existing edit; reworded
+  the remaining function-level comments (`get`, `get_wait`, `put`,
+  `put_all`, `close`, `PoolHooks`, `getWaitResult`, `get_wait_future`) to
+  the same staccato format.
+- `src/polynode.zig`, `src/matryoshka.zig` — verified already matching, no
+  changes.
+- `design/context.md` — API reference pointer → -020; docs plan → -013.
+- `design/matryoshka-io-docs-plan-012.md` → `-013.md` — DOC 18 session log
+  + backfilled one-line Stages summaries for DOC 15-17c (previously only
+  logged in STATUS.md) + Stages update.
+- `design/STATUS.md` — Sources of Truth pointer; DOC 18 stage line; this
+  entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167), re-run after mailbox.zig and after pool.zig |
+| Live grep "ownership"/"owner"/"owns"/"owned" in the 4 `src/*.zig` files and `-020.md` | none (Change-log historical references in `-020.md` exempt, same precedent as DOC 9) |
+| Banned-word scan on `-020.md` and the 4 changed `src/*.zig` files | CLEAN — `unlock`/`ensureTotalCapacity` hits are real API names, not prose; `dll_node_ptr` is a code identifier, not the banned word; `fires` is inside a historical Change-log entry |
+| Section/fact coverage `-019` vs `-020` | same structure, same tables/diagrams — wording-only diff |
+
+**Next**: owner reviews the humanized reference; DOC 19+ TBD — likely
+candidate unchanged: split api-reference-020.md into mkdocs Reference pages.
+
+---
 
 ### 2026-07-06 — DOC 17b/17c (example doc comments → file-level `//!` + fenced diagrams: rules-014 → -015)
 

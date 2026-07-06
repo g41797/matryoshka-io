@@ -7,7 +7,6 @@
 //! - This bypasses the usual sel.concurrent path — it's a raw queue push.
 //! - sel.await() receives the .direct value directly, then cancels the blocked inbox source.
 //!
-//! Ownership:
 //!
 //! ```
 //!  wild thread ──sel.queue.putOneUncancelable──► Select queue
@@ -17,6 +16,8 @@
 //!  │
 //!  sel.cancelDiscard() ──► cancels blocking .inbox source
 //! ```
+//!
+
 pub fn select_direct_queue_push(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

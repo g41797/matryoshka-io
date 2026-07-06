@@ -7,7 +7,6 @@
 //! - eventLoop handles each with a uniform switch, re-spawning after mailbox items.
 //! - Timer ticks independently; the loop exits once both targets are met.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (pre-loaded: Event×2)   pool (seeded: Event×1)
@@ -22,6 +21,8 @@
 //!  .timer         ──► log tick, re-spawn
 //!  done when inbox×2 + pool×1 received ──► sel.cancelDiscard()
 //! ```
+//!
+
 pub fn mixed_mailbox_pool_event_sources_in_select(allocator: std.mem.Allocator, io: std.Io) !void {
     const master = try MailboxPoolTimerMaster.init(allocator, io);
     defer master.destroy();

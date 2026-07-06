@@ -7,7 +7,6 @@
 //! - receiveAndVerify: mailbox.receive gets it back, pool.put returns it.
 //! - One ownership circuit, single-threaded — the minimal cross-layer flow.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get ──► slot (code=7)
@@ -18,6 +17,8 @@
 //! ```
 //!
 //!  Pattern: pool → mailbox → pool. One ownership circuit, single-threaded.
+//!
+
 pub fn pool_mailbox_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

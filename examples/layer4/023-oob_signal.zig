@@ -8,7 +8,6 @@
 //! - processingLoop receives 4 items: OOB signal first, then the 3 Events.
 //! - Free every received item, verify the arrival order.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox.send (Event×3) ──► queue tail
@@ -18,6 +17,8 @@
 //!  OOB ShutdownCommand arrives first, then Events in send order
 //!  freeSlot per item
 //! ```
+//!
+
 pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

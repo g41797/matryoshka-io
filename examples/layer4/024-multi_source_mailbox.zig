@@ -8,7 +8,6 @@
 //! - Senders finish, then the mailbox is closed to end the worker.
 //! - Ctx groups the flow: spawnSenders, then awaitSendersAndClose.
 //!
-//! Ownership:
 //!
 //! ```
 //!  timerSenderFn ──Timer×2──►
@@ -16,6 +15,8 @@
 //!  signalSenderFn ──ShutdownCommand──►
 //!  senders await → mailbox.close → workerFn exits → fut_worker.await
 //! ```
+//!
+
 pub fn multiple_event_sources_one_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

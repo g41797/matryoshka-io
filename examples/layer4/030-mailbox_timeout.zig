@@ -7,7 +7,6 @@
 //! - Each call returns error.Timeout; Io.sleep runs between retries.
 //! - sendAndReceive sends one Event, then receives it back within the same timeout.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (initially empty)
@@ -19,6 +18,8 @@
 //!  │
 //!  master: receive(50ms) ──► slot ──► freeSlot
 //! ```
+//!
+
 pub fn timeout_on_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

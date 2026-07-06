@@ -8,7 +8,6 @@
 //! - pool.close on the carrier walks the returned list, closes and destroys each inner pool.
 //! - Shows uniform cleanup of infra handles — no per-instance role discrimination needed.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.new × 2 ──► pool.put ──► carrier pool (holds inner pools as items)
@@ -16,6 +15,8 @@
 //!       ▼
 //!  on_close ──► pool.close + pool.destroy per inner pool
 //! ```
+//!
+
 pub fn pool_holds_pools_at_teardown(allocator: std.mem.Allocator, io: std.Io) !void {
     // Carrier pool — holds inner PoolHandles as items.
     const carrier: PoolHandle = try pool.new(io, allocator);

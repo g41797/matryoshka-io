@@ -7,7 +7,6 @@
 //! - mailbox.receive_future returns an Io.Future(ReceiveResult), no Select needed.
 //! - fut.await blocks until the item arrives, then it's freed.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master ──EventPolyHelper.create──► slot
@@ -18,6 +17,8 @@
 //!          │
 //!  freeSlot
 //! ```
+//!
+
 pub fn receive_future_awaited_directly(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {

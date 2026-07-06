@@ -8,7 +8,6 @@
 //! - verifyRecycle: pool.put then pool.get(available_only) confirms the same pointer recycles.
 //! - Single-threaded — no concurrency needed to prove the ownership path.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get ──► slot (code=42, ptr=P)
@@ -20,6 +19,8 @@
 //!  verify ptr==P ──► pool.put ──► pool
 //!  pool.close ──► on_close ──► freed
 //! ```
+//!
+
 pub fn pool_mailbox_pool_roundtrip(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

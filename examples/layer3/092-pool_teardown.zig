@@ -7,7 +7,6 @@
 //! - Close the pool.
 //! - on_close receives all pooled items via *std.DoublyLinkedList, frees them.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool.get (new_only) × 4 ──► pool.put × 4
@@ -16,6 +15,8 @@
 //!       ▼
 //!  on_close ──► AlwaysCreateCtx: destroys all 4 items
 //! ```
+//!
+
 pub fn pool_teardown(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
     const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};

@@ -8,7 +8,6 @@
 //! - init sets the tag on a stack value, no heap.
 //! - isIt checks the tag; identifyNodeAs recovers the typed pointer.
 //!
-//! Ownership:
 //!
 //! ```
 //!  stack: var msg: Message
@@ -18,6 +17,8 @@
 //!  MessagePolyHelper.identifyNodeAs ──► field access (no transfer)
 //!  (stack-allocated — no free needed)
 //! ```
+//!
+
 pub fn define_a_polynode_type(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = .{ allocator, io };
 

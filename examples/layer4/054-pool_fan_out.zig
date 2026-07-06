@@ -7,7 +7,6 @@
 //! - Spawn 3 workers, each calls pool.get(available_only) — no item is shared.
 //! - Verify all 3 workers got a distinct item, then all 3 put it back.
 //!
-//! Ownership:
 //!
 //! ```
 //!  master: pool.get (×3, new_only) ──► pool (3 items seeded)
@@ -19,6 +18,8 @@
 //!  fut1.await + fut2.await + fut3.await
 //!  pool.close ──► on_close ──► freeList
 //! ```
+//!
+
 pub fn pool_fan_out_many_workers_acquire(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

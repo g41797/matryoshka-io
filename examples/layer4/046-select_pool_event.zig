@@ -8,7 +8,6 @@
 //! - Re-spawns getWaitResult until the target cycle count is reached, then stops.
 //! - Work input is the Master's counter; the pool item is only an empty container.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool (seeded: Event×3, all empty — code=0)
@@ -28,6 +27,8 @@
 //!  Work input: Master's own cycle counter. Pool item is an empty container.
 //!  Stop condition: cycle reaches target. getWaitResult not re-spawned at target,
 //!  so cancelDiscard only cancels the timer — no items in-transit, no leak.
+//!
+
 pub fn pool_get_wait_as_select_event_source(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

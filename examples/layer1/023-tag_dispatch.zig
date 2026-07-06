@@ -8,7 +8,6 @@
 //! - Recover the typed pointer with identifyNodeAs, process it.
 //! - Free every item; count events and sensors separately.
 //!
-//! Ownership:
 //!
 //! ```
 //!  alloc.create (Event) ──► list
@@ -18,6 +17,8 @@
 //!  tag check ──► EventPolyHelper.identifyNodeAs or SensorPolyHelper.identifyNodeAs
 //!       │ freeItem per node
 //! ```
+//!
+
 pub fn tag_dispatch_consume_loop(allocator: std.mem.Allocator, io: std.Io) !void {
     _ = io;
     var list: std.DoublyLinkedList = .{};

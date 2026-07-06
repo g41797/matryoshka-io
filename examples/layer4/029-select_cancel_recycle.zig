@@ -8,7 +8,6 @@
 //! - cancelAndRecycle empties sel.cancel(), recycles any in-flight item via pool.put.
 //! - pool.close then frees everything recycled — no item is lost or double-freed.
 //!
-//! Ownership:
 //!
 //! ```
 //!  pool (seeded: Event×3)
@@ -23,6 +22,8 @@
 //!  │
 //!  pool.close ──► on_close ──► freeList (all recycled items freed cleanly)
 //! ```
+//!
+
 pub fn cancel_master_close_pool_put_all(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
     var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };

@@ -7,7 +7,6 @@
 //! - No concurrent task can be spawned to service the future.
 //! - Synchronous mailbox.receive still works — it needs no concurrency.
 //!
-//! Ownership:
 //!
 //! ```
 //!  mailbox (single-threaded io)
@@ -17,6 +16,8 @@
 //!  │
 //!  mailbox.receive (synchronous) still works
 //! ```
+//!
+
 pub fn concurrencyunavailable_on_single_threaded(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
