@@ -1001,6 +1001,54 @@ See Session Log entry above (2026-07-06) for full detail: bucket classification,
 
 ---
 
+## Stage DOC 18 — humanize the API reference (api-reference-019 → -020)
+
+DOC 16/16b dropped "ownership" language from `src/*.zig` comments but explicitly
+deferred the api-reference doc itself as a separate future stage. This is that
+stage: `matryoshka-api-reference-019.md` still used "ownership-oriented
+infrastructure toolkit" / "Ownership model" / "Ownership flow" / "Ownership
+lifecycle" / "Cancellation ownership contract" framing (40+ hits) and mixed
+prose paragraphs into an otherwise staccato doc. Owner supplied 3 example files
+(`polynode.zig`, `mailbox.zig`, `pool.zig` under `/home/g41797/Downloads/`) —
+simplified doc-comment-only stubs — as a style model: plain send/place verbs,
+no academic framing.
+
+**Changes**:
+- `design/matryoshka-api-reference-019.md` → `-020.md` — dropped all
+  "ownership" section titles/diagram captions/prose in favor of the
+  one-place-one-state phrasing already used in `src/`; converted 3 dense
+  run-on bullets (mailbox.receive waiter fairness, pool.get_wait zero-timeout,
+  pool.put_all mid-batch close) into one-fact-per-bullet staccato. Same
+  section order (DOC 9/10 dependency ordering untouched), same facts, same
+  diagrams (relabeled only). New Change-log row (020).
+- `src/polynode.zig` — already matched the target style from a prior
+  owner-applied edit (verified, no changes needed).
+- `src/mailbox.zig` — a partial in-progress edit (wrong style: sentences split
+  across blank-line-separated fragments; introduced a "FIFI" typo) was reverted
+  and rewritten from scratch in the polynode.zig staccato format. No
+  "ownership" language was present (DOC 16b already cleaned it) — this pass
+  was pure reformatting.
+- `src/pool.zig` — file header was already updated by the owner; reworded the
+  remaining function-level comments (get/get_wait/put/put_all/close/
+  PoolHooks/getWaitResult/get_wait_future) to the same staccato format. No
+  "ownership" language was present here either.
+- `src/matryoshka.zig` — already matched the target style (owner-applied
+  edit, verified, no changes needed).
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` (→ `zig-out/build_and_test_debug.log`) | PASS (167/167), re-run after each file |
+| Live grep "ownership/owner/owns/owned" in the 4 `src/*.zig` files + `-020.md` | none (Change-log historical references in `-020.md` exempt, same precedent as DOC 9) |
+| Banned-word scan | CLEAN — `unlock`/`ensureTotalCapacity` hits are real API names, not prose |
+| Section/fact coverage `-019` vs `-020` | same structure, same tables/diagrams, wording-only diff |
+
+**Next**: DOC 19+ — TBD, scoped with owner. Likely candidate unchanged: split
+api-reference-020.md into mkdocs Reference pages.
+
+---
+
 ## Stages
 
 DOC 1 — tofu audit. DONE.
@@ -1029,18 +1077,35 @@ DOC 14 — audited Odin `matryoshka/kitchen/docs`, added 7 missing catalog entri
 (Request-Response, Pipeline, Fan-In, Fan-Out, Shutdown via Exit message,
 Thread-is-container, Intrusive node embedding) to patterns-011.md; 3 niche patterns
 explicitly skipped. DONE.
-DOC 15+ — TBD. Planned iteratively, one stage at a time, not in advance. Likely
-candidate: split api-reference-019.md into mkdocs Reference pages.
+DOC 15/15b — added `///`/`//!` doc comments to `src/*.zig` from api-reference-019;
+lifted the src/ `///` ban (rules-010 → rules-011). DONE. See STATUS.md session log.
+DOC 16/16b — terminology polish on `src/*.zig`: dropped "ownership" language,
+std.Io-style file headers (rules-011 → rules-013). DONE. See STATUS.md session log.
+DOC 17/17b/17c — snake_case entry points, autodoc fixes, example doc comments
+moved to file-level `//!` (rules-013 → rules-015). DONE. See STATUS.md session log.
+DOC 18 — humanized the API reference (api-reference-019 → -020): dropped
+"ownership" framing, staccato throughout; re-synced src/mailbox.zig and
+src/pool.zig comments to match. DONE.
+DOC 18b — new rule: `//!` block must end with bare `//!` + blank line.
+rules-015 → rules-016. SUPERSEDED by DOC 18c — hypothesis disproved against
+real rendered docs.
+DOC 18c — root-caused via headless-Chrome render of `zig build docs` output:
+Zig autodoc splices the first declaration's `///` comment onto the
+container page unconditionally (not a blank-line issue). Fix:
+`const _doc_stub = void;` as first declaration in mailbox.zig/pool.zig/
+polynode.zig. rules-016 → rules-017. DONE.
+DOC 19+ — TBD. Planned iteratively, one stage at a time, not in advance. Likely
+candidate: split api-reference-020.md into mkdocs Reference pages.
 
 ---
 
 ## References
 
 - [matryoshka-model-003.md](matryoshka-model-003.md) — thinking model
-- [rules-010.md](rules-010.md) — coding, doc, and process rules
+- [rules-017.md](rules-017.md) — coding, doc, and process rules
 - [patterns-011.md](patterns-011.md) — unified pattern and idiom catalog, DOC 14 output
-- [matryoshka-io-docs-plan-011.md](matryoshka-io-docs-plan-011.md) — prior version, superseded
-- [matryoshka-api-reference-019.md](matryoshka-api-reference-019.md) — DOC 10 output, base for future Reference pages
+- [matryoshka-io-docs-plan-013.md](matryoshka-io-docs-plan-013.md) — prior version, superseded
+- [matryoshka-api-reference-020.md](matryoshka-api-reference-020.md) — DOC 18 output, base for future Reference pages
 - [matryoshka-manifesto-003.md](matryoshka-manifesto-003.md) — DOC 12 output, current manifesto
 - tofu repo: `/home/g41797/dev/root/github.com/g41797/tofu`
 - Odin matryoshka repo: `/home/g41797/dev/root/github.com/g41797/matryoshka`

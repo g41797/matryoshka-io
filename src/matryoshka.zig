@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-//! matryoshka-io: infrastructure for std.Io-based concurrent Zig code.
+//! Building blocks for concurrent Zig systems.
 //!
-//! Three building blocks, one rule: an object sits in exactly one place,
-//! in exactly one state, at any moment.
-//! - polynode: runtime type identity for intrusive list nodes.
-//! - mailbox: sends objects between execution contexts.
-//! - pool: lifecycle management with user-supplied hooks.
+//! Components:
+//! - polynode: runtime type support
+//! - mailbox: message passing
+//! - pool: object lifecycle management
+//!
 
 pub const polynode = @import("polynode.zig");
 pub const mailbox = @import("mailbox.zig");

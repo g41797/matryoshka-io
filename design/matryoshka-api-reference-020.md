@@ -2,12 +2,12 @@
 
 > Function descriptions in this reference serve as the source for `///` Zig doc comments in the implementation.
 
-Matryoshka is a small ownership-oriented infrastructure toolkit.
+Matryoshka is a small infrastructure toolkit.
 It provides three independent building blocks:
 
-- **polynode** — ownership identity
-- **mailbox** — ownership transport
-- **pool** — ownership lifecycle
+- **polynode** — type identity
+- **mailbox** — message passing
+- **pool** — object lifecycle
 
 Applications combine these blocks to create:
 - coordinators
@@ -16,22 +16,22 @@ Applications combine these blocks to create:
 - pipelines
 - other higher-level architectures
 
-All objects follow the same ownership rules based on `PolyNode` and `NodeHandle`.
+Every object follows the same rule: one place, one state, at any moment.
 
-Matryoshka moves ownership of handles.
+Matryoshka moves handles from one place to another.
 Everything transported is a `NodeHandle` (`*PolyNode`):
 - events
 - requests
 - mailboxes
 - pools
 
-A `Slot` (`?NodeHandle`) is where a handle lives while you own it.
+A `Slot` (`?NodeHandle`) is where a handle lives while it is yours.
 
 Module: `@import("matryoshka")`
 
 ---
 
-## Ownership model
+## One place, one state
 
 ```text
 Slot (holds a handle)            Empty Slot
@@ -82,14 +82,14 @@ Slot = ?NodeHandle
 
 ## polynode
 
-Types and functions for ownership identity.
+Types and functions for type identity.
 
 ```zig
 const polynode = @import("matryoshka").polynode;
 
 // typical usage:
-var slot: polynode.Slot = &event.poly;   // owns the node
-slot = null;                              // releases ownership
+var slot: polynode.Slot = &event.poly;   // slot holds the node
+slot = null;                              // slot is empty
 ```
 
 ### Types
@@ -118,9 +118,9 @@ pub fn is_linked(n: *PolyNode) bool
 ```
 - Returns true if node is currently linked into a list.
 
-### Ownership rule
+### One place, one state — read-only ops
 
-These operations never transfer ownership:
+These operations never move a handle:
 - tag checks
 - typed casts
 - `@fieldParentPtr` recovery
@@ -562,17 +562,17 @@ Batch operations use plain `std.DoublyLinkedList`:
 
 Walk results with `popFirst()` — standard Zig, nothing Matryoshka-specific.
 
-**Warning**: `std.DoublyLinkedList.popFirst()` does NOT clear the node's `prev`/`next` links.
-After popping a node, call `polynode.reset(poly)` before re-transferring the item or checking
-`polynode.is_linked`. Skipping reset causes false positives from `is_linked` and assert failures
-in pool/mailbox assert guards.
+**Warning**:
+- `std.DoublyLinkedList.popFirst()` does NOT clear the node's `prev`/`next` links.
+- Call `polynode.reset(poly)` after popping, before re-sending the item or checking `polynode.is_linked`.
+- Skipping reset causes false positives from `is_linked` and assert failures in pool/mailbox assert guards.
 
 
 ---
 
 ## mailbox
 
-Ownership transport between execution contexts.
+Sends handles between execution contexts.
 
 ```zig
 const mailbox = @import("matryoshka").mailbox;
@@ -583,7 +583,7 @@ try mailbox.send(inbox, &slot);              // slot is now null
 try mailbox.receive(inbox, &slot, null);     // slot is now non-null
 ```
 
-### send — ownership moves out
+### send — the handle moves out
 
 ```text
 Before                           After
@@ -593,10 +593,10 @@ sender Slot                      sender Slot
 |    NodeHandle     |            |       null        |
 +-------------------+            +-------------------+
 
-mailbox.send(mbh, &slot)  ───►      Mailbox owns NodeHandle
+mailbox.send(mbh, &slot)  ───►      Mailbox holds NodeHandle
 ```
 
-### receive — ownership moves in
+### receive — the handle moves in
 
 ```text
 Before                           After
@@ -606,7 +606,7 @@ receiver Slot                    receiver Slot
 |       null        |            |    NodeHandle     |
 +-------------------+            +-------------------+
 
-mailbox.receive(mbh, &slot, null)   Receiver owns NodeHandle
+mailbox.receive(mbh, &slot, null)   Receiver holds NodeHandle
 ```
 
 
@@ -620,7 +620,7 @@ MailboxHandle is itself a *PolyNode.
 A mailbox can be:
 - sent through another mailbox
 - stored in pools
-- embedded into larger ownership graphs
+- embedded into larger structures
 
 Same rules as application objects.
 
@@ -636,7 +636,7 @@ pub fn new(io: Io, alloc: std.mem.Allocator) !MailboxHandle
 pub fn send(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```
 - Appends handle to tail.
-- Transfers ownership — `slot.*` set to null.
+- Moves the handle — `slot.*` set to null.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
   - `slot.* != null`
@@ -648,10 +648,12 @@ pub fn receive(mbh: MailboxHandle, slot: *Slot, timeout_ns: ?u64) (error{ Closed
 - Blocks until handle available.
 - `null` timeout = wait forever.
 - `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `try_receive`.
-- Transfers ownership — `slot.*` set to non-null.
+- Moves the handle — `slot.*` set to non-null.
 - OOB handles arrive first (front of queue).
 - `wakeUpAll()` called while blocked here — returns `error.Wakeup`, `slot.*` stays null.
-- Multiple concurrent receivers compete for each handle. One receiver gets it. Scheduling order among waiters depends on the Io runtime and is not guaranteed FIFO.
+- Multiple concurrent receivers compete for each handle.
+- One receiver gets it.
+- Order among waiters depends on the Io runtime — not guaranteed FIFO.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
   - `slot.* == null`
@@ -797,7 +799,7 @@ pub fn send_oob(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```
 - Inserts handle after last OOB handle.
 - FIFO among OOBs, all OOBs before regular handles.
-- Transfers ownership — `slot.*` set to null.
+- Moves the handle — `slot.*` set to null.
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
   - `slot.* != null`
@@ -830,7 +832,7 @@ try pool.get(ph, EVENT_TAG, .available_or_new, &slot);   // slot is now non-null
 pool.put(ph, &slot);                                      // slot is now null (if kept)
 ```
 
-### Ownership flow
+### Lifecycle flow
 
 ```text
 new()
@@ -839,7 +841,7 @@ EMPTY pool
 
 get() [available_or_new, pool empty]     get() [available_or_new, pool has items]
   ↓ on_get creates item                    ↓ item moved from free-list
-IN_FLIGHT (user owns)                    IN_FLIGHT (user owns)
+IN_FLIGHT (with caller)                  IN_FLIGHT (with caller)
 
 put() [on_put keeps]      put() [on_put destroys]
   ↓                         ↓
@@ -847,7 +849,7 @@ HELD (pool free-list)     FREE (caller frees)
 
 get() [available_only or available_or_new]
   ↓
-IN_FLIGHT (user owns)
+IN_FLIGHT (with caller)
 
 close()
   ↓ on_close receives full list of HELD items → caller frees each
@@ -863,7 +865,7 @@ pub const PoolHandle = NodeHandle;
 PoolHandle is itself a *PolyNode.
 A pool can be:
 - sent through a mailbox
-- embedded into larger ownership graphs
+- embedded into larger structures
 
 Same rules as application objects.
 
@@ -907,7 +909,7 @@ pub const PoolHooks = struct {
 - If your hook touches shared state, protect it.
 - Example: use `Io.Mutex` and call `lockUncancelable` to acquire it.
   Hooks return `void` — `lock` (cancelable) is not an option here.
-- Obtain `io` from the surrounding context that owns the pool; do not acquire it inside the hook.
+- Obtain `io` from the surrounding context that holds the pool; do not acquire it inside the hook.
 - `CappedPoolCtx` in `helpers/helpers.zig` is the reference implementation of these rules.
 
 ### Functions
@@ -942,7 +944,7 @@ pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *Slot) Ge
 ```
 - Non-blocking acquisition.
 - Calls `on_get` hook.
-- Transfers ownership — `slot.*` set to non-null on success.
+- Moves the handle — `slot.*` set to non-null on success.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
   - `slot.* == null`
@@ -954,7 +956,9 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *Slot, timeout_ns: 
 ```
 - Blocking acquisition.
 - `null` timeout = wait forever.
-- `timeout_ns = 0` returns `error.Timeout` immediately — logically equivalent to `get(.available_only)`, but returns a different error (`error.Timeout` vs `error.NotAvailable`). This divergence is intentional: `get_wait` always uses the timeout error set regardless of the timeout value.
+- `timeout_ns = 0` returns `error.Timeout` immediately.
+- Logically equivalent to `get(.available_only)`, but a different error (`error.Timeout` vs `error.NotAvailable`).
+- Intentional: `get_wait` always uses the timeout error set, regardless of the timeout value.
 - Calls `on_get` hook.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
@@ -970,11 +974,11 @@ pub fn put(ph: PoolHandle, slot: *Slot) void
 - **Open pool**:
   - Calls `on_put` hook.
   - Policy decides keep or destroy.
-  - Keep: `slot.*` stays non-null, pool owns it.
+  - Keep: `slot.*` stays non-null, pool holds it.
   - Destroy: `slot.*` set to null.
 - **Closed pool**:
   - Returns immediately, no hook call.
-  - `slot.*` stays non-null — caller retains ownership.
+  - `slot.*` stays non-null — caller keeps the handle.
 - Assert (when slot.* != null):
   - `pool.is_it_you(ph.*.tag)`
   - `!polynode.is_linked(slot.*)`
@@ -984,7 +988,8 @@ pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
 ```
 - Returns batch of handles to pool.
 - Pops from caller's list.
-- Transfer is not atomic with respect to `close()`. If the pool closes mid-batch, items already transferred are passed to `on_close`; items not yet transferred remain in the caller's list.
+- Transfer is not atomic with respect to `close()`.
+- If the pool closes mid-batch: items already transferred are passed to `on_close`; items not yet transferred stay in the caller's list.
 - Restoration order when closed mid-batch may differ from original order.
 - Assert:
   - `pool.is_it_you(ph.*.tag)`
@@ -1130,7 +1135,7 @@ Master receives a PolyNode from its inbox:
 - Master closes and destroys `worker_mbh`.
 - Master joins the thread (OS resource cleanup only — the mailbox return was the logical finish signal).
 
-This pattern replaces a thread join or a separate shutdown message with ownership transfer.
+This pattern replaces a thread join or a separate shutdown message with a handle handoff.
 
 **Wrapper pattern** (for tag-level role discrimination)
 
@@ -1161,9 +1166,9 @@ The slot rule:
 - Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
 
 **Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`
-parameter. They transfer ownership via the returned union value (`ReceiveResult.item`,
+parameter. They move the handle via the returned union value (`ReceiveResult.item`,
 `PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union
-and owns it from that point. This is an intentional exception to the slot-pointer pattern.
+and holds it from that point. This is an intentional exception to the slot-pointer pattern.
 
 ### Why acquisition APIs assert null
 
@@ -1199,7 +1204,7 @@ Slot lifecycle
     └──── cleanup (no-op) ──────  (pool.put, PolyHelper.destroy: null → return)
 ```
 
-### Ownership transfer clears the slot
+### Moving a handle clears the slot
 
 ```text
 Before transfer                  After transfer
@@ -1212,7 +1217,7 @@ Before transfer                  After transfer
   mailbox.send(mbh, &slot)                    │ slot.* = null
                                            │
                      Mailbox ◄─────────────┘
-                     now owns NodeHandle
+                     now holds NodeHandle
 ```
 
 ### Defer-before-acquisition is safe
@@ -1255,7 +1260,7 @@ try pool.get(ph, TAG, .new_only, &slot);
 Put before get — safe because pool.put is a no-op on null.
 
 If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains
-ownership). Add a fallback destroy to avoid a leak:
+held). Add a fallback destroy to avoid a leak:
 
 ```zig
 var slot: Slot = null;
@@ -1375,7 +1380,7 @@ No `Master` struct.
 By design.
 
 Master is an architectural role — the coordination boundary.
-It owns and composes the lower layers.
+It holds and composes the lower layers.
 
 Applications build Masters from:
 
@@ -1392,9 +1397,9 @@ Applications build Masters from:
 Both mailbox and pool are optional. Valid combinations:
 
 ```text
-PolyNode only                        ownership without infrastructure
-PolyNode + Mailbox                   ownership + transport
-PolyNode + Pool                      ownership + lifecycle
+PolyNode only                        type identity without infrastructure
+PolyNode + Mailbox                   type identity + message passing
+PolyNode + Pool                      type identity + object lifecycle
 PolyNode + Pool + Io.Select          lifecycle + event sources (no mailbox)
 PolyNode + Mailbox + Pool            transport + lifecycle
 PolyNode + Mailbox + Pool + Io.Select   full stack
@@ -1504,12 +1509,12 @@ The signature is the single source of truth.
 
 ---
 
-## Ownership lifecycle
+## Object lifecycle
 
 ```
 FREE       — allocated, not in any system
-IN_FLIGHT  — owned by user code (Slot non-null)
-HELD       — owned by infrastructure (in mailbox queue or pool free-list)
+IN_FLIGHT  — with user code (Slot non-null)
+HELD       — with infrastructure (in mailbox queue or pool free-list)
 ```
 
 | Operation | Before → After |
@@ -1524,20 +1529,20 @@ HELD       — owned by infrastructure (in mailbox queue or pool free-list)
 
 ---
 
-## Ownership invariants
+## Invariants
 
 These hold at all times, for every node in the system:
 
 - A linked node belongs to exactly one container (mailbox queue or pool free-list). Never two at once.
-- A Slot owns exactly one node. A null Slot owns nothing.
-- A pool never owns a linked node — items in its free-lists are unlinked relative to other pools.
-- A mailbox never owns a free node — only nodes currently in its queue.
-- Every node has exactly one owner at all times: either user code (via Slot) or infrastructure (in queue or free-list). Never both.
+- A Slot holds exactly one node. A null Slot holds nothing.
+- A pool never holds a linked node — items in its free-lists are unlinked relative to other pools.
+- A mailbox never holds a free node — only nodes currently in its queue.
+- Every node is in exactly one place at all times: either with user code (via Slot) or with infrastructure (in queue or free-list). Never both.
 - Tag identity is determined by pointer address alone. Never compare tag contents or names — compare only `==` on the pointer value.
 
 ---
 
-## Cancellation ownership contract
+## What cancellation leaves behind
 
 When a cancellable operation returns `error.Canceled`:
 
@@ -1623,18 +1628,18 @@ The following are unconditional panics (all build modes):
       +---------+---------+
                 |
             Layer 1
-           Ownership
+          Type identity
 ```
 
 Dependencies:
 - Mailbox and Pool are independent — neither depends on the other.
-- Both depend only on the ownership model.
+- Both depend only on the one-place-one-state model.
 - Master is where they are combined.
 
 Valid combinations:
-- Layer 1 only — ownership without infrastructure
-- Layer 1 + Layer 2 — ownership + transport, no lifecycle
-- Layer 1 + Layer 3 — ownership + lifecycle, no transport
+- Layer 1 only — type identity without infrastructure
+- Layer 1 + Layer 2 — type identity + message passing, no lifecycle
+- Layer 1 + Layer 3 — type identity + object lifecycle, no message passing
 - Layer 1 + Layer 2 + Layer 3 + Io — full stack (Master)
 
 ---
@@ -1643,6 +1648,7 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 020 | 2026-07-06 | DOC 18. Humanized the reference: dropped "ownership" framing throughout (section titles, diagrams, prose) in favor of plain language — a handle sits in exactly one place, in exactly one state, at any moment. Converted remaining prose paragraphs to staccato bullets. No content removed, no reordering, no new API surface.
 | 019 | 2026-07-05 | DOC 10. Dependency-ordered re-partition — no content change. send/receive ownership diagrams moved from Ownership model into mailbox. Tag identity (class, not instance) moved out of polynode to its own section after pool. Slot-based programming and Cooperative cleanup patterns moved after pool — every function they reference is now introduced first.
 | 018 | 2026-07-05 | DOC 9. Re-partitioned and reordered into a logical, teachable structure (was development-order). Generic `std.Io` material (Prolog, io.concurrent/Io.Group/Io.Select internals) moved to new `## Addendums` / `### Io 101` section at the end. Dropped the `Change manifest (NNN)` blocks (16 sections) — downstream-propagation notes fully subsumed by current main-body content, kept only as this Change log table. No information removed; no new API surface.
 | 017 | 2026-07-05 | API 3. Added `mailbox.wakeUpAll()` — wakes every receiver currently blocked in `receive()` with `error.Wakeup`, no item sent, future receivers unaffected. `receive()` error set gains `error.Wakeup`. `ReceiveResult` gains `wakeup: void`. |

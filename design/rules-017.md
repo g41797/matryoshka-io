@@ -1,9 +1,35 @@
-# Matryoshka Zig — Rules (015)
+# Matryoshka Zig — Rules (017)
 
-Versioned doc. Replaces [rules-014.md](rules-014.md).
+Versioned doc. Replaces [rules-016.md](rules-016.md).
 All coding, doc, and process rules for the project.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 Companion: [patterns-011.md](patterns-011.md) — reusable coding patterns.
+
+Change from rules-016: rules-016's blank-line hypothesis was wrong — tested
+empirically against a real headless-Chrome render of `zig build docs` output
+and disproved. The actual cause: Zig's autodoc container/module page always
+splices the **first declaration's** `///` doc comment onto the container
+page, directly after the `//!` module overview, with no heading or
+separator — regardless of blank lines, and regardless of which declaration
+is first (confirmed by reordering: the merge just follows whichever
+declaration becomes first). Fix: place an undocumented, non-`pub` stub
+declaration (`const _doc_stub = void;`) as the first thing after the `//!`
+header in any file whose first real declaration carries a `///` comment.
+The stub absorbs the splice — it has no doc comment, so nothing bleeds, and
+being non-`pub` it is invisible in the sidebar/nav. Verified on all 3
+affected files (`src/mailbox.zig`, `src/pool.zig`, `src/polynode.zig`) via
+headless-Chrome DOM dump of the rebuilt docs; `src/matryoshka.zig` and all
+67 `examples/`/`stories/` files need no stub — none has a `///` comment on
+its first declaration (examples/stories have no `///` comments at all; the
+whole description lives in `//!` per rules-015).
+
+Known trade-off, not fixed by the stub: doc comments on plain alias consts
+(`pub const MailboxHandle = polynode.NodeHandle;`) never render on their own
+dedicated page either — visiting that page shows the aliased type's doc
+instead (`NodeHandle`'s, not `MailboxHandle`'s). The stub stops the comment
+from garbling the container page; it does not make the comment appear
+anywhere. Accepted as a separate, unfixed Zig autodoc limitation — same
+precedent as the rules-014 quoted-identifier limitation.
 
 Change from rules-014: two example doc-comment fixes, confirmed against a
 from-scratch autodoc rebuild.
@@ -422,6 +448,21 @@ Banned words.
     complete across `src/*.zig`; a live re-check found 6 remaining hits
     the earlier pass had missed in `polynode.zig`, `mailbox.zig`, and
     `pool.zig`.
+- First-declaration doc-stub rule (added in rules-017, supersedes the
+  rules-016 blank-line rule — that hypothesis was tested and disproved):
+  if a file's first declaration after the `//!` header carries a `///` doc
+  comment, Zig's autodoc container page splices that comment onto the
+  module overview page with no separator, regardless of blank lines.
+  - Fix: insert `const _doc_stub = void;` (no doc comment, non-`pub`) as
+    the first declaration after the `//!` header. It absorbs the splice;
+    being undocumented and private, it does not appear in the rendered
+    docs at all.
+  - Only needed when the first declaration would otherwise carry a `///`
+    comment. Files with no `///` comments at all (every `examples/`/
+    `stories/` file — description lives entirely in `//!`) need no stub.
+  - Verified empirically via headless-Chrome render of `zig build docs`
+    output, not assumed from source alone — a plain source-level fix here
+    is unverifiable without checking the actual rendered page.
 
 ---
 
