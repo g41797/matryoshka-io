@@ -22,7 +22,7 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-017.md
+- API: matryoshka-api-reference-019.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
 - Architecture introduction: matryoshka-architecture-001.md
@@ -32,11 +32,12 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-032.md (slim, state-only)
+- Plan: matryoshka-io-implementation-plan-038.md (slim, state-only)
 - Rules: rules-010.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-009.md
-- Docs plan: matryoshka-io-docs-plan-006.md
+- Patterns: patterns-011.md
+- Docs plan: matryoshka-io-docs-plan-012.md
+- Manifesto: matryoshka-manifesto-003.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -132,9 +133,359 @@ DOC 6 — populate Concepts with a story, top-down: print-server system page + M
 DOC 7 — populate Building Blocks with one topic: Observable by human (rule + pattern). DONE.
 DOC 8 — populate Building Blocks with the four core concepts: PolyNode/Mailbox/Pool/Master. DONE.
 API 3 — mailbox.wakeUpAll(). DONE (167/167 tests). Plan version 032 created.
-Current: 167/167 tests. API 3 DONE.
+DOC 9 — re-partition and logically reorder the API reference (api-reference-017 →
+-018); std.Io-generic material moved to Addendums/Io 101; Change-manifest repetition
+dropped. DONE (doc-only, 167/167 tests unchanged). Plan version 033 created.
+DOC 10 — dependency-order the API reference (api-reference-018 → -019): send/receive
+diagrams into mailbox, Tag identity after pool, Slot-based programming + Cooperative
+cleanup patterns after pool — nothing used before it is introduced. DONE (doc-only,
+167/167 tests unchanged). Plan version 034 created.
+DOC 11 — write matryoshka-manifesto-002.md: consolidated README + matryoshka-io-model +
+matryoshka-master + master-Io mindset into one persuasion-first manifesto (one
+constraint, Master is a role, four fundamental concepts, Io as hidden transport behind
+Mailboxes, start small). DONE (doc-only, 167/167 tests unchanged). Plan version 035
+created.
+DOC 12 — de-smart the manifesto (manifesto-002 → -003): abstract architect-speak
+("application model", "execution model", "autonomous", "reason about locally")
+rewritten into plain human language; structure, diagrams, tables unchanged. DONE
+(doc-only, 167/167 tests unchanged). Plan version 036 created.
+DOC 13 — unified pattern/idiom catalog (patterns-009 → patterns-010): both halves
+merged, api-reference pattern material (cooperative cleanup, infra-handle transport,
+no-raw-allocator) absorbed, no repetition, logical order. DONE (doc-only, 167/167
+tests unchanged). Plan version 037 created.
+DOC 14 — audited Odin `matryoshka/kitchen/docs` for patterns/idioms missing from
+patterns-010; added 7 new catalog entries (Request-Response, Pipeline, Fan-In,
+Fan-Out, Shutdown via Exit message, Thread-is-container, Intrusive node embedding)
+to patterns-011.md, all pointing at existing Zig examples; 3 advanced/niche
+patterns with no example (self-send, function-pointer-as-tag,
+descriptor-struct-as-tag) explicitly skipped, owner confirmed. DONE (doc-only,
+167/167 tests unchanged). Plan version 038 created.
+Current: 167/167 tests. DOC 14 DONE.
 
 ## Session Log
+
+### 2026-07-06 — DOC 14 (audit Odin docs, add missing patterns/idioms: patterns-010 → -011)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: owner directed an audit of the sibling Odin project's docs
+(`/home/g41797/dev/root/github.com/g41797/matryoshka/kitchen/docs`) to find
+patterns/idioms not yet in the Zig `patterns-010.md` catalog. Classification rule:
+already-described → no action; new pattern with an existing Zig example → catalog
+entry only; new pattern with no existing example → new example plus catalog entry
+(owner narrowed this last case to "skip advanced/niche items" this stage).
+
+An Explore agent inventoried 31 named patterns/idioms across the Odin docs folder
+(`advices.md`, `advice_catalog.md`, `block1..4_deepdive.md`/`_quickref.md`,
+`addendums/polytag.md`, `hard-rules.md`, `doctor-ordered.md`,
+`gotchas-of-pooling-items.md`, `forgotten_doll.md`, `dialogs.md`,
+`critical-issues.md`, both API-reference files). Cross-checked each against
+`patterns-010.md` and `examples/**/*.zig`.
+
+**Bucket A (already described, no action)**: explicit allocators (N/A for Zig),
+Builder ctor/dtor by tag, defer-cleanup/collection-drain, unknown-tag
+alloc-vs-free asymmetry, Maybe/MayItem ownership flag (= Slot), two-value unwrap,
+PolyTag pointer-identity tagging, two-mailbox interrupt+batch/OOB,
+defer-put-early, backpressure via on_put, belt-and-suspenders double pool_put,
+PoolHooks pattern, drain-and-reset before shutdown, dynamic topology. Also no
+action: Builder-to-Pool upgrade (Odin migration narrative), cond-var timeout fix
+and `container_of` idiom (internal implementation detail), one-place-at-a-time
+and isolation (discipline, not code shape).
+
+**Bucket B (added, example already existed)**: 7 entries added to
+`patterns-011.md` — Request-Response, Pipeline, Fan-In, Fan-Out (new "Topology
+patterns" section after Mailbox patterns), Shutdown via Exit message (alternative
+to the close-based Graceful shutdown sequence), Thread-is-container (folded into
+Master patterns' Observable function shapes), Intrusive node embedding (new first
+entry in PolyNode idioms). Each verified against the actual example file content,
+not just filename.
+
+**Bucket C (skipped, owner confirmed)**: self-send, function-pointer-as-tag,
+descriptor-struct-as-tag — advanced/niche, flagged rare even in the Odin source.
+No new example, no catalog entry.
+
+**Changes**:
+- `design/patterns-010.md` → `design/patterns-011.md` — 7 Bucket-B entries added;
+  rest carried over unchanged.
+- `design/context.md` — patterns pointer → -011; docs plan → -012; plan → -038.
+- `design/matryoshka-io-docs-plan-011.md` → `-012.md` — DOC 14 session log +
+  Stages update.
+- `design/matryoshka-io-implementation-plan-037.md` → `-038.md` — DOC 14 bullet.
+- `design/STATUS.md` — this entry; sources of truth; DOC 14 stage line.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Each of the 7 new example paths exists and demonstrates the named pattern | confirmed — all 7 files read directly |
+| No duplication with existing -010 content | grepped each new name — one occurrence each |
+| Banned-word + AI-sh scan on -011 | CLEAN after fixing 3 new "drain" occurrences → "empties"/"empty"; `unlock()` exempt (literal `Io.Mutex` API call, same precedent as -010) |
+| Staccato audit | new entries match existing format (when-to-use, pattern/code shape, why, example) |
+| Post-stage cleanup | patterns-010.md, matryoshka-api-reference-019.md, Odin repo left untouched — no `.zig` touched; 167/167 tests unaffected; no kitchen scripts needed (doc-only stage) |
+
+**Next**: DOC 15+ — TBD, scoped with owner. Likely candidates unchanged: split
+api-reference-019 into mkdocs Reference pages; use manifesto-003 as source for the
+docs-site Concepts entry page.
+
+---
+
+### 2026-07-05 — DOC 13 (unified pattern/idiom catalog: patterns-009 → -010)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: `patterns-009.md` was two catalogs glued together — a full "(008)"
+catalog (when-to-use, code shape, example links) and an appended older "(002)"
+catalog of short idioms extracted from the API reference, with heavy repetition
+between them (pool hooks, Select sources, Group spawn/await, polymorphic dispatch,
+slot cleanup). More pattern material lived only in `matryoshka-api-reference-019.md`
+(Cooperative cleanup patterns 1–4, Transporting infra handles, no-raw-allocator
+rule). Owner directed: one new version holding every pattern/idiom once, in logical
+order. New version `patterns-010.md`; `-009.md` and `api-reference-019.md` untouched
+per the no-overwrite rule.
+
+**Structure of -010** (ownership idioms first, composition last): slot/ownership
+idioms → PolyNode idioms → Mailbox patterns → Pool patterns → Future patterns →
+Io.Select patterns → Io.Group patterns → Cancellation patterns → Graceful shutdown
+sequence → Master patterns. "One-shot event registration" absorbed into the Select
+event-loop entry; "fire-and-forget worker launch" absorbed into the Group worker-set
+entry. Error-handling-on-receive gains the `error.Wakeup` branch (the (008) entry
+predates `wakeUpAll`).
+
+**Changes**:
+- `design/patterns-010.md` (new) — unified catalog per the structure above.
+- `design/context.md` — patterns → -010; docs plan → -011; plan → -037.
+- `design/matryoshka-io-docs-plan-010.md` → `-011.md` — DOC 13 session log + Stages.
+- `design/matryoshka-io-implementation-plan-036.md` → `-037.md` — DOC 13 bullet + Status.
+- `design/STATUS.md` — Sources of Truth, DOC 13 stage line, this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Coverage: every heading in patterns-009 (both halves) + api-ref pattern material maps to -010 | all mapped, heading-list comparison |
+| No repetition | one entry per concept in -010's heading list |
+| Order check (nothing used before introduced) | ownership idioms → building blocks → Io integration → whole-system shapes |
+| Banned-word + AI-sh scan on -010 | CLEAN (single `unlock()` hit is the `Io.Mutex` API call inside a code shape, carried from -009 — exempt) |
+| `.zig` / kitchen build files touched | none — doc-only stage; 167/167 tests unaffected |
+| Post-stage cleanup | no scratch files created; -009 and api-reference-019 untouched |
+
+**Next**: DOC 14+ — TBD, scoped with owner. Likely candidates unchanged: split
+api-reference-019 into mkdocs Reference pages; manifesto-003 as source for the
+docs-site Concepts entry page.
+
+---
+
+### 2026-07-05 — DOC 12 (de-smart the manifesto: -002 → -003)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: owner reviewed `matryoshka-manifesto-002.md` and flagged its style as
+"AI-sh, too smart", using this example line pair: "Matryoshka defines the application
+model: how the system is structured. / Io defines the execution model: when work
+becomes runnable." Directive: find all such lines and say the same things in plain
+human language per the doc rules. New version `matryoshka-manifesto-003.md`; `-002.md`
+untouched per the no-overwrite rule. Only wording changed — structure, sections,
+diagrams, tables intact.
+
+**Key rewrites** (full list in docs-plan-010 session log):
+- flagged example → "Matryoshka answers: what is my system made of? / Io answers:
+  when does my code run?"
+- "concurrency becomes implicit / parts couple through hidden assumptions /
+  architecture becomes accidental" → "nobody knows which code runs in parallel /
+  parts depend on each other in hidden ways / the structure just happens — nobody
+  chose it"
+- constraint-payoff bullets ("explicit ownership boundaries", "reason about
+  locally", ...) → "you always know who owns what", "you can understand one Master
+  without reading the whole system", ...
+- dense Master definition split into three short lines
+- "Io is a hidden transport behind Mailboxes" → "Io just moves messages behind
+  Mailboxes. You never see it."
+
+**Changes**:
+- `design/matryoshka-manifesto-003.md` (new).
+- `design/context.md` — manifesto → -003; docs plan → -010; plan → -036.
+- `design/matryoshka-io-docs-plan-009.md` → `-010.md` — DOC 12 session log + Stages.
+- `design/matryoshka-io-implementation-plan-035.md` → `-036.md` — DOC 12 bullet + Status.
+- `design/STATUS.md` — Sources of Truth, DOC 12 stage line, this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| diff -002 vs -003 | only flagged lines changed; sections, diagrams, tables, facts intact |
+| Banned-word + AI-sh scan on changed `.md` | CLEAN |
+| Staccato audit | no dense multi-fact sentences remain; the one dense sentence was split |
+| Read-aloud test on changed lines | plain spoken English |
+| `.zig` / kitchen build files touched | none — doc-only stage; 167/167 tests unaffected |
+| Post-stage cleanup | no scratch files created; -002 and all sources untouched |
+
+**Next**: DOC 13+ — TBD, scoped with owner. Likely candidates: split
+api-reference-019 into mkdocs Reference pages; manifesto-003 as source for the
+docs-site Concepts entry page.
+
+---
+
+### 2026-07-05 — DOC 11 (write matryoshka-manifesto-002.md)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: owner directed a new manifesto version built from the README mindset and
+the mindset sources: `README.md`, `design/matryoshka-io-model.md`,
+`design/matryoshka-manifesto.md` (original, untouched), `design/matryoshka-master.md`
+(Master as role, four fundamental concepts), `design/master-Io.md` (Io hidden behind
+Mailboxes, bridge Masters, "why not just Io"). Target: after one read, the audience
+understands the model and wants to use matryoshka because it solves their problems.
+Style per rules-010.md: simple English, staccato rhythm, banned-word clean. Owner
+authorized auto mode; git disabled.
+
+**Narrative arc of -002**: problem (libraries vs systems; Io says *when*, not *what
+the system is made of*) → one constraint (everything is a Master communicating via
+Mailboxes; shared resources explicit via Pools) → Master is a role (role tree) → down
+to earth (one input mailbox, one message at a time, capability→primitive table) → four
+fundamental concepts (PolyNode / Mailbox / Pool / Master, troika bullets, 582 lines) →
+where Io fits (application model vs execution model, bridge diagram, design test,
+hybrid-car framing) → start small → the simple question + "Be Master of your systems."
+
+**Changes**:
+- `design/matryoshka-manifesto-002.md` (new) — the manifesto per the arc above.
+- `design/context.md` — manifesto pointer added; docs plan → -009; plan → -035.
+- `design/matryoshka-io-docs-plan-008.md` → `-009.md` — DOC 11 session log + Stages.
+- `design/matryoshka-io-implementation-plan-034.md` → `-035.md` — DOC 11 bullet + Status.
+- `design/STATUS.md` — Sources of Truth (Plan → -035, Docs plan → -009, Manifesto row
+  added), DOC 11 stage line, this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Banned-word + AI-sh scan on changed `.md` | CLEAN after two rewordings ("delivered" → "in a Master's mailbox", "delivery mechanism" → "transport") |
+| Staccato audit of -002 (short intro + bullets, no comma-list prose) | conforms, end-to-end read |
+| Source coverage (5 mindset files → -002) | all concept-level ideas present; sockets/epoll/event-source APIs deliberately out of scope per master-Io.md guidance |
+| Cross-link check (context.md, STATUS.md, docs plan pointers) | all targets exist |
+| `.zig` / kitchen build files touched | none — doc-only stage; 167/167 tests unaffected |
+| Post-stage cleanup | no scratch files created; sources untouched (README, manifesto-001, model, master, master-Io) |
+
+**Next**: DOC 12+ — TBD, scoped with owner. Likely candidates: split
+api-reference-019 into mkdocs Reference pages; use manifesto-002 as source for the
+docs-site Concepts entry page.
+
+---
+
+### 2026-07-05 — DOC 10 (dependency-order the API reference)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: owner reviewed the DOC 9 output (`matryoshka-api-reference-018.md`) and
+found it still not logically ordered: several paragraphs discuss functions and concepts
+introduced only later. DOC 9 moved whole top-level sections; the remaining problems
+live one level deeper. Owner directed a deeper re-partition: preserve every piece of
+information, move blocks (including subsections inside sections) so nothing is used
+before it is introduced. New version `-019.md`; `-018.md` untouched per the
+no-overwrite rule.
+
+**Forward references found in -018 (grep-verified)**:
+- Ownership model's send/receive diagrams used `mailbox.send`/`mailbox.receive` ~800
+  lines before mailbox is introduced.
+- Slot-based programming's examples used `pool.put`, `pool.get`, `PolyHelper.destroy`,
+  `mailbox.send`, `receiveResult`/`getWaitResult` — all introduced later.
+- Cooperative cleanup patterns were built entirely on pool/mailbox/PolyHelper — all
+  introduced later.
+- polynode's "Tag identity" + "Transporting infra handles" discussed `_Mailbox`/`_Pool`
+  privacy and MailboxHandle transport before mailbox/pool exist.
+- polynode's "stdlib compatibility" names `mailbox.close()`/`receive_batch()`/
+  `pool.put_all()` — name-level pointers only, kept (flagged to owner).
+
+**New order in -019**: intro → Ownership model (diagrams moved out) → polynode (tag
+identity moved out) → mailbox (opens with the relocated send/receive ownership
+diagrams) → pool → Tag identity (own section, incl. Transporting infra handles) →
+Slot-based programming → Cooperative cleanup patterns → root → Master → Cancel →
+contracts/invariants/thread-safety/complexity/violations/layer-deps → Change log (new
+019 row) → Addendums/Io 101.
+
+**Changes**:
+- `design/matryoshka-api-reference-019.md` (new) — order per above; byte-exact block
+  moves (sed line-range reassembly); only additions: Change-log row, one separator,
+  heading-level promotion of the two relocated blocks.
+- `design/context.md` — API pointer → -019; docs plan → -008; plan → -034.
+- `design/matryoshka-io-docs-plan-007.md` → `-008.md` — DOC 10 session log + Stages.
+- `design/matryoshka-io-implementation-plan-033.md` → `-034.md` — DOC 10 bullet.
+- `design/STATUS.md` — sources updated; DOC 10 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Line accounting -018 → -019 | 1848 → 1853 = +4 structural +1 Change-log row — nothing lost |
+| Term-frequency diff (`PolyHelper`, `Cancelable`, `Io.Select`, `wakeUpAll`, `error.Wakeup`, `receiveResult`, `getWaitResult`, `MailboxHandle`, `PoolHandle`) | identical counts in -018 and -019 |
+| Forward-reference sweep (mailbox/pool/PolyHelper before their sections) | none in Ownership model; polynode retains only name-level pointers — flagged, accepted |
+| Banned-word scan on -019 | CLEAN (same single historical Change-log meta-reference as -018) |
+| `.zig` / kitchen build files touched | none — doc-only stage |
+
+**Next**: DOC 11+ — TBD, scoped when reached. Likely candidate: split
+`matryoshka-api-reference-019.md` into mkdocs Reference pages under
+`kitchen/docs/reference/`.
+
+---
+
+### 2026-07-05 — DOC 9 (re-partition and logically reorder the API reference)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: `design/matryoshka-api-reference-017.md` (2216 lines) is planned as the
+base for the docs site's mkdocs Reference pages (DOC 2 finding #3), but its shape
+reflected development history, not a learning path: sections landed wherever each API
+stage touched them, generic `std.Io` runtime material (Io, Future, Io.Select, Io.Group,
+`io.concurrent`, Cancelable) was interleaved with matryoshka-specific API, and the last
+third of the file was 16 `Change manifest (NNN)` sections restating, as diffs, content
+already current in the main body above. Owner directed: read the whole doc, preserve
+every fact, delete only true repetitions, reorder the rest into a logical/teachable
+structure, and move all `std.Io`-generic material into a trailing `## Addendums` /
+`### Io 101` section. Owner confirmed this stage is reorder/re-version only — splitting
+the result into mkdocs pages is deferred. Owner authorized autonomous end-to-end
+execution (going OOF; git stays disabled) and Opus-level effort for the analysis.
+
+**Method**: full inline read of all 2216 lines (DOC 1 precedent — owner prefers direct
+reading over subagent delegation for full traceability). Built a section-by-section
+content map classifying each section matryoshka-specific vs Io-generic. Verified all 16
+`Change manifest` sections are downstream-propagation notes fully subsumed by current
+main-body content, via term-frequency diff (`Cancelable`, `Io.Select`, `PolyHelper`,
+error names) between old and new file — deltas fully explained by the dropped manifest
+block, no residual fact needed folding back in.
+
+**Changes**:
+- `design/matryoshka-api-reference-018.md` (new) — reordered: intro, ownership model,
+  slot-based programming, cooperative cleanup patterns, polynode, mailbox, pool,
+  matryoshka (root), Master (incl. the project-specific "Io backend for Layer 4 tests
+  and examples" convention, kept in the main body), Cancel model/contract, ownership
+  lifecycle/invariants/cancellation contract, thread-safety, complexity, contract
+  violations, layer dependencies, Change log (table only, new 018 row). New trailing
+  `## Addendums` / `### Io 101` section holds `std.Io` basics, event sources, Cancel,
+  and the `io.concurrent`/`Io.Group`/`Io.Select` internals subsection. The 16
+  `Change manifest (NNN)` sections dropped as repetition. No information lost, no new
+  API surface.
+- `design/context.md` — API reference pointer → -018; docs plan pointer → -007; plan
+  pointer → -033.
+- `design/matryoshka-io-docs-plan-006.md` → `-007.md` — DOC 9 session log + Stages
+  update.
+- `design/matryoshka-io-implementation-plan-032.md` → `-033.md` — DOC 9 summary bullet.
+- `design/STATUS.md` — sources updated; DOC 9 stage line; this entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Term-frequency diff (`Cancelable`, `Io.Select`, `PolyHelper`, `error.Timeout`, `error.Canceled`, `error.NotAvailable`, `ConcurrentError`) between -017 and -018 | deltas fully explained by the dropped Change-manifest block — no unaccounted loss |
+| Banned-word scan (rules-010.md list) on -018.md | CLEAN (one historical Change-log line references a past `fires`→`runs` fix — meta-reference, not a live violation, same precedent as EXMPL 4c) |
+| Heading structure re-check | confirmed; one duplicate empty heading found and fixed during assembly |
+| `.zig` / kitchen build files touched | none — doc-only stage |
+
+**Next**: DOC 10+ — TBD, scoped when reached. Likely candidate: split
+`matryoshka-api-reference-018.md` into mkdocs Reference pages under
+`kitchen/docs/reference/`. Open items carried: storytelling-001/-003 duplicate H1,
+`test-example-story.md` split, `video-transcoder-003.md` as second Concepts story,
+further Building Blocks topics, Cookbook stub still unpopulated.
+
+---
 
 ### 2026-07-05 — API 3 (mailbox.wakeUpAll)
 

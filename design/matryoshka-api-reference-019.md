@@ -31,63 +31,6 @@ Module: `@import("matryoshka")`
 
 ---
 
-## Prolog: std.Io
-
-Zig 0.16 provides `std.Io` — the runtime's interface for concurrent and I/O operations.
-
-- `Io` — passed around to anything that needs threads, timers, or waiting. Think of it as "access to the runtime."
-- `Future(T)` — a result that isn't ready yet. You get the value by calling `.await()`.
-- `Io.Select` — coordinates multiple concurrent event sources. Internally: `queue: Queue(U)` + `group: Group`. `select.await()` reads the next completed result from the queue.
-- `Io.Group` — runs several tasks. Waits for all of them to finish.
-- `io.concurrent()` — runs a blocking function in a separate task. Returns a Future for the result.
-- `ConcurrentError` — spawning a task failed (e.g. single-threaded backend, no threads available).
-
-### Event sources
-
-An event source is a blocking function passed to `select.concurrent`. When it returns,
-the result is wrapped in the Select union and placed in the internal queue.
-
-Two patterns for producing Select events:
-
-1. `select.concurrent(field, blockingFn, args)` — spawn a blocking function; result goes into the queue when done.
-2. `select.queue.putOneUncancelable(io, value)` — push directly from any thread without spawning.
-
-`io.concurrent` and `select.concurrent` copy the args before returning — stack-allocated args are safe.
-
-```text
-  blockingFn ────► select.concurrent(field, blockingFn, args)
-                        │
-                        ▼ (fn runs, result → queue)
-                   Io.Select.queue
-                      │   │
-                      ▼   ▼
-               completed  canceled
-               (result)   (error.Canceled)
-```
-
-`io.concurrent(fn, args)` — standalone version. Returns `Io.Future(T)` for direct await or `Io.Group` use.
-
-### Cancel
-
-A function that waits — for data, for a timeout, for a condition — can be canceled by the runtime.
-- If a function can be canceled, its return type includes `Cancelable` in the error union.
-- `Cancelable` comes from `std.Io`.
-
-Cancel is something you do to a Future, not something that happens on its own:
-
-```text
-  concurrent() ──► Future(T)
-                      │
-              ┌───────┼───────┐
-              ▼               ▼
-          .await()        .cancel(io)
-              │               │
-              ▼               ▼
-           result      error.Canceled
-```
-
----
-
 ## Ownership model
 
 ```text
@@ -100,32 +43,6 @@ Slot (holds a handle)            Empty Slot
 +-------------------+            +-------------------+
 
   Slot = ?NodeHandle               Slot = null
-```
-
-### send — ownership moves out
-
-```text
-Before                           After
-
-sender Slot                      sender Slot
-+-------------------+            +-------------------+
-|    NodeHandle     |            |       null        |
-+-------------------+            +-------------------+
-
-mailbox.send(mbh, &slot)  ───►      Mailbox owns NodeHandle
-```
-
-### receive — ownership moves in
-
-```text
-Before                           After
-
-receiver Slot                    receiver Slot
-+-------------------+            +-------------------+
-|       null        |            |    NodeHandle     |
-+-------------------+            +-------------------+
-
-mailbox.receive(mbh, &slot, null)   Receiver owns NodeHandle
 ```
 
 ### What is a NodeHandle?
@@ -160,215 +77,6 @@ NodeHandle = *PolyNode
 
 Slot = ?NodeHandle
 ```
-
----
-
-## Slot-based programming
-
-The slot rule governs every acquisition and transfer.
-
-The slot rule:
-- Never overwrite a non-null slot.
-- Always start with `var slot: Slot = null`.
-- All acquisition APIs assert `slot.* == null` on entry. Writing to a non-null slot panics.
-- Transfer clears the slot: sender sets `slot.* = null`. After transfer, slot is null.
-- Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
-
-**Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`
-parameter. They transfer ownership via the returned union value (`ReceiveResult.item`,
-`PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union
-and owns it from that point. This is an intentional exception to the slot-pointer pattern.
-
-### Why acquisition APIs assert null
-
-Every acquisition API has this check:
-
-```zig
-std.debug.assert(slot.* == null);
-```
-
-Overwriting a non-null slot would lose the previous item with no error signal.
-The assert catches this immediately.
-
-### Why cleanup operations accept null
-
-`pool.put` and `PolyHelper.destroy` check null and return early:
-
-```zig
-if (slot.* == null) return;
-```
-
-This makes defer-before-acquisition safe.
-
-### Slot lifecycle
-
-```text
-Slot lifecycle
-
-  null ──── acquire ────► non-null
-    ▲                        │
-    │                        │
-    ├──── transfer ──────────┘   (sender clears: slot.* = null)
-    │
-    └──── cleanup (no-op) ──────  (pool.put, PolyHelper.destroy: null → return)
-```
-
-### Ownership transfer clears the slot
-
-```text
-Before transfer                  After transfer
-
-  Slot (sender)                    Slot (sender)
-  ┌─────────────┐                  ┌─────────────┐
-  │ NodeHandle  │                  │    null     │
-  └─────────────┘                  └─────────────┘
-                                           │
-  mailbox.send(mbh, &slot)                    │ slot.* = null
-                                           │
-                     Mailbox ◄─────────────┘
-                     now owns NodeHandle
-```
-
-### Defer-before-acquisition is safe
-
-```text
-Code order:                      Execution when acquire fails:
-
-  var slot: Slot = null;              slot = null
-  defer pool.put(ph, &slot);          acquire fails
-  try pool.get(..., &slot);           defer runs: pool.put sees null → no-op
-  // work                          ✓ nothing lost
-
-                                 Execution when item is transferred:
-
-                                   slot = null (after acquire: slot is non-null)
-                                   mailbox.send(mbh, &slot)  → slot = null
-                                   defer runs: pool.put sees null → no-op
-                                   ✓ item transferred, not double-recycled
-```
-
----
-
-## Cooperative cleanup patterns
-
-These patterns follow from the slot rule.
-Place cleanup before acquisition.
-The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.
-
-### Pattern 1 — defer-put-early (pool item)
-
-```zig
-var slot: Slot = null;
-defer pool.put(ph, &slot);              // no-op if slot == null
-try pool.get(ph, TAG, .new_only, &slot);
-// ... work ...
-// on transfer: slot = null → defer runs as no-op
-// on no transfer: defer recycles item
-```
-
-Put before get — safe because pool.put is a no-op on null.
-
-If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains
-ownership). Add a fallback destroy to avoid a leak:
-
-```zig
-var slot: Slot = null;
-defer EventPolyHelper.destroy(alloc, &slot); // fallback: frees if pool.put left slot non-null
-defer pool.put(ph, &slot);                   // primary: recycles to pool (clears slot on success)
-// defers run LIFO: pool.put first, then destroy (no-op if pool.put cleared slot)
-```
-
-### Pattern 2 — defer-destroy-early (heap item via PolyHelper)
-
-```zig
-var slot: Slot = null;
-defer EventPolyHelper.destroy(allocator, &slot);   // no-op if slot == null
-try EventPolyHelper.create(allocator, &slot);
-// ... work ...
-// on transfer: slot = null → defer runs as no-op
-// on no transfer: defer frees item
-```
-
-Destroy before create — safe because PolyHelper.destroy is a no-op on null.
-
-### Pattern 3 — defer for received mailbox item
-
-```zig
-var slot: Slot = null;
-defer if (slot) |poly| helpers.freeItem(poly, allocator);
-try mailbox.receive(mbh, &slot, null);
-// dispatch on slot.?.*.tag, process item
-// item stays non-null until explicitly transferred or freed
-```
-
-Cleanup covers both the error path (receive failed) and the normal path (item processed and freed).
-
-### Pattern 4 — transfer clears the slot
-
-```zig
-var slot: Slot = null;
-defer pool.put(ph, &slot);
-try pool.get(ph, TAG, .new_only, &slot);
-// fill item ...
-try mailbox.send(mbh, &slot);   // send sets slot.* = null
-// defer runs: pool.put sees null → no-op
-// result: item is in mailbox, not recycled to pool
-```
-
-Transfer and cleanup are not in conflict — transfer pre-empts cleanup by clearing the slot.
-
-### Pattern summary
-
-```text
-Pattern 1 (pool item)            Pattern 2 (heap item)
-
-  null ──► get ──► non-null        null ──► create ──► non-null
-    ▲                │               ▲                   │
-    │    put (defer) │               │  destroy (defer)  │
-    └────────────────┘               └───────────────────┘
-         (recycle)                          (free)
-
-         transfer →                         transfer →
-         slot = null                           slot = null
-         defer: no-op                       defer: no-op
-```
-
-### No raw allocator calls on PolyNode-based types
-
-In examples and tests, never use `allocator.create` / `allocator.destroy` directly on
-PolyNode-based user types (Event, Sensor, Timer, ShutdownCommand).
-
-Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot` instead.
-
-#### Violation
-
-```zig
-// WRONG — raw allocator on PolyNode-based type
-const ev = try alloc.create(Event);
-ev.* = .{};
-EventPolyHelper.init(ev);
-slot.* = &ev.poly;
-// ... later ...
-alloc.destroy(EventPolyHelper.mustIdentifySlotAs(&slot));
-slot.* = null;
-```
-
-#### Correct
-
-```zig
-// CORRECT — PolyHelper.create/destroy
-var slot: Slot = null;
-defer EventPolyHelper.destroy(alloc, &slot);
-try EventPolyHelper.create(alloc, &slot);
-// ... dispatch: use helpers.freeSlot(&slot, alloc) per branch ...
-```
-
-#### Exempt
-
-- `mailbox.zig`, `pool.zig` — allocating/freeing their own internal structs.
-- `PolyHelper.create` / `PolyHelper.destroy` implementations.
-- Pool hook bodies (`on_get`, `on_close`) — manage raw memory on behalf of pool.
-- Non-PolyNode structs: worker context, hook context, allocator wrappers.
 
 ---
 
@@ -859,57 +567,6 @@ After popping a node, call `polynode.reset(poly)` before re-transferring the ite
 `polynode.is_linked`. Skipping reset causes false positives from `is_linked` and assert failures
 in pool/mailbox assert guards.
 
-### Tag identity — class, not instance
-
-`PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.
-`TAG` is a pointer to that static — the same address for every instance of `T`.
-
-Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is this a T?"**
-It does not answer: "which T?" or "what role does this T play?"
-
-For user-defined types (Event, Sensor, etc.):
-- Tag identifies the class.
-- Instance fields carry the role. The user adds a `kind` or `role` field to discriminate.
-
-For infra handles (MailboxHandle, PoolHandle):
-- `_Mailbox` and `_Pool` are private structs. The user cannot add fields.
-- Tag identifies the class only. No per-instance role information is accessible.
-- **Instance identity**: resolved by pointer comparison against known handles.
-  E.g. `received == worker_mbh` identifies which specific mailbox arrived.
-- **Role**: established by protocol — the channel the handle arrived on, message
-  ordering, or prior agreement between sender and receiver.
-
-#### Transporting infra handles — valid patterns
-
-**Worker-finish-signal pattern**
-
-Master creates `worker_mbh`, spawns a worker thread and passes `worker_mbh` as parameter.
-Worker processes items until a shutdown signal, then:
-- Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
-- Exits.
-
-Master receives a PolyNode from its inbox:
-- `mailbox.is_it_you(received.*.tag)` — confirms class (it is a mailbox).
-- `received == worker_mbh` — confirms instance (it is the expected worker mailbox).
-- Master closes and destroys `worker_mbh`.
-- Master joins the thread (OS resource cleanup only — the mailbox return was the logical finish signal).
-
-This pattern replaces a thread join or a separate shutdown message with ownership transfer.
-
-**Wrapper pattern** (for tag-level role discrimination)
-
-When tag dispatch must distinguish roles, wrap the handle in a user-defined PolyNode struct:
-
-```zig
-const WorkerInbox = struct {
-    poly: PolyNode,
-    handle: mailbox.MailboxHandle,
-};
-pub const WorkerInboxPolyHelper = polynode.PolyHelper(WorkerInbox);
-```
-
-`WorkerInboxPolyHelper.TAG` is distinct from `MailboxPolyHelper.TAG`.
-The receiver dispatches on `WorkerInboxPolyHelper.TAG` and finds the embedded handle.
 
 ---
 
@@ -925,6 +582,33 @@ var slot: polynode.Slot = &event.poly;
 try mailbox.send(inbox, &slot);              // slot is now null
 try mailbox.receive(inbox, &slot, null);     // slot is now non-null
 ```
+
+### send — ownership moves out
+
+```text
+Before                           After
+
+sender Slot                      sender Slot
++-------------------+            +-------------------+
+|    NodeHandle     |            |       null        |
++-------------------+            +-------------------+
+
+mailbox.send(mbh, &slot)  ───►      Mailbox owns NodeHandle
+```
+
+### receive — ownership moves in
+
+```text
+Before                           After
+
+receiver Slot                    receiver Slot
++-------------------+            +-------------------+
+|       null        |            |    NodeHandle     |
++-------------------+            +-------------------+
+
+mailbox.receive(mbh, &slot, null)   Receiver owns NodeHandle
+```
+
 
 ### Types
 
@@ -1411,6 +1095,269 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
 
 ---
 
+## Tag identity — class, not instance
+
+`PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.
+`TAG` is a pointer to that static — the same address for every instance of `T`.
+
+Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is this a T?"**
+It does not answer: "which T?" or "what role does this T play?"
+
+For user-defined types (Event, Sensor, etc.):
+- Tag identifies the class.
+- Instance fields carry the role. The user adds a `kind` or `role` field to discriminate.
+
+For infra handles (MailboxHandle, PoolHandle):
+- `_Mailbox` and `_Pool` are private structs. The user cannot add fields.
+- Tag identifies the class only. No per-instance role information is accessible.
+- **Instance identity**: resolved by pointer comparison against known handles.
+  E.g. `received == worker_mbh` identifies which specific mailbox arrived.
+- **Role**: established by protocol — the channel the handle arrived on, message
+  ordering, or prior agreement between sender and receiver.
+
+### Transporting infra handles — valid patterns
+
+**Worker-finish-signal pattern**
+
+Master creates `worker_mbh`, spawns a worker thread and passes `worker_mbh` as parameter.
+Worker processes items until a shutdown signal, then:
+- Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
+- Exits.
+
+Master receives a PolyNode from its inbox:
+- `mailbox.is_it_you(received.*.tag)` — confirms class (it is a mailbox).
+- `received == worker_mbh` — confirms instance (it is the expected worker mailbox).
+- Master closes and destroys `worker_mbh`.
+- Master joins the thread (OS resource cleanup only — the mailbox return was the logical finish signal).
+
+This pattern replaces a thread join or a separate shutdown message with ownership transfer.
+
+**Wrapper pattern** (for tag-level role discrimination)
+
+When tag dispatch must distinguish roles, wrap the handle in a user-defined PolyNode struct:
+
+```zig
+const WorkerInbox = struct {
+    poly: PolyNode,
+    handle: mailbox.MailboxHandle,
+};
+pub const WorkerInboxPolyHelper = polynode.PolyHelper(WorkerInbox);
+```
+
+`WorkerInboxPolyHelper.TAG` is distinct from `MailboxPolyHelper.TAG`.
+The receiver dispatches on `WorkerInboxPolyHelper.TAG` and finds the embedded handle.
+
+---
+
+## Slot-based programming
+
+The slot rule governs every acquisition and transfer.
+
+The slot rule:
+- Never overwrite a non-null slot.
+- Always start with `var slot: Slot = null`.
+- All acquisition APIs assert `slot.* == null` on entry. Writing to a non-null slot panics.
+- Transfer clears the slot: sender sets `slot.* = null`. After transfer, slot is null.
+- Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
+
+**Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`
+parameter. They transfer ownership via the returned union value (`ReceiveResult.item`,
+`PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union
+and owns it from that point. This is an intentional exception to the slot-pointer pattern.
+
+### Why acquisition APIs assert null
+
+Every acquisition API has this check:
+
+```zig
+std.debug.assert(slot.* == null);
+```
+
+Overwriting a non-null slot would lose the previous item with no error signal.
+The assert catches this immediately.
+
+### Why cleanup operations accept null
+
+`pool.put` and `PolyHelper.destroy` check null and return early:
+
+```zig
+if (slot.* == null) return;
+```
+
+This makes defer-before-acquisition safe.
+
+### Slot lifecycle
+
+```text
+Slot lifecycle
+
+  null ──── acquire ────► non-null
+    ▲                        │
+    │                        │
+    ├──── transfer ──────────┘   (sender clears: slot.* = null)
+    │
+    └──── cleanup (no-op) ──────  (pool.put, PolyHelper.destroy: null → return)
+```
+
+### Ownership transfer clears the slot
+
+```text
+Before transfer                  After transfer
+
+  Slot (sender)                    Slot (sender)
+  ┌─────────────┐                  ┌─────────────┐
+  │ NodeHandle  │                  │    null     │
+  └─────────────┘                  └─────────────┘
+                                           │
+  mailbox.send(mbh, &slot)                    │ slot.* = null
+                                           │
+                     Mailbox ◄─────────────┘
+                     now owns NodeHandle
+```
+
+### Defer-before-acquisition is safe
+
+```text
+Code order:                      Execution when acquire fails:
+
+  var slot: Slot = null;              slot = null
+  defer pool.put(ph, &slot);          acquire fails
+  try pool.get(..., &slot);           defer runs: pool.put sees null → no-op
+  // work                          ✓ nothing lost
+
+                                 Execution when item is transferred:
+
+                                   slot = null (after acquire: slot is non-null)
+                                   mailbox.send(mbh, &slot)  → slot = null
+                                   defer runs: pool.put sees null → no-op
+                                   ✓ item transferred, not double-recycled
+```
+
+---
+
+## Cooperative cleanup patterns
+
+These patterns follow from the slot rule.
+Place cleanup before acquisition.
+The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.
+
+### Pattern 1 — defer-put-early (pool item)
+
+```zig
+var slot: Slot = null;
+defer pool.put(ph, &slot);              // no-op if slot == null
+try pool.get(ph, TAG, .new_only, &slot);
+// ... work ...
+// on transfer: slot = null → defer runs as no-op
+// on no transfer: defer recycles item
+```
+
+Put before get — safe because pool.put is a no-op on null.
+
+If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains
+ownership). Add a fallback destroy to avoid a leak:
+
+```zig
+var slot: Slot = null;
+defer EventPolyHelper.destroy(alloc, &slot); // fallback: frees if pool.put left slot non-null
+defer pool.put(ph, &slot);                   // primary: recycles to pool (clears slot on success)
+// defers run LIFO: pool.put first, then destroy (no-op if pool.put cleared slot)
+```
+
+### Pattern 2 — defer-destroy-early (heap item via PolyHelper)
+
+```zig
+var slot: Slot = null;
+defer EventPolyHelper.destroy(allocator, &slot);   // no-op if slot == null
+try EventPolyHelper.create(allocator, &slot);
+// ... work ...
+// on transfer: slot = null → defer runs as no-op
+// on no transfer: defer frees item
+```
+
+Destroy before create — safe because PolyHelper.destroy is a no-op on null.
+
+### Pattern 3 — defer for received mailbox item
+
+```zig
+var slot: Slot = null;
+defer if (slot) |poly| helpers.freeItem(poly, allocator);
+try mailbox.receive(mbh, &slot, null);
+// dispatch on slot.?.*.tag, process item
+// item stays non-null until explicitly transferred or freed
+```
+
+Cleanup covers both the error path (receive failed) and the normal path (item processed and freed).
+
+### Pattern 4 — transfer clears the slot
+
+```zig
+var slot: Slot = null;
+defer pool.put(ph, &slot);
+try pool.get(ph, TAG, .new_only, &slot);
+// fill item ...
+try mailbox.send(mbh, &slot);   // send sets slot.* = null
+// defer runs: pool.put sees null → no-op
+// result: item is in mailbox, not recycled to pool
+```
+
+Transfer and cleanup are not in conflict — transfer pre-empts cleanup by clearing the slot.
+
+### Pattern summary
+
+```text
+Pattern 1 (pool item)            Pattern 2 (heap item)
+
+  null ──► get ──► non-null        null ──► create ──► non-null
+    ▲                │               ▲                   │
+    │    put (defer) │               │  destroy (defer)  │
+    └────────────────┘               └───────────────────┘
+         (recycle)                          (free)
+
+         transfer →                         transfer →
+         slot = null                           slot = null
+         defer: no-op                       defer: no-op
+```
+
+### No raw allocator calls on PolyNode-based types
+
+In examples and tests, never use `allocator.create` / `allocator.destroy` directly on
+PolyNode-based user types (Event, Sensor, Timer, ShutdownCommand).
+
+Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot` instead.
+
+#### Violation
+
+```zig
+// WRONG — raw allocator on PolyNode-based type
+const ev = try alloc.create(Event);
+ev.* = .{};
+EventPolyHelper.init(ev);
+slot.* = &ev.poly;
+// ... later ...
+alloc.destroy(EventPolyHelper.mustIdentifySlotAs(&slot));
+slot.* = null;
+```
+
+#### Correct
+
+```zig
+// CORRECT — PolyHelper.create/destroy
+var slot: Slot = null;
+defer EventPolyHelper.destroy(alloc, &slot);
+try EventPolyHelper.create(alloc, &slot);
+// ... dispatch: use helpers.freeSlot(&slot, alloc) per branch ...
+```
+
+#### Exempt
+
+- `mailbox.zig`, `pool.zig` — allocating/freeing their own internal structs.
+- `PolyHelper.create` / `PolyHelper.destroy` implementations.
+- Pool hook bodies (`on_get`, `on_close`) — manage raw memory on behalf of pool.
+- Non-PolyNode structs: worker context, hook context, allocator wrappers.
+
+---
+
 ## matryoshka (root)
 
 ```zig
@@ -1464,130 +1411,7 @@ fn main(init: std.process.Init) !void { ... }
 Matryoshka provides the building blocks.
 The application assembles them.
 
-### io.concurrent and Io.Group — verified call syntax
-
-Verified from `std/Io.zig` (Zig 0.16.0) and confirmed against the ICE agent reference implementation.
-
-#### io.concurrent
-
-Spawns one task, returns a `Future` for its result.
-
-```zig
-// Signature (from Io.zig line 2365):
-pub fn concurrent(
-    io: Io,
-    function: anytype,
-    args: std.meta.ArgsTuple(@TypeOf(function)),
-) ConcurrentError!Future(@typeInfo(@TypeOf(function)).@"fn".return_type.?)
-```
-
-Call pattern:
-
-```zig
-var fut = try io.concurrent(workerFn, .{&ctx});
-// ... do other work ...
-try fut.await(io);   // blocks until worker exits; returns worker's return type
-```
-
-- `args` is a tuple — `.{arg1, arg2, ...}` — passed verbatim to `function`.
-- `io.concurrent` copies `args` before returning. Stack-allocated args are safe — no heap ctx needed.
-- No `io` is injected. The worker receives exactly what is in `args`.
-- If the worker needs `io`, pass it explicitly: `.{io, &ctx}`.
-- `fut.await(io)` returns the worker's return type directly. Use `try` if it is an error union.
-- `fut.cancel(io)` injects `error.Canceled` at the worker's next cancellation point, then awaits.
-- `Future` is a resource — must call `await` or `cancel` exactly once.
-
-Worker function for `io.concurrent`:
-
-```zig
-fn workerFn(ctx: *WorkerCtx) !void {
-    // worker logic — mailbox.receive, pool.get_wait, etc.
-    // io is accessed through the mailbox/pool (they store it internally)
-}
-```
-
-#### Io.Group
-
-Runs multiple tasks. Awaits or cancels all at once.
-
-```zig
-// Signature (from Io.zig line 1218):
-pub const Group = struct {
-    pub const init: Group  // compile-time constant, not a function call
-
-    pub fn concurrent(g: *Group, io: Io, function: anytype,
-        args: std.meta.ArgsTuple(@TypeOf(function))) ConcurrentError!void
-
-    pub fn await(g: *Group, io: Io) Cancelable!void   // wait for all
-    pub fn cancel(g: *Group, io: Io) void              // cancel all, then wait
-};
-```
-
-Call pattern:
-
-```zig
-var group: std.Io.Group = .init;
-defer group.cancel(io);   // safe: no-op if already awaited
-
-try group.concurrent(io, workerFn, .{&ctx1});
-try group.concurrent(io, workerFn, .{&ctx2});
-try group.concurrent(io, workerFn, .{&ctx3});
-
-try group.await(io);   // blocks until all workers exit
-```
-
-- Worker return type must be coercible to `Cancelable!void`.
-  - `void`, `!void`, `Cancelable!void` all work.
-  - `error.Canceled` returned by a worker is swallowed — it is a cancellation propagation boundary.
-- `group.await(io)` returns `Cancelable!void` — use `try`.
-- `group.cancel(io)` injects `error.Canceled` into all running workers, then waits. Returns `void`.
-- `group.cancel(io)` is safe to call if already awaited — it is a no-op.
-- `group.concurrent` after `group.await` starts a new round of tasks in the same group.
-
-#### Io.Select — internals
-
-Verified from `std/Io.zig:1367`.
-
-Public fields:
-
-```zig
-pub fn Select(comptime U: type) type {
-    return struct {
-        io: Io,
-        group: Group,
-        queue: Queue(U),
-        ...
-    };
-}
-```
-
-- `queue: Queue(U)` — completed results land here.
-- `group: Group` — owns all spawned concurrent tasks.
-- `select.await()` = `queue.getOne(io)` — blocks until the next result arrives.
-
-`select.concurrent(field, fn, args)`:
-- Spawns `fn` concurrently via `group`.
-- `fn` return value is wrapped: `@unionInit(U, @tagName(field), result)`.
-- Wrapped value is put into `queue` via `queue.putOneUncancelable`.
-
-Direct push (no spawn):
-
-```zig
-select.queue.putOneUncancelable(select.io, .{ .field = value }) catch {};
-```
-
-- Puts a result directly from any thread or callback.
-- No concurrent task needed.
-- Used when the result is already available (e.g. a close notification, an external callback).
-
-`select.concurrent` copies `args` before returning — same guarantee as `io.concurrent`.
-
-ICE agent reference (`src/ice/agent.zig`):
-- Line 134: `select.concurrent(.connectivity_check, Io.sleep, ...)` — blocking fn
-- Lines 241-242: `select.queue.putOneUncancelable(...)` — direct push from external goroutine
-- Line 273: direct push from close callback
-
-#### Io backend for Layer 4 tests and examples
+### Io backend for Layer 4 tests and examples
 
 Layer 1-3 tests use `std.Io.Threaded.global_single_threaded.*.io()` — no concurrency needed.
 
@@ -1628,7 +1452,7 @@ Key rules:
 
 ### Event sources
 
-See **Prolog: std.Io** for the general `Future` → `Io.Select` pattern.
+See **Addendums → Io 101** for the general `Future` → `Io.Select` pattern.
 
 Matryoshka plugs into the same pattern:
 
@@ -1819,6 +1643,8 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 019 | 2026-07-05 | DOC 10. Dependency-ordered re-partition — no content change. send/receive ownership diagrams moved from Ownership model into mailbox. Tag identity (class, not instance) moved out of polynode to its own section after pool. Slot-based programming and Cooperative cleanup patterns moved after pool — every function they reference is now introduced first.
+| 018 | 2026-07-05 | DOC 9. Re-partitioned and reordered into a logical, teachable structure (was development-order). Generic `std.Io` material (Prolog, io.concurrent/Io.Group/Io.Select internals) moved to new `## Addendums` / `### Io 101` section at the end. Dropped the `Change manifest (NNN)` blocks (16 sections) — downstream-propagation notes fully subsumed by current main-body content, kept only as this Change log table. No information removed; no new API surface.
 | 017 | 2026-07-05 | API 3. Added `mailbox.wakeUpAll()` — wakes every receiver currently blocked in `receive()` with `error.Wakeup`, no item sent, future receivers unaffected. `receive()` error set gains `error.Wakeup`. `ReceiveResult` gains `wakeup: void`. |
 | 016 | 2026-07-02 | API 2. Renamed `cast`→`identifyNodeAs`, `mustCast`→`mustIdentifyNodeAs`. Added `identifySlotAs` and `mustIdentifySlotAs` for application code that works with Slots directly. Updated `no_create_destroy` diagram. Updated violation example in "No raw allocator calls". |
 | 015 | 2026-06-28 | INTR 4 fixes. Bug 3.1: pool.put_all thread-safety table corrected (NOT atomic wrt close). Bug 1.2: Pattern 1 extended with double-defer for closed-pool fallback. Bug 1.3: get_wait zero-timeout documents intentional error divergence from available_only. Bug 1.4: Slot rule exception note for receiveResult/getWaitResult. Bug 2.3: stdlib compatibility section — polynode.reset warning after popFirst(). |
@@ -1838,378 +1664,190 @@ Valid combinations:
 
 ---
 
-## Change manifest (016) — for downstream propagation
+## Addendums
 
-### PolyHelper — identify functions (renamed + new)
-
-`cast` and `mustCast` are removed. Replaced by four functions:
-
-| Old | New | Who uses it |
-|-----|-----|-------------|
-| `cast(node)` | `identifyNodeAs(node)` | infrastructure code (`*PolyNode` path) |
-| _(none)_ | `mustIdentifyNodeAs(node)` | infrastructure code, asserted non-null |
-| `cast(slot.?)` | `identifySlotAs(&slot)` | application code (Slot path) |
-| `cast(slot.?).?` | `mustIdentifySlotAs(&slot)` | application code, asserted non-null |
-
-`identifyNodeAs` / `mustIdentifyNodeAs` — take `*PolyNode` directly.
-Use in mailbox.zig, pool.zig, on_close hooks, list-walk code.
-
-`identifySlotAs` / `mustIdentifySlotAs` — take `*const Slot`.
-Unwrap the optional internally. Use in examples, tests, stories.
-
-### no_create_destroy diagram updated
-
-- Old: `TAG, isIt, cast, mustCast, init` / `TAG, isIt, cast, mustCast, init, create, destroy`
-- New: `TAG, isIt, identifyNodeAs, mustIdentifyNodeAs, identifySlotAs, mustIdentifySlotAs, init` (with/without create/destroy)
-
-### Violation example updated
-
-In `### No raw allocator calls on PolyNode-based types`:
-- Old: `alloc.destroy(EventPolyHelper.cast(slot.?).?);`
-- New: `alloc.destroy(EventPolyHelper.mustIdentifySlotAs(&slot));`
+Generic `std.Io` runtime material — not matryoshka-specific. Read this section first if
+you are new to `std.Io`; the sections above assume it.
 
 ---
 
-## Change manifest (015) — for downstream propagation
+### Io 101
 
-### Thread-safety table — pool.put_all corrected
+Zig 0.16 provides `std.Io` — the runtime's interface for concurrent and I/O operations.
 
-- Old: `Batch is atomic`
-- New: thread-safe per item; batch NOT atomic wrt close(); items mid-transfer split across on_close and caller's list.
+- `Io` — passed around to anything that needs threads, timers, or waiting. Think of it as "access to the runtime."
+- `Future(T)` — a result that isn't ready yet. You get the value by calling `.await()`.
+- `Io.Select` — coordinates multiple concurrent event sources. Internally: `queue: Queue(U)` + `group: Group`. `select.await()` reads the next completed result from the queue.
+- `Io.Group` — runs several tasks. Waits for all of them to finish.
+- `io.concurrent()` — runs a blocking function in a separate task. Returns a Future for the result.
+- `ConcurrentError` — spawning a task failed (e.g. single-threaded backend, no threads available).
 
-### Cooperative cleanup patterns — Pattern 1 extended
+#### Event sources
 
-- Added double-defer snippet for closed-pool fallback: `defer PolyHelper.destroy` + `defer pool.put`.
-- Explains LIFO order: pool.put runs first, destroy is no-op if pool.put cleared slot.
+An event source is a blocking function passed to `select.concurrent`. When it returns,
+the result is wrapped in the Select union and placed in the internal queue.
 
-### pool.get_wait — zero-timeout error clarified
+Two patterns for producing Select events:
 
-- Documents intentional divergence: `timeout_ns = 0` returns `error.Timeout`; `get(.available_only)` returns `error.NotAvailable` for the same empty-pool condition.
+1. `select.concurrent(field, blockingFn, args)` — spawn a blocking function; result goes into the queue when done.
+2. `select.queue.putOneUncancelable(io, value)` — push directly from any thread without spawning.
 
-### Slot-based programming — event-source helper exception
+`io.concurrent` and `select.concurrent` copy the args before returning — stack-allocated args are safe.
 
-- Added **Exception** note after the slot rule bullets.
-- `receiveResult` / `getWaitResult` transfer ownership via union value, not `*Slot`. Intentional exception.
+```text
+  blockingFn ────► select.concurrent(field, blockingFn, args)
+                        │
+                        ▼ (fn runs, result → queue)
+                   Io.Select.queue
+                      │   │
+                      ▼   ▼
+               completed  canceled
+               (result)   (error.Canceled)
+```
 
-### polynode stdlib compatibility — popFirst warning
+`io.concurrent(fn, args)` — standalone version. Returns `Io.Future(T)` for direct await or `Io.Group` use.
 
-- Added **Warning** after "Walk results with popFirst()".
-- `popFirst()` does not clear prev/next links. Call `polynode.reset(poly)` before re-transfer or is_linked check.
+#### Cancel
 
----
+A function that waits — for data, for a timeout, for a condition — can be canceled by the runtime.
+- If a function can be canceled, its return type includes `Cancelable` in the error union.
+- `Cancelable` comes from `std.Io`.
 
-## Change manifest (013) — for downstream propagation
+Cancel is something you do to a Future, not something that happens on its own:
 
-### Prolog: std.Io — corrected
-
-- `Io.Select` bullet: replaced "waits on several Futures at once" with accurate description (Queue(U)+Group).
-- Event source section: replaced "anything that produces a Future" with blocking-function + select.concurrent model.
-- Event source diagram: replaced Future-centric diagram with select.concurrent + direct push diagram.
-- Added: `io.concurrent` / `select.concurrent` copy args before returning — stack args are safe.
-
-### mailbox — Event source helpers
-
-- Added `receiveResult(mbh, timeout_ns) ReceiveResult` — primary public blocking function.
-- Updated `receive_future` description: thin wrapper, no heap allocation.
-- Updated "When to use" section: select.concurrent pattern shown first, receive_future second.
-
-### pool — Event source helpers
-
-- Added `getWaitResult(ph, tag, timeout_ns) PoolResult` — primary public blocking function.
-- Updated `get_wait_future` description: thin wrapper, no heap allocation.
-
-### Cancel contract summary
-
-- Added rows for `receiveResult` and `getWaitResult`.
-
-### Master section — event source diagram
-
-- Replaced Future-centric diagram with select.concurrent + direct push model.
-
-### io.concurrent and Io.Group section — two additions
-
-- `#### io.concurrent`: added args-copying bullet — `io.concurrent` copies args before returning; stack args safe; no heap ctx needed.
-- `#### Io.Select — internals`: new subsection. Verified public fields (`queue: Queue(U)`, `group: Group`), `select.await()` mechanics, `select.concurrent` wrapping logic, direct push pattern, ICE agent reference.
-
-### Slot-based programming — `fires` fixed
-
-- `defer fires` → `defer runs` in 5 code comment annotations (lines 234, 241, 260, 273, 299).
+```text
+  concurrent() ──► Future(T)
+                      │
+              ┌───────┼───────┐
+              ▼               ▼
+          .await()        .cancel(io)
+              │               │
+              ▼               ▼
+           result      error.Canceled
+```
 
 ---
-
-## Change manifest (012) — for downstream propagation
-
-### No raw allocator calls on PolyNode-based types (new rule)
-
-New `### No raw allocator calls on PolyNode-based types` subsection in `## Cooperative cleanup patterns`, placed after Pattern summary.
-
-- Rule: in examples and tests, never use `allocator.create` / `allocator.destroy` on Event, Sensor, Timer, ShutdownCommand.
-- Violation code snippet: old manual alloc+init+slot-assign and manual destroy+null pattern.
-- Correct code snippet: `PolyHelper.create` + `defer PolyHelper.destroy` pattern.
-- Exempt cases: infrastructure internals, PolyHelper implementations, hook bodies, non-PolyNode structs.
-
----
-
-## Change manifest (011) — for downstream propagation
-
-### Slot-based programming (new section)
-
-New `## Slot-based programming` section, placed after `## Ownership model`.
-
-- The slot rule: never overwrite non-null.
-- Why acquisition APIs assert null (would lose item silently).
-- Why cleanup operations accept null (enables defer-before-acquisition).
-- Three ASCII diagrams: slot lifecycle, ownership transfer, defer-before-acquisition safety.
-
-### Cooperative cleanup patterns (new section)
-
-New `## Cooperative cleanup patterns` section, placed after `## Slot-based programming`.
-
-- Pattern 1: defer-put-early (pool item) — pool.put before pool.get.
-- Pattern 2: defer-destroy-early (heap item) — PolyHelper.destroy before PolyHelper.create.
-- Pattern 3: defer for mailbox receive — cleanup on both error and normal paths.
-- Pattern 4: transfer clears slot — send/put sets slot.* = null, pre-empts defer.
-- Each pattern: code snippet + one-line explanation.
-- Pattern summary ASCII diagram.
-
-### PolyHelper create and destroy (new subsection)
-
-New `### PolyHelper — create and destroy` subsection in `## polynode`, placed after `### PolyHelper — all of the above, generated`.
-
-- create: alloc + zero-init + init + slot-assign in one call. Asserts slot null.
-- destroy: null-safe, clears slot before free, asserts not linked.
-- Old-vs-new code comparison for both.
-- no_create_destroy comptime selection: explained with ASCII diagram of the two branches.
-
-### pool.put — null slot is now a no-op
-
-Updated `pub fn put` in `## pool`:
-- Added: `slot.* == null` → returns immediately, no hook, no assert.
-- Assert block clarified: is_linked check applies only when slot.* is non-null.
-
----
-
-## Change manifest (010) — for downstream propagation
-
 ### io.concurrent and Io.Group — verified call syntax
 
-New `### io.concurrent and Io.Group — verified call syntax` subsection in `## Master (Layer 4)`.
+Verified from `std/Io.zig` (Zig 0.16.0) and confirmed against the ICE agent reference implementation.
+
+#### io.concurrent
+
+Spawns one task, returns a `Future` for its result.
+
+```zig
+// Signature (from Io.zig line 2365):
+pub fn concurrent(
+    io: Io,
+    function: anytype,
+    args: std.meta.ArgsTuple(@TypeOf(function)),
+) ConcurrentError!Future(@typeInfo(@TypeOf(function)).@"fn".return_type.?)
+```
+
+Call pattern:
 
-Source: `std/Io.zig` (Zig 0.16.0) lines 2326–2380 (`async`, `concurrent`) and 1218–1309 (`Group`). Cross-checked against ICE agent reference implementation (`media-protocols-master/src/ice/agent.zig`).
+```zig
+var fut = try io.concurrent(workerFn, .{&ctx});
+// ... do other work ...
+try fut.await(io);   // blocks until worker exits; returns worker's return type
+```
 
-- `io.concurrent(fn, .{args...})` — exact tuple syntax. Returns `ConcurrentError!Future(ReturnType)`.
-- No io injection into workers. Args passed verbatim via `@call(.auto, function, args.*)`.
-- `fut.await(io)` returns `ReturnType` directly. Use `try` when `ReturnType` is an error union.
-- `fut.cancel(io)` injects `error.Canceled`, then awaits. Returns `ReturnType`.
-- `Future` is a resource — call `await` or `cancel` exactly once.
-- `Io.Group = .init` — compile-time constant, not a function call.
-- `group.concurrent(io, fn, .{args...})` — same tuple syntax as `io.concurrent`.
-- Worker return type for Group must coerce to `Cancelable!void`. `void` and `!void` both work.
-- `group.await(io)` returns `Cancelable!void`.
-- `group.cancel(io)` returns `void`. Safe to call after `await` (no-op).
-- Layer 4 tests: use `std.Io.Threaded.init(allocator, .{})` — not `global_single_threaded`, not `testing.io`.
-- Examples: receive `std.Io` as parameter, never create the backend, never import `std.testing`.
+- `args` is a tuple — `.{arg1, arg2, ...}` — passed verbatim to `function`.
+- `io.concurrent` copies `args` before returning. Stack-allocated args are safe — no heap ctx needed.
+- No `io` is injected. The worker receives exactly what is in `args`.
+- If the worker needs `io`, pass it explicitly: `.{io, &ctx}`.
+- `fut.await(io)` returns the worker's return type directly. Use `try` if it is an error union.
+- `fut.cancel(io)` injects `error.Canceled` at the worker's next cancellation point, then awaits.
+- `Future` is a resource — must call `await` or `cancel` exactly once.
 
----
+Worker function for `io.concurrent`:
 
-## Change manifest (009) — for downstream propagation
+```zig
+fn workerFn(ctx: *WorkerCtx) !void {
+    // worker logic — mailbox.receive, pool.get_wait, etc.
+    // io is accessed through the mailbox/pool (they store it internally)
+}
+```
 
-### Tag identity — class, not instance
+#### Io.Group
 
-New `### Tag identity — class, not instance` subsection in `## polynode`, after `### stdlib compatibility`.
+Runs multiple tasks. Awaits or cancels all at once.
 
-- Explains that `PolyHelper(T).TAG` is a comptime-generated static — one per type, shared by all instances.
-- Tag dispatch answers "is this a T?" not "which T?" or "what role?".
-- User-defined types: user adds `kind`/`role` fields for per-instance discrimination.
-- Infra handles (`_Mailbox`, `_Pool` are private): no user-visible fields; tag identifies class only.
-- Instance identity: pointer comparison against known handles.
-- Role: established by protocol between sender and receiver.
-- Worker-finish-signal pattern documented with full flow.
-- Wrapper pattern documented for tag-level role discrimination.
+```zig
+// Signature (from Io.zig line 1218):
+pub const Group = struct {
+    pub const init: Group  // compile-time constant, not a function call
 
----
+    pub fn concurrent(g: *Group, io: Io, function: anytype,
+        args: std.meta.ArgsTuple(@TypeOf(function))) ConcurrentError!void
 
-## Change manifest (008) — for downstream propagation
+    pub fn await(g: *Group, io: Io) Cancelable!void   // wait for all
+    pub fn cancel(g: *Group, io: Io) void              // cancel all, then wait
+};
+```
 
-### Pool ownership flow diagram
+Call pattern:
 
-New `### Ownership flow` subsection in `## pool`, before `### Types`.
-Shows FREE → IN_FLIGHT → HELD → FREE cycle for get/put/close.
+```zig
+var group: std.Io.Group = .init;
+defer group.cancel(io);   // safe: no-op if already awaited
 
-### Ownership invariants section
+try group.concurrent(io, workerFn, .{&ctx1});
+try group.concurrent(io, workerFn, .{&ctx2});
+try group.concurrent(io, workerFn, .{&ctx3});
 
-New `## Ownership invariants` section after `## Ownership lifecycle`.
-Six invariants: one-container rule, Slot exclusivity, pool/mailbox non-overlap, single-owner rule, tag pointer-equality rule.
+try group.await(io);   // blocks until all workers exit
+```
 
-### Cancellation ownership contract section
+- Worker return type must be coercible to `Cancelable!void`.
+  - `void`, `!void`, `Cancelable!void` all work.
+  - `error.Canceled` returned by a worker is swallowed — it is a cancellation propagation boundary.
+- `group.await(io)` returns `Cancelable!void` — use `try`.
+- `group.cancel(io)` injects `error.Canceled` into all running workers, then waits. Returns `void`.
+- `group.cancel(io)` is safe to call if already awaited — it is a no-op.
+- `group.concurrent` after `group.await` starts a new round of tasks in the same group.
 
-New `## Cancellation ownership contract` section.
-Documents that `error.Canceled` leaves slot unchanged for `receive` and `get_wait`.
-Clarifies that cancel does not close the mailbox or pool.
+#### Io.Select — internals
 
-### Thread-safety contract section
+Verified from `std/Io.zig:1367`.
 
-New `## Thread-safety contract` table.
-Per-function: which calls may run concurrently, which must not race.
-Notes: close is safe to call once concurrently; destroy requires exclusive access.
+Public fields:
 
-### Complexity guarantees section
+```zig
+pub fn Select(comptime U: type) type {
+    return struct {
+        io: Io,
+        group: Group,
+        queue: Queue(U),
+        ...
+    };
+}
+```
 
-New `## Complexity guarantees` table.
-All operations O(1) except close (O(n)) and put_all (O(k)).
+- `queue: Queue(U)` — completed results land here.
+- `group: Group` — owns all spawned concurrent tasks.
+- `select.await()` = `queue.getOne(io)` — blocks until the next result arrives.
 
-### Zero timeout semantics
+`select.concurrent(field, fn, args)`:
+- Spawns `fn` concurrently via `group`.
+- `fn` return value is wrapped: `@unionInit(U, @tagName(field), result)`.
+- Wrapped value is put into `queue` via `queue.putOneUncancelable`.
 
-Added to `mailbox.receive`: `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `try_receive`.
-Added to `pool.get_wait`: `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `get` with `available_only`.
+Direct push (no spawn):
 
-### Multiple waiter fairness note
+```zig
+select.queue.putOneUncancelable(select.io, .{ .field = value }) catch {};
+```
 
-Added to `mailbox.receive`: multiple concurrent receivers compete for each handle; scheduling order is runtime-dependent, not guaranteed FIFO.
+- Puts a result directly from any thread or callback.
+- No concurrent task needed.
+- Used when the result is already available (e.g. a close notification, an external callback).
 
-### Hook reentrancy rules strengthened
+`select.concurrent` copies `args` before returning — same guarantee as `io.concurrent`.
 
-`### Hook discipline` in `## pool`: replaced single "Do NOT call pool functions" bullet with explicit list of forbidden actions (get/get_wait/put/put_all/close/destroy on same pool; block; wait; recursive allocation).
+ICE agent reference (`src/ice/agent.zig`):
+- Line 134: `select.concurrent(.connectivity_check, Io.sleep, ...)` — blocking fn
+- Lines 241-242: `select.queue.putOneUncancelable(...)` — direct push from external goroutine
+- Line 273: direct push from close callback
 
----
 
-## Change manifest (006) — for downstream propagation
-
-### Staccato rhythm for all prose (Proposal 32)
-
-All non-function sections reformatted to follow: short intro, then bullets.
-
-Sections changed:
-- Document intro — comma-list of architectures broken into bullets, transported items broken into bullets.
-- "What is a NodeHandle?" — prose → intro + bullets.
-- Ownership rule — prose → intro + bullets.
-- "Defining user types" — dense sentences → bullets.
-- stdlib compatibility — prose paragraph → intro + bullets.
-- ReceiveResult description — prose → bullets.
-- PoolResult description — prose → bullets.
-- Event source helpers (mailbox) — prose → intro + bullets.
-- Event source helpers (pool) — prose → intro + bullets.
-- Event source explanation (Master) — tightened.
-- matryoshka root — prose → bullets.
-- Master intro — tightened.
-- Layer dependencies — prose → intro + bullets.
-- Contract violations intro — tightened.
-- Hook discipline "Do NOT" — split dense sub-bullet.
-- "When to use" bridging — comma-list → bullets.
-
----
-
-## Change manifest (005) — for downstream propagation
-
-### Readability reformat (Proposal 31)
-
-- All function descriptions reformatted: one fact per bullet, nested sub-bullets for asserts and lists.
-- Descriptions are now `///` Zig doc comment ready.
-- Added doc-comment source note in document header.
-
-### Event source concept added to Master
-
-- New subsection "Event sources" in Master section.
-- ASCII diagram: general `Future` → `Io.Select` → dispatch pattern.
-- Second diagram: mailbox and pool as event sources alongside timers and sockets.
-- Explains how blocking operations become event sources via `io.concurrent()`.
-
-### Mailbox "Integration with std.Io" merged into "Event source helpers"
-
-- Removed standalone "Integration with std.Io" section.
-- Cancel/close behavior moved into "Event source helpers" intro.
-- Removed vague "compose with concurrency primitives" sentence.
-
-### Pool event source intro updated
-
-- Added cancel/close behavior parallel to mailbox.
-- Consistent structure between mailbox and pool event source sections.
-
-### Cancel indicator rule added
-
-- New section "Cancel indicator" before "Cancel contract summary".
-- Rule: a function is cancelable if and only if its return type includes `Cancelable`.
-
-### Cancel contract table corrected
-
-| Function | Was | Now | Reason |
-|----------|-----|-----|--------|
-| `mailbox.send` | Cancelable: yes | Cancelable: no | Signature has no `Cancelable` |
-| `mailbox.send_oob` | Cancelable: yes | Cancelable: no | Signature has no `Cancelable` |
-| `mailbox.try_receive` | Cancelable: yes | Cancelable: no | Signature has no `Cancelable` |
-| `pool.get` | Cancelable: yes | Cancelable: no | Signature has no `Cancelable` |
-
-### False annotations removed
-
-- `send` description: "Cancelable (work path)." removed.
-- `send_oob` description: "Cancelable (work path)." removed.
-
-### Informal terms cleaned up
-
-| Was | Now |
-|-----|-----|
-| "fed to `Io.Select`" | "passed to `Io.Select`" |
-| "bridges the blocking API to the Future world" | "converts blocking calls to Future results" |
-| "maps the result to" | "converts the result to" |
-
----
-
-## Change manifest (004) — for downstream propagation
-
-### pool.put behavior clarified (Proposal 29)
-
-- `put` description split into open/closed paths
-- **Open pool**: calls `on_put` hook, policy decides keep or destroy
-- **Closed pool**: returns immediately, no hook call, caller retains ownership
-- No signature change — `put` remains `void` return (defer-compatible)
-
-### Select adapters removed (Proposal 30)
-
-| Removed | Replacement |
-|---------|-------------|
-| `mailbox.receive_select` | `mailbox.receive_future` (Future composes with Select directly) |
-| `pool.get_wait_select` | `pool.get_wait_future` (Future composes with Select directly) |
-
-- `receive_future` description updated — no longer references `receive_select`
-- `get_wait_future` description updated — no longer references `get_wait_select`
-- Cancel contract summary: 2 rows removed (`receive_select`, `get_wait_select`), 2 rows updated
-- "When to use" section: `receive_select` reference removed
-- Rationale: `Future` is the fundamental `Io` abstraction. It composes with `Io.Select`, `Io.Group`, and plain `await`. A dedicated Select adapter adds API surface and couples Matryoshka to a specific coordination pattern without additional capability.
-
----
-
-## Change manifest (003) — for downstream propagation
-
-### New asserts added
-
-| Function | Asserts |
-|----------|---------|
-| `mailbox.send` | `is_it_you(mbh)`, `slot.* != null`, `!is_linked(slot.*)` |
-| `mailbox.send_oob` | `is_it_you(mbh)`, `slot.* != null`, `!is_linked(slot.*)` |
-| `mailbox.receive` | `is_it_you(mbh)`, `slot.* == null` |
-| `mailbox.try_receive` | `is_it_you(mbh)`, `slot.* == null` |
-| `mailbox.receive_batch` | `is_it_you(mbh)` |
-| `mailbox.close` | `is_it_you(mbh)` |
-| `mailbox.destroy` | `is_it_you(mbh)` |
-| `pool.destroy` | `is_it_you(ph)` |
-| `pool.init` | `is_it_you(ph)`, hooks tags not empty, each tag not null, not closed |
-| `pool.get` | `is_it_you(ph)`, `slot.* == null`, initialized, tag registered |
-| `pool.get_wait` | `is_it_you(ph)`, `slot.* == null`, initialized, tag registered |
-| `pool.put` | `is_it_you(ph)`, `!is_linked(slot.*)` |
-| `pool.put_all` | `is_it_you(ph)`, each node tag registered |
-| `pool.close` | `is_it_you(ph)` |
-
-### Errors removed
-
-- `error.AlreadyInUse` removed from `GetError` and pool error sets table
-- Non-empty slot is now a contract violation (`std.debug.assert`), not a runtime error
-
-### Contract violations section changes
-
-- Split into `std.debug.assert` (Debug/ReleaseSafe) and unconditional panic categories
-- Added: wrong handle type, non-empty slot, linked node, foreign tag, uninitialized pool
-- Moved: destroy-on-open and use-after-free to unconditional panic
-
-### Principle
-
-Errors for runtime conditions (Closed, Timeout, NotAvailable, NotCreated, Canceled). Asserts for contract violations (wrong type, wrong state, programming bugs).

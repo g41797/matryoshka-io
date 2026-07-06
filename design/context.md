@@ -5,7 +5,9 @@
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 
-API reference: [matryoshka-api-reference-017.md](matryoshka-api-reference-017.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, Select internals, receiveResult/getWaitResult, mailbox.wakeUpAll
+API reference: [matryoshka-api-reference-019.md](matryoshka-api-reference-019.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, receiveResult/getWaitResult, mailbox.wakeUpAll — dependency-ordered (DOC 9 + DOC 10): nothing is used before it is introduced; generic std.Io material lives in a trailing Addendums/Io 101 section
+
+Manifesto: [matryoshka-manifesto-003.md](matryoshka-manifesto-003.md) — persuasion-first mindset doc (DOC 11 + DOC 12 plain-language pass): one constraint, Master is a role, four fundamental concepts, Io hidden behind Mailboxes; consolidates README + matryoshka-io-model + matryoshka-master + master-Io; supersedes matryoshka-manifesto.md and -002
 
 Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
 
@@ -15,13 +17,13 @@ Thinking model: [matryoshka-model-003.md](matryoshka-model-003.md) — ownership
 
 Rules: [rules-010.md](rules-010.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item + Description as code rule + descriptive entry-point name rule)
 
-Patterns: [patterns-009.md](patterns-009.md) — reusable coding patterns (Observable function shapes, pool, Select, Group, shutdown, dispatch, Master composition + Select event loop and spawn+await coordinator templates + wake blocked receivers without a message)
+Patterns: [patterns-011.md](patterns-011.md) — unified pattern and idiom catalog (DOC 13 + DOC 14): slot/ownership idioms, PolyNode, Mailbox, Topology patterns (Request-Response, Pipeline, Fan-In, Fan-Out), Pool, Futures, Select, Group, cancellation, graceful shutdown, Master patterns — one entry per concept, absorbs the api-reference pattern idioms and the Odin-docs audit findings
 
-Plan: [matryoshka-io-implementation-plan-032.md](matryoshka-io-implementation-plan-032.md) — slim state-only plan; rules live in rules-010.md
+Plan: [matryoshka-io-implementation-plan-038.md](matryoshka-io-implementation-plan-038.md) — slim state-only plan; rules live in rules-010.md
 
 Storytelling: [../kitchen/docs/matryoshka-storytelling-001.md](../kitchen/docs/matryoshka-storytelling-001.md) — storytelling philosophy and rhythm rules (Discussion, SRS, Translation, Central Insight)
 
-Docs plan: [matryoshka-io-docs-plan-006.md](matryoshka-io-docs-plan-006.md) — documentation work plan (mkdocs + autodocs, tofu audit, iterative DOC stages, top-down site skeleton + first Concepts story + Building Blocks topics: rule/pattern pairing, four core concepts)
+Docs plan: [matryoshka-io-docs-plan-012.md](matryoshka-io-docs-plan-012.md) — documentation work plan (mkdocs + autodocs, tofu audit, iterative DOC stages, top-down site skeleton + first Concepts story + Building Blocks topics: rule/pattern pairing, four core concepts + API reference re-partitioning + manifesto-002 + pattern catalog unification + Odin-docs pattern audit)
 
 Docs tooling approach: [docs-tooling-approach-001.md](docs-tooling-approach-001.md) — content-authoring method for DOC stages (audit-first parallel source review, triage ad-hoc dumps, narrow top-down scoping)
 
