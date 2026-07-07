@@ -116,13 +116,13 @@ Before transfer                  After transfer
 
   Slot (sender)                    Slot (sender)
   ┌─────────────┐                  ┌─────────────┐
-  │ NodeHandle  │                  │    null     │
+  │ ItemHandle  │                  │    null     │
   └─────────────┘                  └─────────────┘
                                            │
   mailbox.send(mbh, &slot)                    │ slot.* = null
                                            │
                      Mailbox ◄─────────────┘
-                     now holds NodeHandle
+                     now holds ItemHandle
 ```
 
 ### Defer-before-acquisition is safe

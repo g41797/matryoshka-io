@@ -45,7 +45,7 @@ nav:
       - Pool: building-blocks/pool.md
       - Master: building-blocks/master.md
   - API Reference:
-      - PolyNode & NodeHandle & Slot: api/polynode.md
+      - PolyNode & ItemHandle & Slot: api/polynode.md
       - PolyHelper: api/polyhelper.md
       - Mailbox: api/mailbox.md
       - Pool: api/pool.md

@@ -22,10 +22,10 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-020.md
+- API: matryoshka-api-reference-021.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-001.md
-- Architecture introduction: matryoshka-architecture-001.md
+- Architecture introduction: matryoshka-architecture-002.md
 - Tests: task1-tests-001.md (73 scenarios, Layers 1-3), task2-tests-001.md (16 scenarios, Layer 4)
 - Examples: task1-examples-003.md, task2-examples-003.md (index only; full description lives in each source file's `///` doc comment)
 - Scenarios (historical): task1-scenarios-001.md (92), task2-scenarios-001.md (61)
@@ -33,11 +33,12 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-038.md (slim, state-only)
-- Rules: rules-017.md
+- Rules: rules-019.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-011.md
+- Patterns: patterns-012.md
 - Docs plan: matryoshka-io-docs-plan-014.md
 - Manifesto: matryoshka-manifesto-003.md
+- Latest context: collected-context-005.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -192,9 +193,64 @@ DOC 18c — root-caused via headless-Chrome render: Zig autodoc splices the
 first declaration's `///` comment onto the container page unconditionally.
 Fix: `const _doc_stub = void;` as first declaration in mailbox.zig/pool.zig/
 polynode.zig. rules-016.md → rules-017.md. DONE (167/167 tests unchanged).
-Current: 167/167 tests. DOC 18c DONE.
+API 4 — Renamed `NodeHandle` → `ItemHandle` (src, examples, stories, design docs);
+documented `ih` short-form and `handle` shorthand convention. DONE (167/167
+tests unchanged). Plan version pending.
+Current: 167/167 tests. API 4 DONE.
 
 ## Session Log
+
+### 2026-07-07 — API 4 (`NodeHandle` → `ItemHandle` rename; naming convention documented)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner reviewed a shortlist of names for `*PolyNode` (`Handle`, `ObjectHandle`,
+`NodeHandle`, `ParentHandle`) and picked `ItemHandle` — `NodeHandle` leaked
+the intrusive-list-node implementation detail into a name meant to describe
+what the caller holds. Owner also directed adopting `ih` as the short
+variable-name form (replacing `nh`) and documenting bare `handle` as
+acceptable shorthand once the type is clear from context. A repo survey
+found zero existing `nh` identifiers, so that part is a documented
+convention for future code, not a rename.
+
+Owner confirmed treating the previously-unlinked `rules-018.md` (mkdocs
+blank-line rule, never wired into context.md/STATUS.md pointers) as the
+current base — this stage's `rules-019.md` carries that content forward and
+fixes the missing link as part of the version bump.
+
+**Changes**:
+- `src/polynode.zig`, `src/mailbox.zig`, `src/pool.zig` — `NodeHandle` →
+  `ItemHandle` (type alias, all usages, doc comments).
+- `examples/layer4/095-mailbox_as_item.zig`, `stories/video_transcoder/video_transcoder.zig`
+  — same rename (doc-comment mention and local alias respectively).
+- `design/matryoshka-api-reference-020.md` → `-021.md` — `NodeHandle` →
+  `ItemHandle` throughout; `### What is a NodeHandle?` → `### What is an
+  ItemHandle?` with new naming-rationale bullets and the `ih`/`handle`
+  shorthand note; historical Change-log row (002) left untouched.
+- `design/matryoshka-architecture-001.md` → `-002.md`,
+  `design/patterns-011.md` → `-012.md`,
+  `design/collected-context-004.md` → `-005.md` — same rename, wording only.
+- `design/rules-018.md` → `-019.md` — new "Handle naming (API 4)" rule under
+  Coding Standards; historical DOC 18c mentions of `NodeHandle` left as-is
+  (describe a past bug by its then-current name).
+- `design/context.md` — all pointers bumped to the new versions.
+- `design/STATUS.md` — Sources of Truth pointers; this entry; API 4 stage
+  line.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167) |
+| Live grep `NodeHandle` across `src/`, `examples/`, `tests/`, `stories/` | none |
+| Live grep `NodeHandle` across `design/*.md` | only historical/exempt mentions remain (api-reference-021 Change-log row 002, rules-019 DOC 18c section) |
+| Live grep `\bnh\b` | still zero — convention is doc-only, nothing to migrate |
+| Cross-reference check (context.md, STATUS.md pointers resolve) | all targets exist |
+
+**Next**: Stage 9 (docs/README/autodocs) continues; DOC 19+ TBD.
+
+---
 
 ### 2026-07-06 — DOC 18c (first-declaration doc-stub fix: rules-016 → -017,
 supersedes DOC 18b's disproved blank-line theory)

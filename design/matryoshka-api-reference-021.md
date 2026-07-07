@@ -19,13 +19,13 @@ Applications combine these blocks to create:
 Every object follows the same rule: one place, one state, at any moment.
 
 Matryoshka moves handles from one place to another.
-Everything transported is a `NodeHandle` (`*PolyNode`):
+Everything transported is a `ItemHandle` (`*PolyNode`):
 - events
 - requests
 - mailboxes
 - pools
 
-A `Slot` (`?NodeHandle`) is where a handle lives while it is yours.
+A `Slot` (`?ItemHandle`) is where a handle lives while it is yours.
 
 Module: `@import("matryoshka")`
 
@@ -38,19 +38,24 @@ Slot (holds a handle)            Empty Slot
 
 +-------------------+            +-------------------+
 |                   |            |                   |
-|    NodeHandle     |            |       null        |
+|    ItemHandle     |            |       null        |
 |                   |            |                   |
 +-------------------+            +-------------------+
 
-  Slot = ?NodeHandle               Slot = null
+  Slot = ?ItemHandle               Slot = null
 ```
 
-### What is a NodeHandle?
+### What is an ItemHandle?
 
-`NodeHandle` is a pointer to an embedded `PolyNode`.
+`ItemHandle` is a pointer to an embedded `PolyNode`.
 - Every user type embeds a `PolyNode`.
-- `NodeHandle` points to that embedded node.
+- `ItemHandle` points to that embedded node.
 - Matryoshka only sees the handle — not the surrounding type.
+
+Why `ItemHandle`, not `NodeHandle`:
+- `ItemHandle` describes what the caller holds — a matryoshka item, not how it's built.
+- `NodeHandle` leaked an implementation detail — the intrusive list node inside `PolyNode` — into a name meant for callers who never touch that detail.
+- Bare `handle` is fine as shorthand once the type is clear from context — most of this reference uses it that way already. Short variable name: `ih` (was `nh`).
 
 ```text
 User object                      Infrastructure object
@@ -63,19 +68,19 @@ User object                      Infrastructure object
 +------------------+             +------------------+
         |                                |
         v                                v
-   NodeHandle                     MailboxHandle
-   (*PolyNode)                    (= NodeHandle)
+   ItemHandle                     MailboxHandle
+   (*PolyNode)                    (= ItemHandle)
 ```
 
-All handles are `NodeHandle`. Specialized names are aliases:
+All handles are `ItemHandle`. Specialized names are aliases:
 
 ```text
-NodeHandle = *PolyNode
-    ├── MailboxHandle = NodeHandle
-    ├── PoolHandle    = NodeHandle
+ItemHandle = *PolyNode
+    ├── MailboxHandle = ItemHandle
+    ├── PoolHandle    = ItemHandle
     └── (any user handle)
 
-Slot = ?NodeHandle
+Slot = ?ItemHandle
 ```
 
 ---
@@ -102,8 +107,8 @@ pub const PolyNode = struct {
     tag:  *const anyopaque,
 };
 
-pub const NodeHandle = *PolyNode;
-pub const Slot = ?NodeHandle;
+pub const ItemHandle = *PolyNode;
+pub const Slot = ?ItemHandle;
 ```
 
 ### Functions
@@ -590,10 +595,10 @@ Before                           After
 
 sender Slot                      sender Slot
 +-------------------+            +-------------------+
-|    NodeHandle     |            |       null        |
+|    ItemHandle     |            |       null        |
 +-------------------+            +-------------------+
 
-mailbox.send(mbh, &slot)  ───►      Mailbox holds NodeHandle
+mailbox.send(mbh, &slot)  ───►      Mailbox holds ItemHandle
 ```
 
 ### receive — the handle moves in
@@ -603,17 +608,17 @@ Before                           After
 
 receiver Slot                    receiver Slot
 +-------------------+            +-------------------+
-|       null        |            |    NodeHandle     |
+|       null        |            |    ItemHandle     |
 +-------------------+            +-------------------+
 
-mailbox.receive(mbh, &slot, null)   Receiver holds NodeHandle
+mailbox.receive(mbh, &slot, null)   Receiver holds ItemHandle
 ```
 
 
 ### Types
 
 ```zig
-pub const MailboxHandle = NodeHandle;
+pub const MailboxHandle = ItemHandle;
 ```
 
 MailboxHandle is itself a *PolyNode.
@@ -733,7 +738,7 @@ Cancel and close in concurrent tasks:
 
 ```zig
 pub const ReceiveResult = union(enum) {
-    item: NodeHandle,
+    item: ItemHandle,
     closed: void,
     timeout: void,
     canceled: void,
@@ -859,7 +864,7 @@ FREE
 ### Types
 
 ```zig
-pub const PoolHandle = NodeHandle;
+pub const PoolHandle = ItemHandle;
 ```
 
 PoolHandle is itself a *PolyNode.
@@ -1037,7 +1042,7 @@ When a handle becomes available, the Master can react. This is the job-pool patt
 
 ```zig
 pub const PoolResult = union(enum) {
-    item: NodeHandle,
+    item: ItemHandle,
     closed: void,
     timeout: void,
     canceled: void,
@@ -1211,13 +1216,13 @@ Before transfer                  After transfer
 
   Slot (sender)                    Slot (sender)
   ┌─────────────┐                  ┌─────────────┐
-  │ NodeHandle  │                  │    null     │
+  │ ItemHandle  │                  │    null     │
   └─────────────┘                  └─────────────┘
                                            │
   mailbox.send(mbh, &slot)                    │ slot.* = null
                                            │
                      Mailbox ◄─────────────┘
-                     now holds NodeHandle
+                     now holds ItemHandle
 ```
 
 ### Defer-before-acquisition is safe
@@ -1648,6 +1653,7 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 021 | 2026-07-07 | API 4. Renamed `NodeHandle` → `ItemHandle` throughout — the old name leaked the intrusive-node implementation detail. `MailboxHandle`/`PoolHandle` aliases unchanged in meaning. `### What is a NodeHandle?` renamed to `### What is an ItemHandle?`, with a naming-rationale note and the `handle`/`ih` shorthand convention. Historical Change-log rows referencing `NodeHandle` left as-is. |
 | 020 | 2026-07-06 | DOC 18. Humanized the reference: dropped "ownership" framing throughout (section titles, diagrams, prose) in favor of plain language — a handle sits in exactly one place, in exactly one state, at any moment. Converted remaining prose paragraphs to staccato bullets. No content removed, no reordering, no new API surface.
 | 019 | 2026-07-05 | DOC 10. Dependency-ordered re-partition — no content change. send/receive ownership diagrams moved from Ownership model into mailbox. Tag identity (class, not instance) moved out of polynode to its own section after pool. Slot-based programming and Cooperative cleanup patterns moved after pool — every function they reference is now introduced first.
 | 018 | 2026-07-05 | DOC 9. Re-partitioned and reordered into a logical, teachable structure (was development-order). Generic `std.Io` material (Prolog, io.concurrent/Io.Group/Io.Select internals) moved to new `## Addendums` / `### Io 101` section at the end. Dropped the `Change manifest (NNN)` blocks (16 sections) — downstream-propagation notes fully subsumed by current main-body content, kept only as this Change log table. No information removed; no new API surface.

@@ -32,10 +32,10 @@ pub const PolyNode = struct {
 };
 
 /// Pointer to a PolyNode.
-pub const NodeHandle = *PolyNode;
+pub const ItemHandle = *PolyNode;
 
-/// Optional node pointer.
-pub const Slot = ?NodeHandle;
+/// Optional item pointer.
+pub const Slot = ?ItemHandle;
 
 /// Clears the intrusive list links.
 ///

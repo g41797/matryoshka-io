@@ -14,7 +14,7 @@
 //!                                                           │ process
 //!                                                           │ send worker_mbh ──► master_inbox
 //!                                                           ▼ exit
-//!  master ◄──worker_mbh (as NodeHandle)── master_inbox
+//!  master ◄──worker_mbh (as ItemHandle)── master_inbox
 //!  master: close + destroy worker_mbh (tag+pointer verified first)
 //! ```
 //!

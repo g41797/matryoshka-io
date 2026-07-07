@@ -1,9 +1,22 @@
-# Matryoshka Zig — Rules (017)
+# Matryoshka Zig — Rules (019)
 
-Versioned doc. Replaces [rules-016.md](rules-016.md).
+Versioned doc. Replaces [rules-018.md](rules-018.md).
 All coding, doc, and process rules for the project.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
-Companion: [patterns-011.md](patterns-011.md) — reusable coding patterns.
+Companion: [patterns-012.md](patterns-012.md) — reusable coding patterns.
+
+Change from rules-018: new Handle naming rule (API 4) — `NodeHandle` renamed
+to `ItemHandle` (leaked the intrusive-node implementation detail); short
+variable name `ih` (was `nh`); bare `handle` documented as acceptable
+shorthand. See "Handle naming" under Coding Standards below.
+
+Change from rules-017: adds a mkdocs-site formatting rule, found while
+building `kitchen/docs/`. `mkdocs`'s Python-Markdown renderer requires a
+blank line between a lead-in paragraph and the bullet/numbered list that
+follows it. Without the blank line, the list renders as flat inline prose
+with literal `-`/`1.` characters — GitHub markdown tolerates the missing
+blank line, mkdocs does not. 145 such spots were found and fixed across
+`kitchen/docs/*.md` in one pass. See "Documentation Rules" below.
 
 Change from rules-016: rules-016's blank-line hypothesis was wrong — tested
 empirically against a real headless-Chrome render of `zig build docs` output
@@ -376,6 +389,18 @@ Layer terminology.
 - Use "layer" not "block" everywhere — docs, tests, examples, directories.
 - Exception: Odin reference paths (`block1/`, `block2/`) are quoted literals naming Odin's own directories.
 
+Handle naming (API 4).
+- `ItemHandle` is the canonical name for `*PolyNode` — supersedes `NodeHandle`,
+  which leaked the intrusive-list-node implementation detail into a name
+  meant to describe what the caller holds.
+- Short variable name: `ih` (was `nh` — never actually used in code before
+  this rule, so nothing to migrate).
+- Bare `handle` is acceptable informal shorthand in prose/comments once the
+  type is clear from context — matches existing usage throughout the API
+  reference.
+- `MailboxHandle` / `PoolHandle` are unaffected — they already name the role,
+  not the implementation.
+
 General Zig style.
 - Explicit typing: `const x: T = ...` where the type is known.
 - Explicit dereference: `ptr.*.field`.
@@ -517,6 +542,18 @@ Banned words.
 * When extending an existing document:
 
    * Match the heading levels already in use.
+
+* mkdocs site pages (`kitchen/docs/*.md`) — blank line before every list.
+
+   * Always put a blank line between a lead-in paragraph/heading and the
+     bullet or numbered list that follows it.
+   * mkdocs's Python-Markdown renderer needs the blank line to recognize the
+     list. Without it, the list renders as flat inline text with literal
+     `-`/`1.` characters instead of an actual list.
+   * GitHub markdown renders such a list correctly even without the blank
+     line — do not rely on that as a check. Verify with
+     `mkdocs build --strict` (or by eye in `mkdocs serve`), not by reading
+     the raw `.md` source.
 
 ---
 

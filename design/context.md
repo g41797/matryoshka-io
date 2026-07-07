@@ -5,19 +5,19 @@
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 
-API reference: [matryoshka-api-reference-020.md](matryoshka-api-reference-020.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, receiveResult/getWaitResult, mailbox.wakeUpAll — dependency-ordered (DOC 9 + DOC 10): nothing is used before it is introduced; generic std.Io material lives in a trailing Addendums/Io 101 section; humanized (DOC 18): no "ownership" framing, staccato throughout
+API reference: [matryoshka-api-reference-021.md](matryoshka-api-reference-021.md) — signatures, types, error sets, cancel contract, PolyHelper (+ identifyNodeAs/identifySlotAs + create/destroy + no_create_destroy), slot-based programming, cooperative cleanup patterns, tag identity, infra transport patterns, invariants, thread-safety, complexity, receiveResult/getWaitResult, mailbox.wakeUpAll — dependency-ordered (DOC 9 + DOC 10): nothing is used before it is introduced; generic std.Io material lives in a trailing Addendums/Io 101 section; humanized (DOC 18): no "ownership" framing, staccato throughout; `ItemHandle` naming (API 4, supersedes `NodeHandle`)
 
 Manifesto: [matryoshka-manifesto-003.md](matryoshka-manifesto-003.md) — persuasion-first mindset doc (DOC 11 + DOC 12 plain-language pass): one constraint, Master is a role, four fundamental concepts, Io hidden behind Mailboxes; consolidates README + matryoshka-io-model + matryoshka-master + master-Io; supersedes matryoshka-manifesto.md and -002
 
-Architecture: [matryoshka-architecture-001.md](matryoshka-architecture-001.md) — why matryoshka exists, concept progression, flows, layers
+Architecture: [matryoshka-architecture-002.md](matryoshka-architecture-002.md) — why matryoshka exists, concept progression, flows, layers
 
-Latest context: [collected-context-004.md](collected-context-004.md) — project state only
+Latest context: [collected-context-005.md](collected-context-005.md) — project state only
 
 Thinking model: [matryoshka-model-003.md](matryoshka-model-003.md) — ownership mantra, three-category model, story structure, pool items are empty containers, when to allocate a Master
 
-Rules: [rules-017.md](rules-017.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item + Description as code rule + descriptive entry-point name rule (plain snake_case, not a quoted identifier — DOC 17) + example doc comment is file-level `//!`, not `///` on the entry point, and ASCII diagrams are fenced code blocks (DOC 17b/17c) + src/ doc comment rule + src/ terminology rule + src/ header staccato standard + sweep verification rule + first-declaration doc-stub rule: `const _doc_stub = void;` absorbs Zig autodoc's container-page splice when the first declaration carries a `///` comment (DOC 18c, supersedes the disproved DOC 18b blank-line theory))
+Rules: [rules-019.md](rules-019.md) — coding, doc, and process rules (+ example completeness rule + Master pattern rule + Observable by human rule + step function parameter rule + structural extraction signals + rules audit checklist item + Description as code rule + descriptive entry-point name rule (plain snake_case, not a quoted identifier — DOC 17) + example doc comment is file-level `//!`, not `///` on the entry point, and ASCII diagrams are fenced code blocks (DOC 17b/17c) + src/ doc comment rule + src/ terminology rule + src/ header staccato standard + sweep verification rule + first-declaration doc-stub rule (DOC 18c) + mkdocs blank-line-before-list rule (rules-018) + Handle naming rule: `ItemHandle` supersedes `NodeHandle`, short form `ih` (was `nh`), bare `handle` is acceptable shorthand (API 4))
 
-Patterns: [patterns-011.md](patterns-011.md) — unified pattern and idiom catalog (DOC 13 + DOC 14): slot/ownership idioms, PolyNode, Mailbox, Topology patterns (Request-Response, Pipeline, Fan-In, Fan-Out), Pool, Futures, Select, Group, cancellation, graceful shutdown, Master patterns — one entry per concept, absorbs the api-reference pattern idioms and the Odin-docs audit findings
+Patterns: [patterns-012.md](patterns-012.md) — unified pattern and idiom catalog (DOC 13 + DOC 14): slot/ownership idioms, PolyNode, Mailbox, Topology patterns (Request-Response, Pipeline, Fan-In, Fan-Out), Pool, Futures, Select, Group, cancellation, graceful shutdown, Master patterns — one entry per concept, absorbs the api-reference pattern idioms and the Odin-docs audit findings
 
 Plan: [matryoshka-io-implementation-plan-038.md](matryoshka-io-implementation-plan-038.md) — slim state-only plan; rules live in rules-015.md
 

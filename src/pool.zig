@@ -15,7 +15,7 @@ const _doc_stub = void;
 /// A pool, viewed as a PolyNode.
 ///
 /// Sendable, embeddable like any handle.
-pub const PoolHandle = polynode.NodeHandle;
+pub const PoolHandle = polynode.ItemHandle;
 
 /// Acquisition strategy for `get`.
 pub const GetMode = enum {
@@ -214,7 +214,7 @@ pub fn put(ph: PoolHandle, slot: *polynode.Slot) void {
 
     std.debug.assert(p.*.hooks != null);
 
-    const handle: polynode.NodeHandle = slot.*.?;
+    const handle: polynode.ItemHandle = slot.*.?;
     const tag: *const anyopaque = handle.*.tag;
     std.debug.assert(p.*.lists.contains(tag));
 
@@ -226,7 +226,7 @@ pub fn put(ph: PoolHandle, slot: *polynode.Slot) void {
     p.*.mutex.lockUncancelable(io);
 
     if (!p.*.closed.load(.monotonic) and slot.* != null) {
-        const kept: polynode.NodeHandle = slot.*.?;
+        const kept: polynode.ItemHandle = slot.*.?;
         std.debug.assert(!polynode.is_linked(kept));
         const kept_tag: *const anyopaque = kept.*.tag;
         if (p.*.lists.getPtr(kept_tag)) |list| {
@@ -317,7 +317,7 @@ pub const ConcurrentError = error{ConcurrencyUnavailable};
 ///
 /// `.item` means the handle now lives with the caller.
 pub const PoolResult = union(enum) {
-    item: polynode.NodeHandle,
+    item: polynode.ItemHandle,
     closed: void,
     timeout: void,
     canceled: void,

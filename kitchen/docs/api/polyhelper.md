@@ -1,6 +1,6 @@
 # API Reference — PolyHelper
 
-Want the manual walkthrough first? See [PolyNode, NodeHandle, Slot](polynode.md).
+Want the manual walkthrough first? See [PolyNode, ItemHandle, Slot](polynode.md).
 
 `PolyHelper` generates the tag, check, identification functions, and init for any PolyNode type.
 One call replaces all the manual boilerplate.

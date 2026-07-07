@@ -4,7 +4,7 @@
 //! Message queue for PolyNode objects.
 //!
 //! A mailbox:
-//! - queues NodeHandles
+//! - queues ItemHandles
 //! - supports blocking and non-blocking receive
 //! - holds handles while they are queued
 //! - is itself a PolyNode
@@ -14,7 +14,7 @@ const _doc_stub = void;
 
 /// A mailbox, viewed as a PolyNode.
 /// Sendable, storable, embeddable like any handle.
-pub const MailboxHandle = polynode.NodeHandle;
+pub const MailboxHandle = polynode.ItemHandle;
 
 /// Tag identity and lifecycle for the internal mailbox type.
 pub const MailboxPolyHelper = polynode.PolyHelper(_Mailbox);
@@ -76,7 +76,7 @@ pub fn send(mbh: MailboxHandle, slot: *polynode.Slot) error{Closed}!void {
 
     if (mbx.*.closed.load(.monotonic)) return error.Closed;
 
-    const handle: polynode.NodeHandle = slot.*.?;
+    const handle: polynode.ItemHandle = slot.*.?;
     mbx.*.list.append(&handle.*.node);
     mbx.*.len += 1;
     slot.* = null;
@@ -103,7 +103,7 @@ pub fn send_oob(mbh: MailboxHandle, slot: *polynode.Slot) error{Closed}!void {
 
     if (mbx.*.closed.load(.monotonic)) return error.Closed;
 
-    const handle: polynode.NodeHandle = slot.*.?;
+    const handle: polynode.ItemHandle = slot.*.?;
 
     if (mbx.*.oob_last) |last| {
         mbx.*.list.insertAfter(last, &handle.*.node);
@@ -293,7 +293,7 @@ pub const ConcurrentError = error{ConcurrencyUnavailable};
 ///
 /// `.item` means the handle now lives with the caller.
 pub const ReceiveResult = union(enum) {
-    item: polynode.NodeHandle,
+    item: polynode.ItemHandle,
     closed: void,
     timeout: void,
     canceled: void,

@@ -74,5 +74,5 @@ Master — moves handles like this one, never the objects directly.
 
 Next: [Mailbox](mailbox.md) — how a handle moves from one owner to another.
 
-See also: [API Reference — PolyNode, NodeHandle, Slot](../api/polynode.md) for the actual
+See also: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md) for the actual
 Zig types and functions.

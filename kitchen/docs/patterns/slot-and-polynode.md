@@ -1,7 +1,7 @@
 # Patterns — Slot and PolyNode Idioms
 
 Concepts: [Building Blocks — PolyNode](../building-blocks/polynode.md).
-API: [API Reference — PolyNode, NodeHandle, Slot](../api/polynode.md).
+API: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md).
 
 The slot rule in full: [API Reference — Tag Identity and Slot Programming](../api/tags-and-slots.md).
 
@@ -241,7 +241,7 @@ Why.
 
 When to use.
 
-- Recovering a concrete type from a `*PolyNode` handle (e.g. a `NodeHandle` received from a mailbox or returned by a pool event source).
+- Recovering a concrete type from a `*PolyNode` handle (e.g. an `ItemHandle` received from a mailbox or returned by a pool event source).
 
 Code shape.
 ```zig

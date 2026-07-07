@@ -191,7 +191,7 @@ const NetworkMaster = struct {
     }
 
     // Per free-buffer step: fill, wrap in a StreamContext, send to the ready queue.
-    fn onBuffer(self: *NetworkMaster, sel: *std.Io.Select(NetworkEvent), handle: NodeHandle) !void {
+    fn onBuffer(self: *NetworkMaster, sel: *std.Io.Select(NetworkEvent), handle: ItemHandle) !void {
         var buf_slot: Slot = handle;
 
         const vb: *VideoBuffer = VideoBufferPolyHelper.mustIdentifySlotAs(&buf_slot);
@@ -334,7 +334,7 @@ const mailbox = matryoshka.mailbox;
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
-const NodeHandle = polynode.NodeHandle;
+const ItemHandle = polynode.ItemHandle;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
 const Io = std.Io;

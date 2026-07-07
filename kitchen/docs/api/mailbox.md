@@ -22,10 +22,10 @@ Before                           After
 
 sender Slot                      sender Slot
 +-------------------+            +-------------------+
-|    NodeHandle     |            |       null        |
+|    ItemHandle     |            |       null        |
 +-------------------+            +-------------------+
 
-mailbox.send(mbh, &slot)  ───►      Mailbox holds NodeHandle
+mailbox.send(mbh, &slot)  ───►      Mailbox holds ItemHandle
 ```
 
 ## receive — the handle moves in
@@ -35,16 +35,16 @@ Before                           After
 
 receiver Slot                    receiver Slot
 +-------------------+            +-------------------+
-|       null        |            |    NodeHandle     |
+|       null        |            |    ItemHandle     |
 +-------------------+            +-------------------+
 
-mailbox.receive(mbh, &slot, null)   Receiver holds NodeHandle
+mailbox.receive(mbh, &slot, null)   Receiver holds ItemHandle
 ```
 
 ## Types
 
 ```zig
-pub const MailboxHandle = NodeHandle;
+pub const MailboxHandle = ItemHandle;
 ```
 
 MailboxHandle is itself a *PolyNode.
@@ -166,7 +166,7 @@ Cancel and close in concurrent tasks:
 
 ```zig
 pub const ReceiveResult = union(enum) {
-    item: NodeHandle,
+    item: ItemHandle,
     closed: void,
     timeout: void,
     canceled: void,

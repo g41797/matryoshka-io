@@ -1,4 +1,4 @@
-# API Reference — PolyNode, NodeHandle, Slot
+# API Reference — PolyNode, ItemHandle, Slot
 
 New to the concepts? See [Building Blocks — PolyNode](../building-blocks/polynode.md)
 first.
@@ -25,11 +25,11 @@ pub const PolyNode = struct {
     tag:  *const anyopaque,
 };
 
-pub const NodeHandle = *PolyNode;
-pub const Slot = ?NodeHandle;
+pub const ItemHandle = *PolyNode;
+pub const Slot = ?ItemHandle;
 ```
 
-`PolyNode` is the type every application object embeds. `NodeHandle` is a pointer to
+`PolyNode` is the type every application object embeds. `ItemHandle` is a pointer to
 that embedded field — the only thing Matryoshka moves. `Slot` is where a handle lives
 while it is yours.
 

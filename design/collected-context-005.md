@@ -1,6 +1,8 @@
-# Collected Context for Matryoshka Zig Implementation (v004)
+# Collected Context for Matryoshka Zig Implementation (v005)
 
-v004 holds project state only: stages, test counts, slot rule, idiom patterns, Io primitives, bug fixes, open items, key decisions. Supersedes v003.
+v005 holds project state only: stages, test counts, slot rule, idiom patterns, Io primitives, bug fixes, open items, key decisions. Supersedes v004.
+Change from v004: API 4 renamed `NodeHandle` → `ItemHandle` — the old name
+leaked the intrusive-node implementation detail. No other content changed.
 
 Model and rules moved to permanent docs:
 - [matryoshka-model-001.md](matryoshka-model-001.md) — thinking model, three-category model, story structure.
@@ -187,7 +189,7 @@ Three stages. No code before Stage 1 is complete.
 ## API Reference — Key Types and Patterns (carried from v003)
 
 ### src/polynode.zig
-- `PolyTag`, `PolyNode`, `NodeHandle`, `Slot`, `reset`, `is_linked`
+- `PolyTag`, `PolyNode`, `ItemHandle`, `Slot`, `reset`, `is_linked`
 - `PolyHelper(T)` — comptime branches on `@hasDecl(T, "no_create_destroy")`
 - Full helper: `TAG`, `isIt`, `cast`, `mustCast`, `init`, `create`, `destroy`
 - Reduced helper (infra types): `TAG`, `isIt`, `cast`, `mustCast`, `init`
@@ -300,5 +302,5 @@ try mailbox.send(mbh, &slot);   // send sets slot.* = null
 - Pool + Io is a complete coordination model.
 - Add Mailbox when: fan-in from independent senders, pipelines, heterogeneous ownership streams.
 
-### Slot/NodeHandle Naming
-- `MayItem` (Odin) → `Slot` (Zig): `?NodeHandle` = `?*PolyNode`
+### Slot/ItemHandle Naming
+- `MayItem` (Odin) → `Slot` (Zig): `?ItemHandle` = `?*PolyNode`

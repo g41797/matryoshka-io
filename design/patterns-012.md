@@ -1,6 +1,9 @@
-# Matryoshka Zig — Pattern and Idiom Catalog (011)
+# Matryoshka Zig — Pattern and Idiom Catalog (012)
 
-Versioned doc. Replaces [patterns-010.md](patterns-010.md).
+Versioned doc. Replaces [patterns-011.md](patterns-011.md).
+Change from patterns-011: API 4 renamed `NodeHandle` → `ItemHandle` — the old
+name leaked the intrusive-node implementation detail. No pattern content
+changed, wording only.
 One unified catalog. Every pattern and idiom appears once, in logical order.
 Companion: [rules-013.md](rules-013.md) — what is mandatory.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
@@ -246,7 +249,7 @@ Why.
 ### Node identification
 
 When to use.
-- Recovering a concrete type from a `*PolyNode` handle (e.g. a `NodeHandle` received from a mailbox or returned by a pool event source).
+- Recovering a concrete type from a `*PolyNode` handle (e.g. an `ItemHandle` received from a mailbox or returned by a pool event source).
 
 Code shape.
 ```zig

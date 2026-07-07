@@ -304,16 +304,16 @@ Two components might both think they own the same item.
 
 **Solution: a slot.**
 
-A `NodeHandle` is a pointer to a PolyNode:
+A `ItemHandle` is a pointer to a PolyNode:
 
 ```zig
-pub const NodeHandle = *PolyNode;
+pub const ItemHandle = *PolyNode;
 ```
 
 A `Slot` is where a handle lives while you own it:
 
 ```zig
-pub const Slot = ?NodeHandle;
+pub const Slot = ?ItemHandle;
 ```
 
 Two states:
@@ -322,7 +322,7 @@ Two states:
 ┌─────────────────┐          ┌─────────────────┐
 │   Full Slot     │          │   Empty Slot     │
 │                 │          │                 │
-│   NodeHandle    │          │      null       │
+│   ItemHandle    │          │      null       │
 │                 │          │                 │
 └─────────────────┘          └─────────────────┘
      You own it.               You don't own it.
@@ -567,7 +567,7 @@ Each layer builds on the previous one.
 Foundation of the system:
 
 - `PolyNode` — intrusive node with a type tag.
-- `NodeHandle` — pointer to a PolyNode.
+- `ItemHandle` — pointer to a PolyNode.
 - `Slot` — nullable handle representing ownership.
 - `PolyTag` — unique type marker.
 
@@ -580,7 +580,7 @@ Built on Layer 1:
 - `mailbox` — thread-safe ownership transport via queues.
 - `pool` — ownership recycling via get/put.
 
-Both operate on `NodeHandle` and `Slot`.
+Both operate on `ItemHandle` and `Slot`.
 Both are independent — you can use either without the other.
 
 ### Layer 3 — master (coordination)
@@ -617,5 +617,6 @@ Built on Layer 3:
 
 | Version | Date       | Description |
 |---------|------------|-------------|
+| 002     | 2026-07-07 | API 4. Renamed `NodeHandle` → `ItemHandle` throughout — the old name leaked the intrusive-node implementation detail. |
 | 001     | 2026-06-24 | First draft — four chapters: prequel, concept progression, flows, layer map |
 | 001     | 2026-06-26 | Step 2 (Tag): added tag-identity clarification — class not instance, infra handles, pointer comparison, protocol for role |

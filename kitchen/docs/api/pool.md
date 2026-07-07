@@ -42,7 +42,7 @@ FREE
 ## Types
 
 ```zig
-pub const PoolHandle = NodeHandle;
+pub const PoolHandle = ItemHandle;
 ```
 
 PoolHandle is itself a *PolyNode.
@@ -226,7 +226,7 @@ When a handle becomes available, the Master can react. This is the job-pool patt
 
 ```zig
 pub const PoolResult = union(enum) {
-    item: NodeHandle,
+    item: ItemHandle,
     closed: void,
     timeout: void,
     canceled: void,
