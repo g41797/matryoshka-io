@@ -38,6 +38,6 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: kitchen/output
+          path: docs
 
       - uses: actions/deploy-pages@v4

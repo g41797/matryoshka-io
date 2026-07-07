@@ -196,9 +196,85 @@ polynode.zig. rules-016.md → rules-017.md. DONE (167/167 tests unchanged).
 API 4 — Renamed `NodeHandle` → `ItemHandle` (src, examples, stories, design docs);
 documented `ih` short-form and `handle` shorthand convention. DONE (167/167
 tests unchanged). Plan version pending.
-Current: 167/167 tests. API 4 DONE.
+API 4b — Propagated the rename to `kitchen/docs/` site pages and regenerated
+autodocs. DONE.
+DOC 19 — moved GitHub Pages generated site from `kitchen/output/` to
+root-level `docs/` (standard Pages folder name). DONE.
+Current: 167/167 tests. DOC 19 DONE.
 
 ## Session Log
+
+### 2026-07-07 — DOC 19 (move GitHub Pages output to root-level `docs/`)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner directed: GitHub Pages' standard folder convention is a root-level
+`docs/`, so the mkdocs-generated site should build there instead of
+`kitchen/output/`. `kitchen/docs/` (the mkdocs *source* markdown tree) is
+unrelated and untouched — only the *generated output* location moved. The
+new `docs/` folder stays untracked by git (build artifact, not source),
+same treatment `kitchen/output/` already had.
+
+**Changes**:
+- `kitchen/mkdocs.yml` — `site_dir: output` → `site_dir: ../docs` (relative
+  to `kitchen/`, lands at repo-root `docs/`).
+- `.gitignore` — `/kitchen/output/` → `/docs/`.
+- `.github/workflows/docs.yml` — `upload-pages-artifact` `path:
+  kitchen/output` → `path: docs`.
+- `kitchen/tools/build_site.sh` — comment and final echo updated to
+  reference `docs/` instead of `kitchen/output/`.
+- `kitchen/tools/preview_site.sh` — no change; `mkdocs serve` doesn't use
+  `site_dir`.
+- Deleted stale local `kitchen/output/` directory.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` (output → `zig-out/build_site.log`) | succeeded — `docs/index.html` built at repo root |
+| `git status`/`git check-ignore -v docs` | `docs/` ignored, no untracked artifact appears |
+| `bash kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167) |
+
+**Next**: owner confirmed local preview via `bash kitchen/tools/preview_site.sh`
+works correctly. Stage 9 continues, DOC 20+ TBD.
+
+---
+
+### 2026-07-07 — API 4b (propagate `ItemHandle` rename to kitchen/docs, regenerate autodocs)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Follow-up to API 4: owner asked to regenerate `kitchen/docs` and confirm
+`NodeHandle` was gone from it. API 4 only touched `src/`, `examples/`,
+`stories/`, and `design/*.md` — the hand-authored mkdocs content pages under
+`kitchen/docs/api/`, `kitchen/docs/patterns/`, `kitchen/docs/building-blocks/`
+(split out of the API reference in an earlier DOC stage) and
+`kitchen/mkdocs.yml`'s nav title still said `NodeHandle`. These pages are
+site content, not no-overwrite-versioned design docs, so edited in place
+rather than creating new versions.
+
+**Changes**:
+- `kitchen/docs/building-blocks/polynode.md`, `kitchen/docs/api/pool.md`,
+  `kitchen/docs/patterns/slot-and-polynode.md`, `kitchen/docs/api/mailbox.md`,
+  `kitchen/docs/api/tags-and-slots.md`, `kitchen/docs/api/polyhelper.md`,
+  `kitchen/docs/api/polynode.md`, `kitchen/mkdocs.yml` — `NodeHandle` →
+  `ItemHandle` (wording only, including the nav entry "PolyNode & NodeHandle
+  & Slot" → "PolyNode & ItemHandle & Slot").
+- `kitchen/docs/apidocs/`, `kitchen/docs/examplesdocs/` — regenerated via
+  `zig build docs` from the renamed `src/*.zig`.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `zig build docs` (output → `zig-out/docs.log`) | clean, zero output |
+| Live grep `NodeHandle` across `kitchen/docs/` + `kitchen/mkdocs.yml` (incl. regenerated apidocs/examplesdocs) | none |
+
+**Next**: Stage 9 continues; DOC 19+ TBD.
+
+---
 
 ### 2026-07-07 — API 4 (`NodeHandle` → `ItemHandle` rename; naming convention documented)
 

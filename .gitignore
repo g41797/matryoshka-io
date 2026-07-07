@@ -12,6 +12,6 @@ site/
 #!docs_site/docs/api/.gitkeep
 /kitchen/docs/apidocs/
 /kitchen/docs/examplesdocs/
-/kitchen/output/
+/docs/
 /zig-pkg/
 .antigravitycli/

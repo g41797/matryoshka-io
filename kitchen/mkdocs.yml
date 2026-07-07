@@ -1,6 +1,6 @@
 site_name: matryoshka-io
 docs_dir: docs
-site_dir: output
+site_dir: ../docs
 site_description: Building Blocks for Modular Monoliths in Zig
 repo_url: https://github.com/g41797/matryoshka-io/
 repo_name: matryoshka-io on GitHub

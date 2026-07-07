@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build_site.sh
 # Generates Zig autodocs then builds the full MkDocs static site.
-# Output goes to kitchen/output/. Run from anywhere.
+# Output goes to docs/ (repo root). Run from anywhere.
 
 set -e
 
@@ -22,4 +22,4 @@ cd "$KITCHEN_DIR"
 mkdocs build -f mkdocs.yml
 
 echo "--- Done ---"
-echo "Output: $KITCHEN_DIR/output/"
+echo "Output: $(dirname "$KITCHEN_DIR")/docs/"
