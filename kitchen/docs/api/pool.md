@@ -4,8 +4,6 @@ New to the concept? See [Building Blocks — Pool](../building-blocks/pool.md) f
 
 Lifecycle management with user supplied hooks.
 
-Module: `@import("matryoshka").pool`
-
 ```zig
 const pool = @import("matryoshka").pool;
 

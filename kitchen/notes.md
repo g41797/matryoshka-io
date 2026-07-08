@@ -31,6 +31,20 @@ a file under `examples/`/`stories/` means updating both the relevant group
 page above and `kitchen/mkdocs.yml`'s Examples Catalog `nav:` block — the
 generation script only mirrors `.zig` files, it never touches either.
 
+## kitchen/diagrams/ and kitchen/docs/assets/diagrams/
+
+Graphviz `dot` diagrams for `kitchen/docs/the-shape.md`. Different rule from
+everything else on this page — **committed to git, not gitignored**:
+
+- `kitchen/diagrams/src/*.dot` — hand-authored source, human/AI-readable.
+- `kitchen/docs/assets/diagrams/*.svg` + `*.png` — rendered output, tracked
+  alongside the source so hand-tweaks to a rendered image survive.
+
+`kitchen/tools/gen_diagrams.sh` renders `.dot` → `.svg`/`.png`. Manual-run
+only — NOT wired into `build_site.sh`/`preview_site.sh`/CI, unlike every
+other generator on this page. Run it by hand after editing a `.dot` file,
+review the diff, commit deliberately.
+
 ## kitchen/tools/fix_md_lists.sh
 
 Permanent script, part of the doc build/preview/CI sequence (runs after

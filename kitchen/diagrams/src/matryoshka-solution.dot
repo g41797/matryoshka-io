@@ -1,0 +1,67 @@
+// Rendered by kitchen/tools/gen_diagrams.sh. Hand-edited source, not auto-generated.
+digraph matryoshka_solution {
+    rankdir=TB;
+    splines=ortho;
+    bgcolor="transparent";
+    labelloc="t";
+    label="Same system with Matryoshka-Io";
+    fontname="Helvetica";
+    fontsize=14;
+    fontcolor="#607d8b";
+    nodesep=0.7;
+    ranksep=0.5;
+
+    node [
+        shape=ellipse,
+        style="filled",
+        fillcolor="#eceff1",
+        color="#607d8b",
+        fontname="Helvetica",
+        fontsize=12,
+        fontcolor="#2f3b42",
+        margin="0.2,0.12"
+    ];
+    edge [
+        color="#78909c",
+        fontname="Helvetica",
+        fontsize=10,
+        fontcolor="#607d8b"
+    ];
+
+    client   [label="TCP client"];
+    io       [label="Zig std.Io", fillcolor="#e0e6ea"];
+    acceptor [label="Acceptor\nbuilds Request"];
+    session  [label="Session\nhandles"];
+    journal  [label="Journal\nwrites"];
+
+    // Mailbox: a transfer station, not storage. Objects pass through,
+    // they do not live here — small flat device, not a cylinder.
+    node [shape=box, style="filled", fillcolor="#dbe4ec", color="#5b7a94",
+          fontcolor="#243642", fontsize=10, height=0.35, margin="0.15,0.03"];
+    mailbox1 [label="Mailbox (fan-in / fan-out)"];
+    mailbox2 [label="Mailbox (fan-in / fan-out)"];
+
+    client -> io -> acceptor;
+    acceptor -> mailbox1 -> session [xlabel="Request"];
+    session -> mailbox2 -> journal [xlabel="Request"];
+
+    // PolyNode: a small tag on the object, not a separate component.
+    node [shape=tab, style="filled", fillcolor="#dbe4ec", color="#5b7a94", fontcolor="#243642", fontsize=10];
+    polynode [label="PolyNode\nidentifies Request"];
+    { rank=same; acceptor; polynode; }
+    acceptor -> polynode [style=dotted, arrowhead=none];
+
+    // Pool: a warehouse of reusable objects. Cylinder is the storage
+    // shape; Mailbox above stays a flat transfer device, not storage.
+    node [shape=cylinder, style="filled", fillcolor="#dbe4ec", color="#5b7a94", fontcolor="#243642", fontsize=11];
+    pool [label="Pool\nreuses items"];
+    { rank=same; journal; pool; }
+    pool -> acceptor [xlabel="leases", dir=forward];
+    journal -> pool [xlabel="returns", style=dashed, dir=forward];
+
+    // Hooks: caller-supplied create/reset/destroy, the only place Pool
+    // touches a concrete type.
+    node [shape=box, style="rounded,filled", fillcolor="#f0ece0", color="#8a7a4e", fontcolor="#4a3f22", fontsize=10];
+    hooks [label="Your hooks\ncreate / reset / destroy"];
+    hooks -> pool [xlabel="manages types", color="#8a7a4e", fontcolor="#8a7a4e", dir=forward];
+}

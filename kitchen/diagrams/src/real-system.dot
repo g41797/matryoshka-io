@@ -1,0 +1,52 @@
+// Rendered by kitchen/tools/gen_diagrams.sh. Hand-edited source, not auto-generated.
+digraph real_system {
+    rankdir=TB;
+    splines=ortho;
+    bgcolor="transparent";
+    labelloc="t";
+    label="A real system: TCP request service";
+    fontname="Helvetica";
+    fontsize=14;
+    fontcolor="#607d8b";
+    nodesep=0.7;
+    ranksep=0.55;
+
+    node [
+        shape=ellipse,
+        style="filled",
+        fillcolor="#eceff1",
+        color="#607d8b",
+        fontname="Helvetica",
+        fontsize=12,
+        fontcolor="#2f3b42",
+        margin="0.2,0.12"
+    ];
+    edge [
+        color="#78909c",
+        fontname="Helvetica",
+        fontsize=10,
+        fontcolor="#607d8b"
+    ];
+
+    client   [label="TCP client"];
+    io       [label="Zig std.Io", fillcolor="#e0e6ea"];
+    acceptor [label="Acceptor\nbuilds Request"];
+    session  [label="Session\nhandles"];
+    journal  [label="Journal\nwrites"];
+
+    client -> io -> acceptor;
+    acceptor -> session [xlabel="Request"];
+    session  -> journal [xlabel="Request"];
+
+    node [shape=note, style="filled", fillcolor="#f3e0da", color="#b0644a", fontcolor="#6e3a29", fontsize=10];
+    q1 [label="Who owns the Request?"];
+    q2 [label="Allocate every request?"];
+    q3 [label="How do these exchange work?"];
+
+    edge [style=dotted, color="#b0644a", arrowhead=none];
+    { rank=same; acceptor; q1; q2; }
+    acceptor -> q1;
+    acceptor -> q2;
+    { rank=same; session; q3; }
+    session -> q3;
+}

@@ -27,8 +27,6 @@ Everything transported is a `ItemHandle` (`*PolyNode`):
 
 A `Slot` (`?ItemHandle`) is where a handle lives while it is yours.
 
-Module: `@import("matryoshka")`
-
 ---
 
 ## One place, one state

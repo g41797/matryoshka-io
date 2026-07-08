@@ -5,8 +5,6 @@ first.
 
 This page covers the actual Zig types and functions.
 
-Module: `@import("matryoshka").polynode`
-
 ```zig
 const polynode = @import("matryoshka").polynode;
 

@@ -4,8 +4,6 @@ New to the concept? See [Building Blocks — Mailbox](../building-blocks/mailbox
 
 Sends handles between execution contexts.
 
-Module: `@import("matryoshka").mailbox`
-
 ```zig
 const mailbox = @import("matryoshka").mailbox;
 

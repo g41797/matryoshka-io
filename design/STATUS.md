@@ -221,8 +221,97 @@ example to `kitchen/mkdocs.yml`'s Examples Catalog `nav:` under its group;
 new rule (rules-020 → -021): examples-catalog nav sync — any `examples/`/
 `stories/` file add/remove/rename must update `nav:` + group pages.
 Current: 167/167 tests. DOC 20 + follow-up DONE.
+DOC 21 — "The Shape of a Real System" page (kitchen/docs/the-shape.md): two
+Graphviz diagrams (real-system.dot / matryoshka-solution.dot) mapping three
+ownership/reuse/coupling pains onto PolyNode/Mailbox/Pool, wired into
+mkdocs nav after manifesto.md. New permanent kitchen/diagrams/src/ +
+kitchen/tools/gen_diagrams.sh (manual-run, committed output, not CI-wired).
+README insertion deferred by owner. DONE (doc-only, 167/167 tests
+unchanged). Plan version pending.
 
 ## Session Log
+
+### 2026-07-08 — DOC 21: "The Shape of a Real System" page + diagram tooling
+
+**Participants**: human (owner), Claude (agent), Opus subagent (diagram +
+prose drafting).
+
+**Summary**
+Owner needed a way to "sell" Matryoshka-Io to readers across GitHub,
+GitHub Pages, and forums without reading like marketing copy — a prior
+ChatGPT attempt didn't land. Explored and rejected: a dedicated landing
+page (too ad-like), story-telling format, Mermaid diagrams (not supported
+on Discord/forums). Settled on a new docs page — not a landing page —
+placed after the manifesto: short staccato prose plus two Graphviz-rendered
+diagrams (problem, then problem-with-Matryoshka), following the same
+before/after layout so a reader recognizes their own system in five
+seconds.
+
+Iterated with the owner and an Opus subagent through several diagram
+revisions:
+- Initial design (TCP request service with Acceptor/Session/Journal/
+  Background flusher/Timers) was cut down — flusher and timers removed as
+  distracting from the three teaching points, straight `splines=ortho`
+  routing replacing curved default edges for an ASCII-diagram-like direct
+  read.
+- Fixed a real Graphviz limitation: ortho-routed edges silently drop
+  `label=`; switched all edge text to `xlabel=`.
+- Corrected diagram vocabulary through several rounds: Mailbox is not
+  storage (not a cylinder, not a queue) — it is a transfer/handoff point,
+  drawn as a small flat device object flow *through*, not live in. Pool is
+  genuinely storage (a warehouse of reusable items) — cylinder shape.
+  PolyNode is a small tag attached to the object, not a separate floating
+  component (`shape=tab`). Process/role nodes (client, std.Io, Acceptor,
+  Session, Journal) are ellipses, not rounded boxes.
+- Added the Pool leases/returns cycle (was one-directional at first, owner
+  caught the missing return-to-Pool edge) and a "Your hooks — create /
+  reset / destroy" node showing Pool's type-agnostic extension point.
+
+**Changes**:
+- `kitchen/diagrams/src/real-system.dot` (new) — the problem diagram:
+  TCP client → std.Io → Acceptor → Session → Journal, three terse
+  callout questions (ownership, allocation, coupling).
+- `kitchen/diagrams/src/matryoshka-solution.dot` (new) — same layout,
+  same `std.Io` box unchanged, with Mailbox (transfer device) inline on
+  both handoffs, Pool (cylinder) leasing/returning at Acceptor, "Your
+  hooks" feeding Pool, PolyNode (tag) on the Request.
+- `kitchen/tools/gen_diagrams.sh` (new, permanent) — thin `dot -Tsvg`/
+  `-Tpng` wrapper over `kitchen/diagrams/src/*.dot`, output to
+  `kitchen/docs/assets/diagrams/`. Manual-run only, not wired into
+  `build_site.sh`/`preview_site.sh`/CI — rendered output is committed
+  and may be hand-tweaked without an automated rebuild silently
+  overwriting it.
+- `kitchen/docs/the-shape.md` (new) — "The Shape of a Real System" page,
+  staccato/bulleted throughout (no prose paragraphs), both diagrams
+  embedded, three building-block bullets linking to
+  `building-blocks/polynode.md`/`mailbox.md`/`pool.md`.
+- `kitchen/mkdocs.yml` — added "The Shape of a Real System" to `nav:`,
+  directly after "The Manifesto".
+- `kitchen/notes.md` — new section documenting `kitchen/diagrams/` +
+  `kitchen/docs/assets/diagrams/` as committed source/output (the one
+  exception to "generated = gitignored" on this page) and
+  `gen_diagrams.sh`'s manual-run-only status.
+- README insertion explicitly deferred — owner asked to wire nav only for
+  now.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `dot -Tsvg`/`-Tpng` on both `.dot` sources | clean, zero warnings (after `xlabel` fix) |
+| AI-sh/banned-word grep (`rules-023.md` list) on `the-shape.md` + both `.dot` files | zero hits |
+| `bash kitchen/tools/gen_diagrams.sh` | renders both diagrams to `kitchen/docs/assets/diagrams/*.svg`/`*.png` |
+| `git status --short` on new paths | untracked (not gitignored) — confirmed intentional, owner runs `git add` |
+
+**Next**: owner to run `kitchen/tools/build_site.sh` and
+`kitchen/build_and_test_debug.sh` locally to confirm the site builds
+clean and tests are unaffected (docs-only change, no `src/` touched).
+README insertion is a follow-up, owner's call on timing. Stage 9
+continues. DOC 22+ TBD.
+
+---
+
+### 2026-07-08 — blank-line-before-list auto-fix script
 
 ### 2026-07-08 — blank-line-before-list auto-fix script
 

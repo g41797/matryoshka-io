@@ -33,6 +33,7 @@ theme:
 nav:
   - Home: index.md
   - The Manifesto: manifesto.md
+  - The Shape of a Real System: the-shape.md
 #  - Story — Print Server:
 #      - Discussion: story/print-server/discussion.md
 #      - Requirements: story/print-server/requirements.md
