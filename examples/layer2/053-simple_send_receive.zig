@@ -20,50 +20,50 @@ pub fn simple_send_receive(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
     {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, allocator);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 53;
+        defer items.freeSlot(&slot, allocator);
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 53;
         try mailbox.send(mbh, &slot);
     }
 
     {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, allocator);
-        try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 5.3;
+        defer items.freeSlot(&slot, allocator);
+        try items.Sensor.SensorPolyHelper.create(allocator, &slot);
+        items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 5.3;
         try mailbox.send(mbh, &slot);
     }
 
     {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, allocator);
+        defer items.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, 1_000_000_000);
-        const ev_recv: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
+        const ev_recv: *items.Event = items.Event.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
         try helpers.expect(error.SimpleSendReceiveFailed, ev_recv.*.code == 53, "wrong event code");
         std.log.info("received Event code={d}", .{ev_recv.*.code});
     }
 
     {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, allocator);
+        defer items.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, 1_000_000_000);
-        const sn_recv: *types.Sensor = types.SensorPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
+        const sn_recv: *items.Sensor = items.Sensor.SensorPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
         try helpers.expect(error.SimpleSendReceiveFailed, sn_recv.*.value == 5.3, "wrong sensor value");
         std.log.info("received Sensor value={d:.1}", .{sn_recv.*.value});
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

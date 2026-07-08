@@ -90,10 +90,6 @@ matryoshka-io/
 │   ├── pool.zig             ← ConcurrentError, PoolResult, getWaitResult, get_wait_future
 │   └── internal/
 │       └── cond_timeout.zig
-├── helpers/
-│   ├── helpers.zig          ← expect, clearList, freeItem, freeList, freeSlot, createByTag,
-│   │                           destroyByTag, AlwaysCreateCtx, CappedPoolCtx
-│   └── types.zig            ← Event, Sensor, ShutdownCommand, Timer + PolyHelpers
 ├── tests/
 │   ├── matryoshka_tests.zig ← root: imports all test files
 │   ├── layer1_polynode.zig
@@ -110,6 +106,9 @@ matryoshka-io/
 │   └── layer4_cross.zig     ← Stage 8 (15 tests, scenarios 32-41, 57-61)
 ├── examples/
 │   ├── examples.zig
+│   ├── items/                ← Event, Sensor, ShutdownCommand, Timer + PolyHelpers, items.zig
+│   ├── hooks/                 ← AlwaysCreateHooks.zig, CappedPoolHooks.zig, hooks.zig
+│   ├── helpers/                ← expect, clearList
 │   ├── layer1/              ← 5 examples (scenarios 21-25)
 │   ├── layer2/              ← 10 examples (scenarios 53-62)
 │   ├── layer3/              ← 4 examples (scenarios 89-92)
@@ -200,13 +199,15 @@ Three stages. No code before Stage 1 is complete.
 ### src/pool.zig additions (Stage 7.a)
 - `ConcurrentError`, `PoolResult`, `getWaitResult`, `get_wait_future`
 
-### helpers/types.zig
-- `Event`, `Sensor`, `ShutdownCommand`, `Timer` + PolyHelpers for each
+### examples/items/ (INTR 6)
+- `Event.zig`, `Sensor.zig`, `ShutdownCommand.zig`, `Timer.zig` — one PolyHelper per file
+- `items.zig` — re-exports the four types + `freeItem`, `freeList`, `freeSlot`, `createByTag`, `destroyByTag`
 
-### helpers/helpers.zig
-- `expect`, `clearList`, `freeItem`, `freeList`, `freeSlot`
-- `createByTag`, `destroyByTag`
-- `AlwaysCreateCtx`, `CappedPoolCtx`
+### examples/hooks/ (INTR 6)
+- `AlwaysCreateHooks.zig`, `CappedPoolHooks.zig`, `hooks.zig`
+
+### examples/helpers/ (INTR 6)
+- `helpers.zig` — `expect`, `clearList`
 
 ---
 

@@ -18,8 +18,8 @@
 //!
 
 pub fn basic_recycler(allocator: std.mem.Allocator, io: std.Io) !void {
-    var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
 
     const ph = try pool.new(io, allocator);
     defer {
@@ -31,27 +31,28 @@ pub fn basic_recycler(allocator: std.mem.Allocator, io: std.Io) !void {
     var slot: Slot = null;
     defer pool.put(ph, &slot);
 
-    try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-    const ev = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
+    try pool.get(ph, items.Event.EventPolyHelper.TAG, .available_or_new, &slot);
+    const ev = items.Event.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
     ev.code = 89;
     std.log.info("got fresh Event, set code={d}", .{ev.code});
 
     pool.put(ph, &slot);
     std.log.info("returned Event to pool", .{});
 
-    try pool.get(ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-    const ev2 = types.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
+    try pool.get(ph, items.Event.EventPolyHelper.TAG, .available_or_new, &slot);
+    const ev2 = items.Event.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
     std.log.info("recycled Event code={d}", .{ev2.code});
     try helpers.expect(error.BasicRecyclerFailed, ev2.code == 89, "recycled item lost its data");
 
-    types.EventPolyHelper.destroy(allocator, &slot);
+    items.Event.EventPolyHelper.destroy(allocator, &slot);
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

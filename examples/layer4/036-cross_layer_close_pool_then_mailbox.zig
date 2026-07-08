@@ -22,8 +22,8 @@
 
 pub fn close_ordering_pool_then_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
 
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
@@ -48,8 +48,8 @@ const N_MAILBOX: usize = 1;
 fn seedPool(ph: PoolHandle, count: usize) !void {
     for (0..count) |i| {
         var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         pool.put(ph, &slot);
     }
 }
@@ -57,9 +57,9 @@ fn seedPool(ph: PoolHandle, count: usize) !void {
 fn seedMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
     for (0..count) |i| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(alloc, &slot);
-        try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(100 + i);
+        defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+        try items.Event.EventPolyHelper.create(alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(100 + i);
         try mailbox.send(mbh, &slot);
     }
 }
@@ -76,14 +76,16 @@ fn closeMailboxAndFree(mbh: MailboxHandle, alloc: std.mem.Allocator) usize {
     while (rem.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
         polynode.reset(poly);
-        helpers.freeItem(poly, alloc);
+        items.freeItem(poly, alloc);
         freed += 1;
     }
     mailbox.destroy(mbh, alloc);
     return freed;
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -92,4 +94,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

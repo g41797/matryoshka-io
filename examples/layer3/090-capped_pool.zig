@@ -22,8 +22,8 @@
 
 pub fn backpressure_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const cap: usize = 2;
-    var pool_ctx: helpers.CappedPoolCtx = .{ .alloc = allocator, .cap = cap, .io = io };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.CappedPoolHooks = .{ .alloc = allocator, .cap = cap, .io = io };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
 
     const ph = try pool.new(io, allocator);
     defer {
@@ -46,8 +46,8 @@ pub fn backpressure_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     var in_pool: usize = 0;
     while (true) {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        pool.get(ph, types.EventPolyHelper.TAG, .available_only, &slot) catch break;
+        defer items.Event.EventPolyHelper.destroy(allocator, &slot);
+        pool.get(ph, items.Event.EventPolyHelper.TAG, .available_only, &slot) catch break;
         in_pool += 1;
     }
 
@@ -70,16 +70,17 @@ fn workerFn(ctx: *WorkerCtx) void {
     while (i < iterations) : (i += 1) {
         var slot: Slot = null;
         defer pool.put(ctx.ph, &slot);
-        pool.get(ctx.ph, types.EventPolyHelper.TAG, .available_or_new, &slot) catch return;
+        pool.get(ctx.ph, items.Event.EventPolyHelper.TAG, .available_or_new, &slot) catch return;
         std.log.debug("worker: got item", .{});
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

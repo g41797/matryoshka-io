@@ -24,7 +24,7 @@ pub fn timeout_on_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -59,7 +59,7 @@ const Ctx = struct {
                 },
                 else => return err,
             };
-            defer helpers.freeSlot(&slot, self.alloc);
+            defer items.freeSlot(&slot, self.alloc);
             std.log.info("receive: got item (unexpected)", .{});
             break;
         }
@@ -68,23 +68,23 @@ const Ctx = struct {
 
     fn sendAndReceive(self: *Ctx) !void {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(self.alloc, &slot);
-        try types.EventPolyHelper.create(self.alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 9;
+        defer items.Event.EventPolyHelper.destroy(self.alloc, &slot);
+        try items.Event.EventPolyHelper.create(self.alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 9;
         try mailbox.send(self.mbh, &slot);
 
         var received: Slot = null;
-        defer helpers.freeSlot(&received, self.alloc);
+        defer items.freeSlot(&received, self.alloc);
         try mailbox.receive(self.mbh, &received, TIMEOUT_NS);
-        std.log.info("receive after send: code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
+        std.log.info("receive after send: code={d}", .{items.Event.EventPolyHelper.mustIdentifySlotAs(&received).code});
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

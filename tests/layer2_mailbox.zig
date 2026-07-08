@@ -631,13 +631,13 @@ const Ctx50Sender = struct {
 fn sender50_event(ctx: *Ctx50Sender) void {
     var slot: Slot = null;
     EventPolyHelper.create(ctx.*.alloc, &slot) catch return;
-    mailbox.send(ctx.*.mbh, &slot) catch helpers.freeSlot(&slot, ctx.*.alloc);
+    mailbox.send(ctx.*.mbh, &slot) catch items.freeSlot(&slot, ctx.*.alloc);
 }
 
 fn sender50_sensor(ctx: *Ctx50Sender) void {
     var slot: Slot = null;
     SensorPolyHelper.create(ctx.*.alloc, &slot) catch return;
-    mailbox.send(ctx.*.mbh, &slot) catch helpers.freeSlot(&slot, ctx.*.alloc);
+    mailbox.send(ctx.*.mbh, &slot) catch items.freeSlot(&slot, ctx.*.alloc);
 }
 
 test "50 - fan-in (3+1): 3 sender threads, main receives all" {
@@ -760,7 +760,7 @@ fn sender52_event(ctx: *Ctx52Sender) void {
         var slot: Slot = null;
         EventPolyHelper.create(ctx.*.alloc, &slot) catch break;
         mailbox.send(ctx.*.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.*.alloc);
+            items.freeSlot(&slot, ctx.*.alloc);
             break;
         };
         ctx.*.items_sent += 1;
@@ -772,7 +772,7 @@ fn sender52_sensor(ctx: *Ctx52Sender) void {
         var slot: Slot = null;
         SensorPolyHelper.create(ctx.*.alloc, &slot) catch break;
         mailbox.send(ctx.*.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.*.alloc);
+            items.freeSlot(&slot, ctx.*.alloc);
             break;
         };
         ctx.*.items_sent += 1;
@@ -788,7 +788,7 @@ fn sender52_alt(ctx: *Ctx52AltSender) void {
             SensorPolyHelper.create(ctx.*.alloc, &slot) catch break;
         }
         mailbox.send(ctx.*.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.*.alloc);
+            items.freeSlot(&slot, ctx.*.alloc);
             break;
         };
         ctx.*.items_sent += 1;
@@ -1049,7 +1049,8 @@ test "wakeUpAll with no waiters does not affect next receive" {
     try testing.expectError(error.Timeout, mailbox.receive(mbh, &slot, 0));
 }
 
-const helpers = @import("helpers");
+const items = @import("examples").items;
+const helpers = @import("examples").helpers;
 
 const matryoshka = @import("matryoshka");
 const polynode = matryoshka.polynode;
@@ -1058,13 +1059,12 @@ const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 
-const types = helpers.types;
-const Event = types.Event;
-const Sensor = types.Sensor;
-const EventPolyHelper = types.EventPolyHelper;
-const SensorPolyHelper = types.SensorPolyHelper;
+const Event = items.Event;
+const Sensor = items.Sensor;
+const EventPolyHelper = items.Event.EventPolyHelper;
+const SensorPolyHelper = items.Sensor.SensorPolyHelper;
 const std = @import("std");
 const testing = std.testing;
 const Thread = std.Thread;
 const Io = std.Io;
-const freeItem = helpers.freeItem;
+const freeItem = items.freeItem;

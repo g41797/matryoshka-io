@@ -21,7 +21,7 @@ pub fn timer_via_mailbox(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -60,9 +60,9 @@ fn timerFn(ctx: *TimerCtx) anyerror!void {
     for (0..N_TICKS) |_| {
         try std.Io.Timeout.sleep(sleep_t, ctx.io);
         var slot: Slot = null;
-        try types.TimerPolyHelper.create(ctx.alloc, &slot);
+        try items.Timer.TimerPolyHelper.create(ctx.alloc, &slot);
         mailbox.send(ctx.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
@@ -80,14 +80,14 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     var received: usize = 0;
     while (received < ctx.expected) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         try mailbox.receive(ctx.mbh, &slot, null);
         received += 1;
 
-        if (types.TimerPolyHelper.identifySlotAs(&slot)) |_| {
+        if (items.Timer.TimerPolyHelper.identifySlotAs(&slot)) |_| {
             ctx.timer_count += 1;
             std.log.info("worker: timer tick {d}", .{ctx.timer_count});
-        } else if (types.EventPolyHelper.identifySlotAs(&slot)) |ev| {
+        } else if (items.Event.EventPolyHelper.identifySlotAs(&slot)) |ev| {
             ctx.event_count += 1;
             std.log.info("worker: Event code={d} (event {d})", .{ ev.code, ctx.event_count });
         }
@@ -97,9 +97,9 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
 fn sendEvents(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
     for (0..count) |i| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(alloc, &slot);
-        try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+        try items.Event.EventPolyHelper.create(alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 }
@@ -113,7 +113,8 @@ fn spawnAndAwait(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, worke
     try fut_worker.await(io);
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -121,4 +122,3 @@ const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

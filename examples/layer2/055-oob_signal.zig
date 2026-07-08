@@ -23,24 +23,24 @@ pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
     const codes = [_]i32{ 1, 2, 3 };
     for (codes) |code| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = code;
+        defer items.Event.EventPolyHelper.destroy(allocator, &slot);
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = code;
         try mailbox.send(mbh, &slot);
     }
 
     {
         var slot: Slot = null;
-        defer types.SensorPolyHelper.destroy(allocator, &slot);
-        try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = -1.0;
+        defer items.Sensor.SensorPolyHelper.destroy(allocator, &slot);
+        try items.Sensor.SensorPolyHelper.create(allocator, &slot);
+        items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = -1.0;
         try mailbox.send_oob(mbh, &slot);
     }
 
@@ -49,19 +49,19 @@ pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
     var i: usize = 0;
     while (i < 4) : (i += 1) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, allocator);
+        defer items.freeSlot(&slot, allocator);
         try mailbox.receive(mbh, &slot, 1_000_000_000);
         const poly: *PolyNode = slot.?;
-        if (types.SensorPolyHelper.identifyNodeAs(poly)) |oob_sn| {
+        if (items.Sensor.SensorPolyHelper.identifyNodeAs(poly)) |oob_sn| {
             std.log.info("OOB signal value={d:.1}", .{oob_sn.value});
             try helpers.expect(error.OobSignalFailed, !received_oob, "duplicate OOB");
             try helpers.expect(error.OobSignalFailed, event_count == 0, "OOB did not arrive first");
             received_oob = true;
-            helpers.freeSlot(&slot, allocator);
-        } else if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+            items.freeSlot(&slot, allocator);
+        } else if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             std.log.info("event code={d}", .{ev.code});
             event_count += 1;
-            helpers.freeSlot(&slot, allocator);
+            items.freeSlot(&slot, allocator);
         }
     }
 
@@ -69,7 +69,8 @@ pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
     try helpers.expect(error.OobSignalFailed, event_count == 3, "wrong event count");
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;
@@ -77,4 +78,3 @@ const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

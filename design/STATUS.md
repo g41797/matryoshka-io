@@ -32,11 +32,11 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-038.md (slim, state-only)
-- Rules: rules-019.md
+- Plan: matryoshka-io-implementation-plan-040.md (slim, state-only)
+- Rules: rules-022.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-012.md
-- Docs plan: matryoshka-io-docs-plan-014.md
+- Docs plan: matryoshka-io-docs-plan-015.md
 - Manifesto: matryoshka-manifesto-003.md
 - Latest context: collected-context-005.md
 
@@ -200,9 +200,537 @@ API 4b — Propagated the rename to `kitchen/docs/` site pages and regenerated
 autodocs. DONE.
 DOC 19 — moved GitHub Pages generated site from `kitchen/output/` to
 root-level `docs/` (standard Pages folder name). DONE.
-Current: 167/167 tests. DOC 19 DONE.
+INTR 6 — DONE (167/167 tests). Split standalone `helpers/` build module into
+`examples/items/` (4 item types + `items.zig` lifecycle helpers),
+`examples/hooks/` (`AlwaysCreateHooks.zig`, `CappedPoolHooks.zig`,
+`hooks.zig`), `examples/helpers/` (generic `expect`/`clearList` only).
+Updated `build.zig` to drop the standalone helpers module and wire `smod`
+to `examples`. ~68 call-site files updated. Old `helpers/` folder deleted.
+Plan version 039 created.
+DOC 20 — DONE (167/167 tests). Removed the 8 example-autodoc `zig build docs`
+targets (`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,
+`storiesdocs`) and their `build.zig` support code; `apidocs` untouched. New
+permanent `kitchen/tools/gen_examples_docs.sh` mirrors `examples/`+`stories/`
+into `kitchen/docs/examples/` as generated `.md` pages (description + diagram
+verbatim, embedded source, GitHub-blob link); 6 hand-authored catalog/group
+pages replace `examples_reference.md`. rules-019 → -020, docs-plan-014 → -015,
+plan-039 → -040.
+DOC 20 follow-up — DONE. Owner found the 76 mirrored example pages were
+link-only orphans (built by mkdocs but absent from `nav:`). Added every
+example to `kitchen/mkdocs.yml`'s Examples Catalog `nav:` under its group;
+new rule (rules-020 → -021): examples-catalog nav sync — any `examples/`/
+`stories/` file add/remove/rename must update `nav:` + group pages.
+Current: 167/167 tests. DOC 20 + follow-up DONE.
 
 ## Session Log
+
+### 2026-07-08 — trim kitchen/docs/index.md, ban "pitch"
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner noticed `kitchen/docs/index.md` (the mkdocs site landing page)
+duplicated most of `manifesto.md`'s content — the same problem statement
+and "one constraint" pitch, just compressed. Directed trimming it to a
+short landing/nav page (title, one-line description, "Where to go next"
+links), pointing to the manifesto for the full argument instead of
+restating it. Also directed banning the word "pitch" and sweeping all
+documents for it.
+
+**Changes**:
+- `kitchen/docs/index.md` — dropped "First rule of building great software
+  systems," "The problem," and "One constraint" sections (all duplicated
+  in `manifesto.md`); kept title, one-line description, the "boring"
+  promise line, and "Where to go next" nav links. "the full pitch" →
+  "the full argument."
+- `design/rules-021.md` → `-022.md` — added "pitch" to the AI-sh/banned
+  word list.
+- `design/docs-tooling-approach-001.md` → `-002.md` — only other live hit
+  found (a methodology doc, not historical log): "a closing pitch line" →
+  "a closing tagline."
+- `design/context.md`, this file — rules/docs-tooling-approach pointers
+  bumped.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `grep -rniw pitch` across all `*.md` (repo-wide) | zero live hits; remaining hits are inside historical `STATUS.md`/`matryoshka-io-docs-plan-015.md` session-log entries describing past work (exempt, same precedent as other banned-word sweeps) |
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — drop "Open source" link, wire examples catalog into CI
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner questioned whether the "Open source" GitHub-blob link was still
+needed now that the full source is embedded under `## Source` — agreed
+it's redundant and removed it. Owner also asked to confirm the examples
+catalog generation runs in CI. It did not: `.github/workflows/docs.yml`
+only ran `docs_zig.sh` (apidocs) then `mkdocs build` directly, never
+calling `gen_examples_docs.sh`. Deeper bug found while fixing this: the
+`.gitignore` entry `/kitchen/docs/examples/` (added in DOC 20) ignored the
+*entire* folder, including the 6 hand-authored catalog/group pages
+(`index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`, `flow.md`) —
+they were never trackable in git, so a fresh CI checkout would have missing
+nav targets regardless of whether the generation script ran.
+
+**Changes**:
+- `kitchen/tools/gen_examples_docs.sh` — removed the "Open source" link and
+  the now-unused `repo_url`/`link`/`src_rel` plumbing; file header comment
+  updated.
+- `.github/workflows/docs.yml` — added a "Regenerate Examples Catalog" step
+  (`./kitchen/tools/gen_examples_docs.sh`) between the autodoc step and the
+  `mkdocs build` step.
+- `.gitignore` — replaced the single `/kitchen/docs/examples/` entry with
+  one per *generated* subdirectory (`layer1/`..`layer4/`, `items/`,
+  `hooks/`, `helpers/`, `stories/`), leaving the 6 hand-authored pages at
+  `kitchen/docs/examples/*.md` trackable.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `grep -rl "Open source" kitchen/docs/examples/` | zero hits |
+| `git status --short --ignored kitchen/docs/examples/` | only the 8 generated subdirs show `!!`; the directory itself (hand-authored `.md` files) shows as trackable/untracked, not ignored |
+| Simulated CI flow: `rm -rf kitchen/docs/apidocs`, then `docs_zig.sh` → `gen_examples_docs.sh` → `mkdocs build` in that order | clean, zero warnings |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: owner to `git add` the 6 hand-authored catalog/group pages next
+time changes are committed (Claude does not run git). Stage 9 continues.
+DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — section headings for generated example pages
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner asked for named sections on each generated example page — Description,
+Diagram, Source — instead of unlabeled paragraphs. Implemented and fixed two
+bugs surfaced while doing it: the prose description carried trailing blank
+`//!` spacer lines into the page (extra blank space before the Diagram
+heading), and the diagram's closing fence glued onto the last diagram line
+with no line break (a `$(...)` command-substitution trailing-newline-
+stripping quirk, since the diagram was the last piece of a combined split
+string). Rewrote the split as two independent `awk` extractions (prose,
+diagram) instead of one combined string, and trimmed prose's trailing blank
+lines explicitly.
+
+**Changes**:
+- `kitchen/tools/gen_examples_docs.sh` — `desc` now split into `prose`
+  (everything before the first fenced ` ``` ` line, trailing blanks
+  trimmed) and `diagram` (the fenced block's contents) via two separate
+  `awk` passes. Output now: `# <title>`, `## Description`, `## Diagram`
+  (only emitted when a diagram exists), `## Source`.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/gen_examples_docs.sh` — `layer3/089-basic_recycler.md` | headings present, no extra blank lines before Diagram, diagram fence closes on its own line |
+| `items/Event.md` (single-line `//!`, no diagram) | Description + Source only, no empty Diagram heading |
+| `stories/.../video_transcoder.md` (no `//!` at all) | Source only |
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+| Headless-Chrome render, `layer3/089-basic_recycler` | `<h1>Basic recycler</h1>`, `<h2>Description</h2>`, `<h2>Diagram</h2>`, `<h2>Source</h2>`, no console errors |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — strip //! description/diagram from embedded example snippets
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Follow-up to the SPDX-strip fix: owner found the embedded source snippet
+still duplicated the `//!` description + fenced diagram — already shown
+above it as rendered markdown, so it was repeated verbatim a second time
+inside the code block. Fixed the same way as SPDX: strip only from the
+generated snippet, source file keeps its `//!` doc comment untouched.
+
+**Changes**:
+- `kitchen/tools/gen_examples_docs.sh` — after the SPDX-line `sed`, pipes
+  through an `awk` that skips the leading run of blank lines and `//!`
+  lines (the description/diagram block) before the embedded snippet
+  starts, stopping at the first real code line. File header comment
+  updated.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/gen_examples_docs.sh` — spot-check `layer3/089-basic_recycler.md`, `items/Event.md` (single-line `//!`), `stories/.../video_transcoder.md` (no `//!` at all, only `//`) | embedded snippet starts at real code in all three; no duplicated description/diagram |
+| `grep SPDX examples/layer3/089-basic_recycler.zig` (source, untouched) | both lines still present, `//!` block intact |
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — strip SPDX header from embedded example snippets
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner noticed the generated example pages' embedded source snippet led
+with the 2-line SPDX copyright/license header — boilerplate, not part of
+the example's teaching content. Asked whether the script should strip it,
+or whether the header should be removed from the source files themselves.
+Confirmed: script-side only — source files keep their SPDX headers
+(license compliance); only the generated `.md` snippet hides them.
+
+**Changes**:
+- `kitchen/tools/gen_examples_docs.sh` — the embedded ```` ```zig ```` block
+  now pipes through `sed` to drop the `// SPDX-FileCopyrightText:` and
+  `// SPDX-License-Identifier:` lines plus the blank line immediately
+  after them, before embedding. File header comment updated to note this.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/gen_examples_docs.sh` then grep `SPDX` under `kitchen/docs/examples/` | zero hits |
+| `grep SPDX examples/layer1/021-define_type.zig` (source file, untouched) | both lines still present |
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — kitchen/notes.md created (running notes for kitchen/ tooling info)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner asked how the examples catalog's intro line ("mirrored here as
+generated `.md` pages... never hand-edited") gets created, then asked for
+a list of which `kitchen/docs/examples/` files are hand-authored (safe to
+edit) vs. generated (rewritten by `gen_examples_docs.sh`, edits lost).
+Owner directed: put this in a new `kitchen/notes.md` — a running,
+unversioned notes file for this kind of tooling/housekeeping information
+going forward, distinct from the versioned `design/*.md` docs.
+
+**Changes**:
+- `kitchen/notes.md` (new) — lists which `kitchen/docs/` paths are
+  generated (`examples/layer1-4/`, `items/`, `hooks/`, `helpers/`,
+  `stories/`, `apidocs/`) vs. hand-authored (the 6 examples-catalog group
+  pages: `index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`,
+  `flow.md`); includes a reminder pointing at the rules-021
+  examples-catalog nav sync rule.
+- `design/context.md` — added a "Kitchen notes" pointer line to
+  `kitchen/notes.md`.
+- Saved to Claude memory (persists across future sessions, not just this
+  doc): `kitchen/notes.md`'s existence and purpose, indexed in
+  `MEMORY.md`.
+
+**Next**: Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — DOC 20 follow-up (wire examples catalog into mkdocs nav, add sync rule)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Right after DOC 20 shipped, owner ran `preview_site.sh` and found mkdocs
+logging every mirrored example page as "not included in the nav
+configuration." Not an error — mkdocs still builds and serves those pages,
+reachable by clicking through from the 6 group pages — but link-only
+access with no sidebar entry was inconvenient. Owner directed adding every
+example to `nav:` and adding a rule so future example changes stay synced.
+
+**Changes**:
+- `kitchen/mkdocs.yml` — Examples Catalog `nav:` expanded from 6 entries
+  (Overview + 5 group pages) to a full tree: Items/Hooks/Helpers (8 pages)
+  + How-to PolyNode/Mailbox/Pool/Io groups + Flow group, every one of the
+  76 mirrored pages now listed under its group's `nav:` subsection.
+- `design/rules-020.md` → `-021.md` — new "Examples-catalog nav sync" rule
+  under Documentation Rules: any `examples/`/`stories/` file add/remove/
+  rename must also update `kitchen/mkdocs.yml`'s nav and the matching
+  hand-authored group page; verify via the `build_site.sh` "not included in
+  nav" check.
+- `design/context.md`, this file — rules pointer bumped to -021.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings; "not included in nav" list no longer contains any `examples/*.md` path |
+| Pre-existing non-examples orphan pages (`matryoshka-based-systems.md`, `building-blocks/core-concepts.md`, `concepts/*`, `cookbook/index.md`, etc.) | unchanged, out of scope for this follow-up |
+
+**Next**: Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — DOC 20 (remove example autodoc generation, add examples catalog)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner directed removing the 8 `zig build docs` example-autodoc targets
+(`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,
+`storiesdocs`, all built up across DOC 17/INTR 6) and the mkdocs page
+linking them (`kitchen/docs/examples_reference.md`) — build cost for a page
+nobody needs. `apidocs` (the real `src/matryoshka.zig` API reference) stays
+untouched. In its place: a hand-organized examples catalog, discussed and
+settled in-session — mirror `examples/`'s folder layout 1:1 under
+`kitchen/docs/examples/` via a new permanent script, with reader-facing
+grouping (how-to categories, not `layer1..4`) living entirely in
+hand-authored catalog/group pages that link into the mirrored tree.
+Full session detail in `matryoshka-io-docs-plan-015.md`.
+
+**Changes**:
+- `build.zig` — removed the 8 doc-target call sites and unused helpers
+  (`addLayerDocTarget`, `stageDir`, `addDocTargetForModule`); `apidocs`
+  target untouched.
+- `kitchen/tools/gen_examples_docs.sh` (new, permanent) — mirrors
+  `examples/`+`stories/` into `kitchen/docs/examples/`, one `.md` per
+  non-barrel `.zig` file: title, `//!` description + fenced diagram
+  verbatim, full embedded source, GitHub-blob "Open source" link (not a
+  relative repo-path link — the deployed site only serves `kitchen/docs/`,
+  so a relative link to `examples/*.zig` would 404 once published). Only
+  clears its own mirrored subdirs on each run, never the hand-authored
+  pages living alongside them.
+- `kitchen/tools/build_site.sh`, `preview_site.sh` — call the new script
+  before `mkdocs build`/`serve`.
+- `kitchen/docs/examples/index.md` + 5 group pages (`polynode.md`,
+  `mailbox.md`, `pool.md`, `io.md`, `flow.md`) — new, hand-authored;
+  Items/Hooks/Helpers intro + How-to groups + a Flow group for cross-layer
+  Master compositions and the video transcoder story. First-pass grouping,
+  owner-flagged as likely to be reshuffled later.
+- Deleted `kitchen/docs/examples_reference.md`.
+- `kitchen/mkdocs.yml` — removed `Examples Reference` nav entry; added
+  `Examples Catalog` nav section.
+- `.gitignore` — replaced the 8 generated-dir entries with
+  `/kitchen/docs/examples/`.
+- `design/rules-019.md` → `-020.md` — "Doc-generation module size" rule
+  updated: principle kept, staging-workaround detail marked historical.
+- `design/context.md`, this file — pointers bumped (plan → -040, docs plan
+  → -015, rules → -020); this session log entry.
+- `design/matryoshka-io-implementation-plan-039.md` → `-040.md` — DOC 20
+  summary bullet.
+- `design/matryoshka-io-docs-plan-014.md` → `-015.md` — full DOC 20 session
+  log entry + Stages update.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` (→ `zig-out/build_and_test_debug.log`) | PASS (167/167) |
+| `zig build docs` | succeeds, installs only `kitchen/docs/apidocs/` |
+| `bash kitchen/tools/gen_examples_docs.sh`, run twice | 76 mirrored `.md` files matching `examples/`+`stories/` 1:1; hand-authored pages untouched across reruns |
+| `bash kitchen/tools/build_site.sh` | mkdocs builds clean, zero warnings (two issues found and fixed mid-session: relative-link 404 risk on deploy → GitHub-blob links; mirror script wiping hand-authored pages → scoped `rm -rf` to mirrored subdirs only) |
+| Headless-Chrome render + console check, catalog index + one example page + `apidocs` | clean, titles resolve, no console errors |
+| Coverage check: all 76 mirrored pages linked exactly once across the 5 groups + index | confirmed |
+| Grep sweep for the 8 removed target names + `examples_reference` | zero hits except historical pre-DOC-20 session-log entries in this file (exempt) |
+
+**Next**: Stage 9 continues. Examples-catalog grouping may be reshuffled
+later (doc edit only). DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — Update `.gitignore` for the 8 new generated doc dirs
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+`.gitignore` still had a single `/kitchen/docs/examplesdocs/` entry from
+before the doc-target split; that directory no longer exists, and the 8
+new generated dirs (`layer1docs`, `layer2docs`, `layer3docs`, `layer4docs`,
+`itemsdocs`, `hooksdocs`, `helpersdocs`, `storiesdocs`) were showing up as
+untracked in `git status`.
+
+**Changes**:
+- `.gitignore` — replaced `/kitchen/docs/examplesdocs/` with one entry per
+  new generated doc dir, mirroring the existing `/kitchen/docs/apidocs/`
+  pattern. Tracked source files under `kitchen/docs/` (`api/`, `patterns/`,
+  `examples_reference.md`, etc.) are untouched.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `git status --short kitchen/docs/` | only real tracked-file edits shown; all 8 generated dirs no longer listed as untracked |
+
+**Next**: Stage 9 continues, DOC 20+ TBD.
+
+### 2026-07-08 — Fix doc targets leaking sibling directories (layer1 everywhere)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner reported that most doc-target pages' source browser showed the same
+`layer1` files regardless of which target was open (`itemsdocs`,
+`hooksdocs`, `helpersdocs` all listed `layer1/*.zig`). Root cause: Zig's
+`getEmittedDocs()` bundles the *entire module-root directory* into
+`sources.tar`, not just the reachable import graph. The prior fix (small
+`examples/docs_*.zig` stub files) narrowed the *declaration* graph (fixing
+the stack-overflow crash) but all stubs still lived in `examples/`, so
+every target's module root was still `examples/` and every target's
+`sources.tar` still bundled all of `layer1-4/` regardless of relevance.
+Confirmed this is not a build-cache artifact (reproduced on a fully clean
+`.zig-cache`).
+
+**Changes**:
+- `build.zig` — replaced the `examples/docs_*.zig` stub approach with
+  per-target staging via `b.addWriteFiles()`: each doc target now copies
+  only the files it actually needs (its own layer + items/hooks/helpers,
+  or just items/, or just hooks/+items/, etc.) into an isolated scratch
+  directory, so its module root never shares a directory with unrelated
+  files. Added `stageDir` (copies a directory's `*.zig` files into the
+  staged tree, iterating via `b.graph.io`/`std.Io.Dir` — Zig 0.16 moved
+  directory iteration off `std.fs.cwd()`) and `addLayerDocTarget`
+  helpers. `itemsdocs`/`helpersdocs` root directly at their staged entry
+  file (no escape needed); `hooksdocs` and `layerNdocs` root at a small
+  `wf.add()`-generated stub at the staged tree's top level, since their
+  real files' relative imports (`../items/items.zig` etc.) need the
+  module boundary at the shared parent.
+- Deleted the now-unused `examples/docs_layer1.zig` .. `docs_helpers.zig`
+  stub files.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+| `bash kitchen/build_and_test_all.sh` | PASS (167/167, all 4 opt modes) |
+| `bash kitchen/build_cross_debug.sh` | PASS |
+| `zig build docs` (from clean `.zig-cache`) | PASS, 0 errors |
+| `tar tf kitchen/docs/<target>/sources.tar` per target | no more `layer1-4/` leakage into `itemsdocs`/`hooksdocs`/`helpersdocs`; only expected `std`/`matryoshka` transitive files plus the target's own tree |
+| Headless Chrome console check, all 8 doc pages | 0 errors, all titles resolve, all `status` elements hidden |
+
+**Next**: Stage 9 continues, DOC 20+ TBD.
+
+### 2026-07-07 — Fix `zig build docs` "stuck Loading" bug for examplesdocs, add rule
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+After INTR 6, the owner reported `examplesdocs` stuck on "Loading..." in
+the browser. Investigation (headless Chrome console capture) found a real
+client-side crash: `Uncaught (in promise) RangeError: Maximum call stack
+size exceeded` thrown from `main.wasm` (the Zig 0.16 autodoc renderer).
+Ruled out every structural hypothesis tied to today's `helpers/` split
+(per-file `PolyHelper`, `Self`/`@This()` self-reference, hooks structure)
+by reverting each in turn and re-testing — the crash persisted unchanged
+every time, including with the exact pre-refactor-equivalent layout. The
+sibling `tofu` repo had hit the identical symptom before (commit
+`1020ba27`, "Fix build of docs. Update GitHub Pages") — root cause there
+was a single combined doc target spanning too large a module tree.
+
+**Changes**:
+- `build.zig` — replaced the single large `examplesdocs` doc target
+  (rooted at `examples/examples.zig`, ~70+ files) with 8 small ones, each
+  its own `addObject`/`getEmittedDocs()`/`install_subdir`: `layer1docs`,
+  `layer2docs`, `layer3docs`, `layer4docs`, `itemsdocs`, `hooksdocs`,
+  `helpersdocs`, `storiesdocs`. Added `addDocTarget`/
+  `addDocTargetForModule` helpers to avoid repeating the boilerplate.
+- `examples/docs_layer1.zig` .. `docs_layer4.zig`, `docs_items.zig`,
+  `docs_hooks.zig`, `docs_helpers.zig` — small docs-only root stubs.
+  Needed because the real example files' relative imports (e.g.
+  `../items/items.zig`) escape their own directory; the module boundary
+  follows the root file's directory, so each doc target roots at a stub
+  placed in `examples/` (the shared parent) instead of the real entry
+  file directly.
+- `stories` doc target gets a small stand-in "examples" module (just
+  `helpers`) instead of the full `examples` module, for the same reason.
+- `kitchen/docs/examples_reference.md` — updated from one "Open Examples
+  Reference" button to 8 buttons, one per doc target.
+- `design/rules-019.md` — added "Doc-generation module size" rule under
+  Documentation Rules: never root a `zig build docs` target at a module
+  spanning a large tree; verify a doc target actually renders in a
+  browser (console check), not just that `zig build docs` exits 0.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+| `bash kitchen/build_and_test_all.sh` | PASS (167/167, all 4 opt modes) |
+| `bash kitchen/build_cross_debug.sh` | PASS |
+| `zig build docs` | PASS, 0 errors |
+| Headless Chrome console check, all 8 new doc pages | 0 errors, all titles resolve, all `status` elements hidden (not stuck) |
+
+**Next**: Stage 9 continues, DOC 20+ TBD.
+
+### 2026-07-07 — INTR 6 (split `helpers/` into `examples/items/`, `examples/hooks/`, `examples/helpers/`)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner directed: the standalone `helpers/` build module mixed three different
+concerns (item types, pool-hook implementations, generic test helpers) under
+one name. Split it into three folders under `examples/`, each with a single
+job, and wired them into the existing `examples` module instead of a
+separate top-level one.
+
+**Changes**:
+- `examples/items/` — `Event.zig`, `Sensor.zig`, `ShutdownCommand.zig`,
+  `Timer.zig` (4 item types), `items.zig` (`freeItem`/`freeSlot`/`freeList`/
+  `createByTag`/`destroyByTag` lifecycle helpers).
+- `examples/hooks/` — `AlwaysCreateHooks.zig`, `CappedPoolHooks.zig`
+  (renamed from `AlwaysCreateCtx`/`CappedPoolCtx`), `hooks.zig` barrel.
+- `examples/helpers/helpers.zig` — trimmed to the generic `expect`/
+  `clearList` test helpers only.
+- `build.zig` — removed the standalone `helpers` build module; `smod`
+  (stories) wired to import `examples` directly.
+- ~68 call-site files across `examples/`, `tests/`, `stories/` updated to
+  the new import paths and renamed identifiers.
+- Old top-level `helpers/` folder deleted.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS |
+| `bash kitchen/build_and_test_all.sh` (output → `zig-out/build_and_test_all.log`) | PASS (167/167, all 4 opt modes) |
+| `bash kitchen/build_cross_debug.sh` (output → `zig-out/build_cross_debug.log`) | PASS |
+| `zig build docs` | PASS |
+| Post-stage cleanup (old `helpers/` folder deleted, re-verified with `ls helpers/` → no such directory) | done |
+| Pattern-catalog scan (`patterns-012.md`) | 2 candidate patterns found, not yet added — see report below |
+| AI-sh / banned-words scan | clean; one copy-paste doc-comment bug found in `examples/helpers/helpers.zig` header (says "item", should describe helpers) — reported, not fixed |
+| README sync | no `helpers/`-related references found in `README.md`; nothing to change |
+| Rules audit | clean; no violations found in changed files |
+
+**Post-stage cleanup (follow-up, same day)**:
+- Fixed a placement bug: `items.zig` had centralized all four
+  `*PolyHelper` aliases instead of each living with its own item type.
+  Moved `EventPolyHelper`/`SensorPolyHelper`/`ShutdownCommandPolyHelper`/
+  `TimerPolyHelper` into their respective `Event.zig`/`Sensor.zig`/
+  `ShutdownCommand.zig`/`Timer.zig` files (each now defines its own
+  `const This = @This();` and `pub const XPolyHelper = polynode.PolyHelper(This);`).
+  `items.zig` now only re-exports the four types plus the lifecycle
+  helpers, which reference `Event.EventPolyHelper` etc. Updated ~60
+  call sites (`items.EventPolyHelper` → `items.Event.EventPolyHelper`,
+  and similarly for the other three) via scripted sed.
+- Fixed the copy-pasted doc header in `examples/helpers/helpers.zig`
+  (now: "Just some shared test glue, not production code.").
+- Fixed the 5 stale `helpers/`-path references surfaced above:
+  `design/patterns-012.md`, `design/matryoshka-api-reference-021.md`,
+  `design/collected-context-005.md`, `kitchen/docs/patterns/pool.md`,
+  `kitchen/docs/api/pool.md` — all now point at
+  `examples/items/`/`examples/hooks/CappedPoolHooks.zig`.
+- Owner confirmed via local `kitchen/tools/preview_site.sh` that the
+  regenerated mkdocs site reflects the new layout (root `docs/` is
+  gitignored/CI-built and had been stale from before this stage).
+- Re-verified: `build_and_test_debug.sh`, `build_and_test_all.sh`
+  (167/167, all 4 opt modes), `build_cross_debug.sh`, `zig build docs`
+  — all PASS. Grep confirms zero remaining flat `items.XPolyHelper`
+  references.
+
+**Next**: owner to decide on the 2 candidate patterns from the
+pattern-catalog scan (whole-file-is-struct convention, ptr→self via
+`This` pool-hook erasure). Stage 9 continues, DOC 20+ TBD.
 
 ### 2026-07-07 — DOC 19 (move GitHub Pages output to root-level `docs/`)
 

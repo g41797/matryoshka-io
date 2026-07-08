@@ -23,7 +23,7 @@ pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -36,17 +36,17 @@ pub fn oob_via_send_oob(allocator: std.mem.Allocator, io: std.Io) !void {
 fn sendItems(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     for (0..3) |i| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(alloc, &slot);
-        try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+        try items.Event.EventPolyHelper.create(alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 }
 
 fn sendOobItem(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
-    defer types.ShutdownCommandPolyHelper.destroy(alloc, &slot);
-    try types.ShutdownCommandPolyHelper.create(alloc, &slot);
+    defer items.ShutdownCommand.ShutdownCommandPolyHelper.destroy(alloc, &slot);
+    try items.ShutdownCommand.ShutdownCommandPolyHelper.create(alloc, &slot);
     try mailbox.send_oob(mbh, &slot);
 }
 
@@ -56,21 +56,21 @@ fn processingLoop(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
 
     for (0..4) |_| {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, alloc);
+        defer items.freeSlot(&slot, alloc);
         try mailbox.receive(mbh, &slot, null);
         const poly: *PolyNode = slot.?;
 
-        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+        if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
             try helpers.expect(error.OobOrderFailed, !shutdown_seen, "OOB ShutdownCommand must arrive before any Event");
             try helpers.expect(error.OobOrderFailed, event_count == 0, "OOB must be first item received");
             shutdown_seen = true;
             std.log.info("received OOB ShutdownCommand (first, as expected)", .{});
-            helpers.freeSlot(&slot, alloc);
-        } else if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+            items.freeSlot(&slot, alloc);
+        } else if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             try helpers.expect(error.OobOrderFailed, shutdown_seen, "Events must arrive after the OOB item");
             event_count += 1;
             std.log.info("received Event code={d} (event {d}/3)", .{ ev.code, event_count });
-            helpers.freeSlot(&slot, alloc);
+            items.freeSlot(&slot, alloc);
         } else {
             return error.OobOrderFailed;
         }
@@ -81,7 +81,8 @@ fn processingLoop(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     std.log.info("OOB ordering verified: shutdown came first, then {d} events", .{event_count});
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -89,4 +90,3 @@ const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

@@ -25,7 +25,7 @@ pub fn select_cancel_propagation(allocator: std.mem.Allocator, io: std.Io) !void
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -83,7 +83,7 @@ const Ctx = struct {
                     },
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.alloc);
+                        items.freeSlot(&slot, self.alloc);
                     },
                     .closed, .timeout, .wakeup => {},
                 },
@@ -93,11 +93,11 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

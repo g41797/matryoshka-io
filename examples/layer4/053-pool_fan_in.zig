@@ -45,7 +45,7 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
     var slot: Slot = null;
     mailbox.receive(ctx.mbh, &slot, null) catch return;
     defer pool.put(ctx.ph, &slot); // return container to pool after processing
-    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+    const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
     ev.code *= 2; // process: double the job value
     std.log.info("worker: processed job, result code={d}", .{ev.code});
 }
@@ -64,7 +64,7 @@ const PoolFanInMaster = struct {
     fn seedPool(self: *PoolFanInMaster) !void {
         for (0..N) |_| {
             var slot: Slot = null;
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
+            try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
             pool.put(self.ph, &slot);
         }
     }
@@ -72,8 +72,8 @@ const PoolFanInMaster = struct {
     fn dispatch(self: *PoolFanInMaster) !void {
         for (0..N) |i| {
             var slot: Slot = null;
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+            try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot);
+            const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
             ev.code = jobs[i];
             std.log.info("master: filled container with job code={d}, sending to worker {d}", .{ ev.code, i });
             try mailbox.send(self.mbhs[i], &slot);
@@ -89,9 +89,9 @@ const PoolFanInMaster = struct {
         var result_sum: i32 = 0;
         while (true) {
             var slot: Slot = null;
-            pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot) catch break;
-            defer helpers.freeSlot(&slot, self.allocator);
-            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+            pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot) catch break;
+            defer items.freeSlot(&slot, self.allocator);
+            const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
             result_sum += ev.code;
             total += 1;
             std.log.info("master: result code={d}", .{ev.code});
@@ -102,7 +102,7 @@ const PoolFanInMaster = struct {
     allocator: std.mem.Allocator,
     io: std.Io,
     ph: PoolHandle,
-    pool_ctx: helpers.AlwaysCreateCtx,
+    pool_ctx: hooks.AlwaysCreateHooks,
     tags: [1]*const anyopaque,
     mbhs: [N]MailboxHandle,
     ctxs: [N]WorkerCtx,
@@ -114,7 +114,7 @@ const PoolFanInMaster = struct {
         self.allocator = allocator;
         self.io = io;
         self.pool_ctx = .{ .alloc = allocator };
-        self.tags = .{types.EventPolyHelper.TAG};
+        self.tags = .{items.Event.EventPolyHelper.TAG};
         self.ph = try pool.new(io, allocator);
         errdefer {
             pool.close(self.ph);
@@ -124,7 +124,7 @@ const PoolFanInMaster = struct {
         var created: usize = 0;
         errdefer for (0..created) |i| {
             var rem: std.DoublyLinkedList = mailbox.close(self.mbhs[i]);
-            helpers.freeList(&rem, allocator);
+            items.freeList(&rem, allocator);
             mailbox.destroy(self.mbhs[i], allocator);
         };
         for (0..N) |i| {
@@ -139,7 +139,7 @@ const PoolFanInMaster = struct {
     fn destroy(self: *PoolFanInMaster) void {
         for (0..N) |i| {
             var rem: std.DoublyLinkedList = mailbox.close(self.mbhs[i]);
-            helpers.freeList(&rem, self.allocator);
+            items.freeList(&rem, self.allocator);
             mailbox.destroy(self.mbhs[i], self.allocator);
         }
         pool.close(self.ph);
@@ -148,7 +148,9 @@ const PoolFanInMaster = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -157,4 +159,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

@@ -27,9 +27,9 @@ pub fn ownership_transfer_via_slot(allocator: std.mem.Allocator, io: std.Io) !vo
     _ = io;
 
     var slot: Slot = null;
-    defer types.EventPolyHelper.destroy(allocator, &slot);
-    try types.EventPolyHelper.create(allocator, &slot);
-    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+    defer items.Event.EventPolyHelper.destroy(allocator, &slot);
+    try items.Event.EventPolyHelper.create(allocator, &slot);
+    const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
     ev.*.code = 42;
     try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after create");
 
@@ -44,16 +44,16 @@ pub fn ownership_transfer_via_slot(allocator: std.mem.Allocator, io: std.Io) !vo
     slot = @fieldParentPtr("node", node);
     try helpers.expect(error.OwnershipTransferFailed, slot != null, "slot should be non-null after recovery");
 
-    const recovered: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+    const recovered: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
     try helpers.expect(error.OwnershipTransferFailed, recovered.*.code == 42, "wrong event code");
 
-    helpers.freeSlot(&slot, allocator);
+    items.freeSlot(&slot, allocator);
     try helpers.expect(error.OwnershipTransferFailed, slot == null, "slot should be null after destroy");
     // defer runs as no-op
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const polynode = @import("matryoshka").polynode;
 const std = @import("std");
 const Slot = polynode.Slot;
-const types = helpers.types;

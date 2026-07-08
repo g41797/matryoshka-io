@@ -28,13 +28,13 @@ pub fn multiple_event_source_types_in_one_select(allocator: std.mem.Allocator, i
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.SensorPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Sensor.SensorPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -72,9 +72,9 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
 fn seedMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
     for (0..count) |i| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(alloc, &slot);
-        try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+        try items.Event.EventPolyHelper.create(alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 }
@@ -82,8 +82,8 @@ fn seedMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void
 fn seedPool(ph: PoolHandle, count: usize) !void {
     for (0..count) |i| {
         var slot: Slot = null;
-        try pool.get(ph, types.SensorPolyHelper.TAG, .new_only, &slot);
-        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @floatFromInt(i + 10);
+        try pool.get(ph, items.Sensor.SensorPolyHelper.TAG, .new_only, &slot);
+        items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @floatFromInt(i + 10);
         pool.put(ph, &slot);
     }
 }
@@ -102,7 +102,7 @@ const Ctx = struct {
             .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real },
         };
         try sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.SensorPolyHelper.TAG, null });
+        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, items.Sensor.SensorPolyHelper.TAG, null });
         try sel.concurrent(.timer, sleepFn, .{ sleep_t, self.io });
     }
 
@@ -113,10 +113,10 @@ const Ctx = struct {
                 .inbox => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.alloc);
+                        defer items.freeSlot(&slot, self.alloc);
                         self.inbox_count += 1;
                         std.log.info("inbox: Event code={d} ({d}/{d})", .{
-                            types.EventPolyHelper.mustIdentifySlotAs(&slot).code,
+                            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code,
                             self.inbox_count,
                             INBOX_TARGET,
                         });
@@ -132,12 +132,12 @@ const Ctx = struct {
                         defer pool.put(self.ph, &slot);
                         self.pool_count += 1;
                         std.log.info("pool_ev: Sensor value={d} ({d}/{d})", .{
-                            types.SensorPolyHelper.mustIdentifySlotAs(&slot).value,
+                            items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value,
                             self.pool_count,
                             POOL_TARGET,
                         });
                         if (self.pool_count < POOL_TARGET) {
-                            try sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.SensorPolyHelper.TAG, null });
+                            try sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, items.Sensor.SensorPolyHelper.TAG, null });
                         }
                     },
                     .closed, .canceled, .timeout, .not_created => break,
@@ -156,7 +156,9 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -165,4 +167,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

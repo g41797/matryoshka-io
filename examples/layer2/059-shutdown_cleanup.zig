@@ -26,18 +26,18 @@ pub fn shutdown_with_remaining_item_cleanup(allocator: std.mem.Allocator, io: st
     var i: usize = 0;
     while (i < n_events) : (i += 1) {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i);
+        defer items.Event.EventPolyHelper.destroy(allocator, &slot);
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i);
         try mailbox.send(mbh, &slot);
     }
 
     i = 0;
     while (i < n_sensors) : (i += 1) {
         var slot: Slot = null;
-        defer types.SensorPolyHelper.destroy(allocator, &slot);
-        try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i)) * 1.1;
+        defer items.Sensor.SensorPolyHelper.destroy(allocator, &slot);
+        try items.Sensor.SensorPolyHelper.create(allocator, &slot);
+        items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i)) * 1.1;
         try mailbox.send(mbh, &slot);
     }
 
@@ -45,7 +45,7 @@ pub fn shutdown_with_remaining_item_cleanup(allocator: std.mem.Allocator, io: st
     var remaining: std.DoublyLinkedList = mailbox.close(mbh);
     var freed: usize = 0;
     while (remaining.popFirst()) |node| {
-        helpers.freeItem(@fieldParentPtr("node", node), allocator);
+        items.freeItem(@fieldParentPtr("node", node), allocator);
         freed += 1;
     }
 
@@ -53,11 +53,11 @@ pub fn shutdown_with_remaining_item_cleanup(allocator: std.mem.Allocator, io: st
     try helpers.expect(error.ShutdownCleanupFailed, freed == n_events + n_sensors, "wrong freed count");
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

@@ -327,7 +327,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     );
 }
 
-const helpers = @import("helpers");
+const helpers = @import("examples").helpers;
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;

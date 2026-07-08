@@ -20,8 +20,8 @@
 
 pub fn get_wait_future_awaited_directly(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -34,20 +34,20 @@ pub fn get_wait_future_awaited_directly(allocator: std.mem.Allocator, io: std.Io
 
 fn seedPool(ph: PoolHandle) !void {
     var slot: Slot = null;
-    try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
+    try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+    items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
     pool.put(ph, &slot);
 }
 
 fn receiveViaFuture(ph: PoolHandle, io: std.Io) !void {
-    var fut: std.Io.Future(pool.PoolResult) = try pool.get_wait_future(ph, types.EventPolyHelper.TAG, null);
+    var fut: std.Io.Future(pool.PoolResult) = try pool.get_wait_future(ph, items.Event.EventPolyHelper.TAG, null);
     const result: pool.PoolResult = fut.await(io);
 
     switch (result) {
         .item => |handle| {
             var slot: Slot = handle;
             defer pool.put(ph, &slot);
-            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+            const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
             try helpers.expect(error.GetWaitFutureDirectFailed, ev.code == 7, "wrong code");
             std.log.info("get_wait_future direct: got Event code={d}", .{ev.code});
         },
@@ -55,11 +55,12 @@ fn receiveViaFuture(ph: PoolHandle, io: std.Io) !void {
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

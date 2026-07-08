@@ -486,7 +486,7 @@ ev.poly = .{.node=.{},.tag=TAG};    EventPolyHelper.init(&ev)
 
 Same operations. Same runtime cost. Less boilerplate. Compile-time validation.
 
-See `helpers/types.zig` for the pattern.
+See `examples/items/` for the pattern.
 
 ### PolyHelper — create and destroy
 
@@ -915,7 +915,7 @@ pub const PoolHooks = struct {
 - Example: use `Io.Mutex` and call `lockUncancelable` to acquire it.
   Hooks return `void` — `lock` (cancelable) is not an option here.
 - Obtain `io` from the surrounding context that holds the pool; do not acquire it inside the hook.
-- `CappedPoolCtx` in `helpers/helpers.zig` is the reference implementation of these rules.
+- `CappedPoolHooks` in `examples/hooks/CappedPoolHooks.zig` is the reference implementation of these rules.
 
 ### Functions
 

@@ -28,14 +28,14 @@ pub fn two_mailboxes_timer_in_select(allocator: std.mem.Allocator, io: std.Io) !
     const mbh1: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh1);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh1, allocator);
     }
 
     const mbh2: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh2);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh2, allocator);
     }
 
@@ -72,15 +72,15 @@ const Ctx = struct {
 
     fn seedMailboxes(self: *Ctx, sel: *std.Io.Select(MasterEvent)) !void {
         var s1: Slot = null;
-        defer types.EventPolyHelper.destroy(self.alloc, &s1);
-        try types.EventPolyHelper.create(self.alloc, &s1);
-        types.EventPolyHelper.mustIdentifySlotAs(&s1).code = 1;
+        defer items.Event.EventPolyHelper.destroy(self.alloc, &s1);
+        try items.Event.EventPolyHelper.create(self.alloc, &s1);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&s1).code = 1;
         try mailbox.send(self.mbh1, &s1);
 
         var s2: Slot = null;
-        defer types.EventPolyHelper.destroy(self.alloc, &s2);
-        try types.EventPolyHelper.create(self.alloc, &s2);
-        types.EventPolyHelper.mustIdentifySlotAs(&s2).code = 2;
+        defer items.Event.EventPolyHelper.destroy(self.alloc, &s2);
+        try items.Event.EventPolyHelper.create(self.alloc, &s2);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&s2).code = 2;
         try mailbox.send(self.mbh2, &s2);
 
         const long_t: std.Io.Timeout = .{
@@ -109,8 +109,8 @@ const Ctx = struct {
                 .inbox1 => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.alloc);
-                        std.log.info("inbox1: Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
+                        defer items.freeSlot(&slot, self.alloc);
+                        std.log.info("inbox1: Event code={d}", .{items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         self.got1 = true;
                         if (!self.got2) {
                             try sel.concurrent(.inbox1, mailbox.receiveResult, .{ self.mbh1, null });
@@ -121,8 +121,8 @@ const Ctx = struct {
                 .inbox2 => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.alloc);
-                        std.log.info("inbox2: Event code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
+                        defer items.freeSlot(&slot, self.alloc);
+                        std.log.info("inbox2: Event code={d}", .{items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         self.got2 = true;
                     },
                     .closed, .canceled, .timeout, .wakeup => break :loop,
@@ -134,11 +134,11 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

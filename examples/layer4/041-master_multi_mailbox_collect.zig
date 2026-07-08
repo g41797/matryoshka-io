@@ -47,9 +47,9 @@ const Ctx = struct {
     fn fillMailboxA(self: *Ctx) !void {
         for (0..N_A) |i| {
             var slot: Slot = null;
-            defer types.EventPolyHelper.destroy(self.alloc, &slot);
-            try types.EventPolyHelper.create(self.alloc, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+            defer items.Event.EventPolyHelper.destroy(self.alloc, &slot);
+            try items.Event.EventPolyHelper.create(self.alloc, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh_a, &slot);
         }
     }
@@ -57,9 +57,9 @@ const Ctx = struct {
     fn fillMailboxB(self: *Ctx) !void {
         for (0..N_B) |i| {
             var slot: Slot = null;
-            defer types.SensorPolyHelper.destroy(self.alloc, &slot);
-            try types.SensorPolyHelper.create(self.alloc, &slot);
-            types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @floatFromInt(i + 10);
+            defer items.Sensor.SensorPolyHelper.destroy(self.alloc, &slot);
+            try items.Sensor.SensorPolyHelper.create(self.alloc, &slot);
+            items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @floatFromInt(i + 10);
             try mailbox.send(self.mbh_b, &slot);
         }
     }
@@ -80,17 +80,17 @@ fn collectAndFree(combined: *std.DoublyLinkedList, alloc: std.mem.Allocator) usi
     while (combined.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
         polynode.reset(poly);
-        helpers.freeItem(poly, alloc);
+        items.freeItem(poly, alloc);
         freed += 1;
     }
     return freed;
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

@@ -76,12 +76,12 @@ const CancelDecideMaster = struct {
                     .canceled, .closed => {
                         std.log.info("inbox1: stopped — master closes mbh1", .{});
                         var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
-                        helpers.freeList(&rem, self.allocator);
+                        items.freeList(&rem, self.allocator);
                         self.mbh1_closed = true;
                     },
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.allocator);
+                        items.freeSlot(&slot, self.allocator);
                     },
                     .timeout, .wakeup => {},
                 },
@@ -92,7 +92,7 @@ const CancelDecideMaster = struct {
                     },
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.allocator);
+                        items.freeSlot(&slot, self.allocator);
                     },
                     .closed, .timeout, .wakeup => {},
                 },
@@ -105,9 +105,9 @@ const CancelDecideMaster = struct {
     fn phase2Receive(self: *CancelDecideMaster) !usize {
         for (0..2) |i| {
             var slot: Slot = null;
-            defer types.EventPolyHelper.destroy(self.allocator, &slot);
-            try types.EventPolyHelper.create(self.allocator, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 10);
+            defer items.Event.EventPolyHelper.destroy(self.allocator, &slot);
+            try items.Event.EventPolyHelper.create(self.allocator, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 10);
             try mailbox.send(self.mbh2, &slot);
         }
 
@@ -124,9 +124,9 @@ const CancelDecideMaster = struct {
                 .inbox2 => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.allocator);
+                        defer items.freeSlot(&slot, self.allocator);
                         items_after += 1;
-                        std.log.info("inbox2 phase2: item code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&slot).code});
+                        std.log.info("inbox2 phase2: item code={d}", .{items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code});
                         if (items_after < 2) {
                             try sel2.concurrent(.inbox2, mailbox.receiveResult, .{ self.mbh2, null });
                         }
@@ -154,7 +154,7 @@ const CancelDecideMaster = struct {
         self.mbh1 = try mailbox.new(io, allocator);
         errdefer {
             var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
-            helpers.freeList(&rem, allocator);
+            items.freeList(&rem, allocator);
             mailbox.destroy(self.mbh1, allocator);
         }
         self.mbh2 = try mailbox.new(io, allocator);
@@ -164,21 +164,21 @@ const CancelDecideMaster = struct {
     fn destroy(self: *CancelDecideMaster) void {
         if (!self.mbh1_closed) {
             var rem: std.DoublyLinkedList = mailbox.close(self.mbh1);
-            helpers.freeList(&rem, self.allocator);
+            items.freeList(&rem, self.allocator);
         }
         mailbox.destroy(self.mbh1, self.allocator);
         var rem2: std.DoublyLinkedList = mailbox.close(self.mbh2);
-        helpers.freeList(&rem2, self.allocator);
+        items.freeList(&rem2, self.allocator);
         mailbox.destroy(self.mbh2, self.allocator);
         self.allocator.destroy(self);
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

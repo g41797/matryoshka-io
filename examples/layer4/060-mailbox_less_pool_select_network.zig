@@ -27,8 +27,8 @@
 
 pub fn pool_select_network(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -64,8 +64,8 @@ const MasterEvent = union(enum) {
 fn seedPool(ph: PoolHandle) !void {
     for (0..N_POOL_ITEMS) |i| {
         var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         pool.put(ph, &slot);
     }
 }
@@ -79,7 +79,7 @@ fn setupSelect(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent)) !vo
     const net_delay: std.Io.Timeout = .{
         .duration = .{ .raw = .{ .nanoseconds = NET_DELAY_NS }, .clock = .real },
     };
-    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, items.Event.EventPolyHelper.TAG, null });
     try sel.concurrent(.network, networkReadFn, .{ net_delay, io });
 }
 
@@ -91,12 +91,12 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent), po
                 .item => |handle| {
                     var slot: Slot = handle;
                     defer pool.put(ph, &slot);
-                    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                    const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
                     ev.code += 10;
                     pool_done.* += 1;
                     std.log.info("pool_ev: processed code={d} ({d}/{d})", .{ ev.code, pool_done.*, N_POOL_ITEMS });
                     if (pool_done.* < N_POOL_ITEMS) {
-                        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+                        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, items.Event.EventPolyHelper.TAG, null });
                     }
                 },
                 .closed, .canceled, .timeout, .not_created => break,
@@ -116,11 +116,12 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent), po
     sel.cancelDiscard();
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

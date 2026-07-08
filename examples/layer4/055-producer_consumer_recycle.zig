@@ -24,8 +24,8 @@
 
 pub fn producer_consumer_with_recycling(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -35,7 +35,7 @@ pub fn producer_consumer_with_recycling(allocator: std.mem.Allocator, io: std.Io
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -50,38 +50,40 @@ const Ctx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,
 
-    fn produce(self: *Ctx) !*types.Event {
+    fn produce(self: *Ctx) !*items.Event {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(self.alloc, &slot);
-        try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        defer items.Event.EventPolyHelper.destroy(self.alloc, &slot);
+        try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code = 1;
         std.log.info("producer: get from pool, fill code={d}", .{ev.code});
         try mailbox.send(self.mbh, &slot);
         return ev;
     }
 
-    fn consume(self: *Ctx, sent_ptr: *types.Event) !void {
+    fn consume(self: *Ctx, sent_ptr: *items.Event) !void {
         var slot: Slot = null;
         try mailbox.receive(self.mbh, &slot, null);
         defer pool.put(self.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.ProducerConsumerFailed, ev.code == 1, "wrong code after receive");
-        try helpers.expect(error.ProducerConsumerFailed, @as(*types.Event, ev) == sent_ptr, "not same pointer");
-        std.log.info("consumer: received code={d}, same pointer={}", .{ ev.code, @as(*types.Event, ev) == sent_ptr });
+        try helpers.expect(error.ProducerConsumerFailed, @as(*items.Event, ev) == sent_ptr, "not same pointer");
+        std.log.info("consumer: received code={d}, same pointer={}", .{ ev.code, @as(*items.Event, ev) == sent_ptr });
     }
 
     fn verifyRecycle(self: *Ctx) !void {
         var slot: Slot = null;
         defer pool.put(self.ph, &slot);
-        try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.ProducerConsumerFailed, ev.code == 1, "wrong code after recycle");
         std.log.info("recycled item: code={d} — pool → producer → mailbox → consumer → pool cycle complete", .{ev.code});
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -90,4 +92,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

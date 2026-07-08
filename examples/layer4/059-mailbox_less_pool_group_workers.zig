@@ -27,8 +27,8 @@
 
 pub fn pool_group_worker_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
 
     try seedContainers(ph);
@@ -51,7 +51,7 @@ const WorkerCtx = struct {
 fn seedContainers(ph: PoolHandle) !void {
     for (0..N_WORKERS) |_| {
         var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+        try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
         pool.put(ph, &slot);
     }
 }
@@ -59,8 +59,8 @@ fn seedContainers(ph: PoolHandle) !void {
 fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
     var slot: Slot = null;
     defer pool.put(ctx.ph, &slot);
-    pool.get(ctx.ph, types.EventPolyHelper.TAG, .available_or_new, &slot) catch return;
-    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+    pool.get(ctx.ph, items.Event.EventPolyHelper.TAG, .available_or_new, &slot) catch return;
+    const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
     ev.code = @intCast(ctx.id);
     std.log.info("worker {d}: wrote task index into empty container (code={d})", .{ ctx.id, ev.code });
 }
@@ -80,7 +80,8 @@ fn stopAndClosePool(ph: PoolHandle, alloc: std.mem.Allocator, io: std.Io, group:
     std.log.info("pool closed: on_close freed any remaining containers — no mailbox needed", .{});
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
@@ -88,4 +89,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
 const Io = std.Io;
-const types = helpers.types;

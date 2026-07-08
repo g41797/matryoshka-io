@@ -1,7 +1,4 @@
-# Addendums — Tag vs Tagged Union
-
-Rewritten from the original design note (`kitchen/docs/tag-vs-tagged-union.md`) in house
-style. Same argument, staccato form.
+# Tag vs Tagged Union
 
 ---
 

@@ -22,7 +22,7 @@ pub fn batch_processing(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -33,17 +33,17 @@ pub fn batch_processing(allocator: std.mem.Allocator, io: std.Io) !void {
     var i: usize = 0;
     while (i < n) : (i += 1) {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i);
+        defer items.Event.EventPolyHelper.destroy(allocator, &slot);
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i);
         try mailbox.send(mbh, &slot);
     }
 
     // Signal worker to stop — all n items are already queued before this.
     {
         var slot: Slot = null;
-        defer types.ShutdownCommandPolyHelper.destroy(allocator, &slot);
-        try types.ShutdownCommandPolyHelper.create(allocator, &slot);
+        defer items.ShutdownCommand.ShutdownCommandPolyHelper.destroy(allocator, &slot);
+        try items.ShutdownCommand.ShutdownCommandPolyHelper.create(allocator, &slot);
         try mailbox.send(mbh, &slot);
     }
 
@@ -68,29 +68,29 @@ fn batchWorkerFn(ctx: *WorkerCtx) void {
         mailbox.receive(ctx.mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
 
-        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
-            helpers.freeSlot(&slot, ctx.alloc);
+        if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+            items.freeSlot(&slot, ctx.alloc);
             return;
         }
 
-        helpers.freeSlot(&slot, ctx.alloc);
+        items.freeSlot(&slot, ctx.alloc);
         ctx.first_count += 1;
 
         var batch: std.DoublyLinkedList = mailbox.receive_batch(ctx.mbh) catch return;
         while (batch.popFirst()) |node| {
             const bpoly: *PolyNode = @fieldParentPtr("node", node);
-            if (types.ShutdownCommandPolyHelper.identifyNodeAs(bpoly)) |_| {
-                helpers.freeItem(bpoly, ctx.alloc);
+            if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(bpoly)) |_| {
+                items.freeItem(bpoly, ctx.alloc);
                 return;
             }
-            helpers.freeItem(bpoly, ctx.alloc);
+            items.freeItem(bpoly, ctx.alloc);
             ctx.batch_count += 1;
         }
     }
 }
 
-const helpers = @import("helpers");
-const types = helpers.types;
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;

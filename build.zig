@@ -26,14 +26,6 @@ pub fn build(b: *std.Build) void {
 
     b.installArtifact(lib);
 
-    const helpers: *std.Build.Module = b.createModule(.{
-        .root_source_file = b.path("helpers/helpers.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    helpers.addImport("matryoshka", mod);
-
     const tmod: *std.Build.Module = b.createModule(.{
         .root_source_file = b.path("tests/matryoshka_tests.zig"),
         .target = target,
@@ -47,7 +39,6 @@ pub fn build(b: *std.Build) void {
     });
 
     emod.addImport("matryoshka", mod);
-    emod.addImport("helpers", helpers);
 
     const smod: *std.Build.Module = b.addModule("stories", .{
         .root_source_file = b.path("stories/stories.zig"),
@@ -56,10 +47,9 @@ pub fn build(b: *std.Build) void {
     });
 
     smod.addImport("matryoshka", mod);
-    smod.addImport("helpers", helpers);
+    smod.addImport("examples", emod);
 
     tmod.addImport("matryoshka", mod);
-    tmod.addImport("helpers", helpers);
     tmod.addImport("examples", emod);
     tmod.addImport("stories", smod);
 
@@ -92,31 +82,5 @@ pub fn build(b: *std.Build) void {
         .install_subdir = "apidocs",
     });
 
-    // Doc-only module: folds stories into the examples doc target, mirroring
-    // how tofu's cookbook doc target already imports mailbox. Does not affect
-    // the runtime "examples" module's import graph.
-    const edocsMod: *std.Build.Module = b.createModule(.{
-        .root_source_file = b.path("examples/examples.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    edocsMod.addImport("matryoshka", mod);
-    edocsMod.addImport("helpers", helpers);
-    edocsMod.addImport("stories", smod);
-
-    const examplesdocs_lib: *std.Build.Step.Compile = b.addObject(.{
-        .name = "examples",
-        .root_module = edocsMod,
-        .use_llvm = true,
-        .use_lld = use_lld,
-    });
-
-    const install_examplesdocs: *std.Build.Step.InstallDir = b.addInstallDirectory(.{
-        .source_dir = examplesdocs_lib.getEmittedDocs(),
-        .install_dir = .{ .custom = "../kitchen/docs" },
-        .install_subdir = "examplesdocs",
-    });
-
     docs_step.dependOn(&install_apidocs.step);
-    docs_step.dependOn(&install_examplesdocs.step);
 }

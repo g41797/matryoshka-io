@@ -33,16 +33,16 @@ const ProducerCtx = struct {
 fn producerFn(ctx: *ProducerCtx) anyerror!void {
     for (0..3) |i| {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
-        try types.EventPolyHelper.create(ctx.alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        defer items.freeSlot(&slot, ctx.alloc);
+        try items.Event.EventPolyHelper.create(ctx.alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(ctx.out_mbh, &slot);
         std.log.info("producer: sent Event code={d}", .{i + 1});
     }
     {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
-        try types.ShutdownCommandPolyHelper.create(ctx.alloc, &slot);
+        defer items.freeSlot(&slot, ctx.alloc);
+        try items.ShutdownCommand.ShutdownCommandPolyHelper.create(ctx.alloc, &slot);
         try mailbox.send(ctx.out_mbh, &slot);
         std.log.info("producer: sent ShutdownCommand sentinel", .{});
     }
@@ -57,25 +57,25 @@ const TransformerCtx = struct {
 fn transformerFn(ctx: *TransformerCtx) anyerror!void {
     while (true) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.in_mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
 
-        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+        if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             const value: f64 = @floatFromInt(ev.code);
-            helpers.freeSlot(&slot, ctx.alloc);
-            types.SensorPolyHelper.create(ctx.alloc, &slot) catch continue;
-            types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = value;
+            items.freeSlot(&slot, ctx.alloc);
+            items.Sensor.SensorPolyHelper.create(ctx.alloc, &slot) catch continue;
+            items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = value;
             mailbox.send(ctx.out_mbh, &slot) catch {
-                helpers.freeSlot(&slot, ctx.alloc);
+                items.freeSlot(&slot, ctx.alloc);
             };
             std.log.info("transformer: Event→Sensor value={d}", .{value});
-        } else if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+        } else if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
             mailbox.send(ctx.out_mbh, &slot) catch {};
             std.log.info("transformer: forwarded ShutdownCommand, done", .{});
             return;
         } else {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
         }
     }
 }
@@ -89,20 +89,20 @@ const ConsumerCtx = struct {
 fn consumerFn(ctx: *ConsumerCtx) anyerror!void {
     while (true) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.in_mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
 
-        if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
+        if (items.Sensor.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
             ctx.count += 1;
             std.log.info("consumer: Sensor value={d} (total={d})", .{ sn.value, ctx.count });
-            helpers.freeSlot(&slot, ctx.alloc);
-        } else if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+            items.freeSlot(&slot, ctx.alloc);
+        } else if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
             std.log.info("consumer: ShutdownCommand received, done", .{});
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         } else {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
         }
     }
 }
@@ -139,7 +139,7 @@ const PipelineMaster = struct {
         self.transformer_mbh = try mailbox.new(io, allocator);
         errdefer {
             var rem: std.DoublyLinkedList = mailbox.close(self.transformer_mbh);
-            helpers.freeList(&rem, allocator);
+            items.freeList(&rem, allocator);
             mailbox.destroy(self.transformer_mbh, allocator);
         }
         self.consumer_mbh = try mailbox.new(io, allocator);
@@ -151,16 +151,17 @@ const PipelineMaster = struct {
 
     fn destroy(self: *PipelineMaster) void {
         var rem1: std.DoublyLinkedList = mailbox.close(self.transformer_mbh);
-        helpers.freeList(&rem1, self.allocator);
+        items.freeList(&rem1, self.allocator);
         mailbox.destroy(self.transformer_mbh, self.allocator);
         var rem2: std.DoublyLinkedList = mailbox.close(self.consumer_mbh);
-        helpers.freeList(&rem2, self.allocator);
+        items.freeList(&rem2, self.allocator);
         mailbox.destroy(self.consumer_mbh, self.allocator);
         self.allocator.destroy(self);
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -168,4 +169,3 @@ const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

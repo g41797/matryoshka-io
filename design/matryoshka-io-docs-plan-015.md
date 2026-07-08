@@ -1,12 +1,76 @@
-# Matryoshka Zig — Documentation Plan (012)
+# Matryoshka Zig — Documentation Plan (015)
 
-New version of `matryoshka-io-docs-plan-011.md`. That version predates the DOC 14
-Odin-docs pattern audit below. Superseded, not overwritten — see
-`matryoshka-io-docs-plan-011.md` for the prior version.
+New version of `matryoshka-io-docs-plan-014.md`. That version predates the DOC 20
+example-catalog session below. Superseded, not overwritten — see
+`matryoshka-io-docs-plan-014.md` for the prior version.
 
 ---
 
 ## Session Log
+
+### 2026-07-08 — DOC 20 session (remove example autodoc generation, add examples catalog)
+
+**Participants**: human (owner) + Claude.
+
+**Summary**: owner directed removing the 8 `zig build docs` example-autodoc targets
+(`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`, `storiesdocs`) built up
+across DOC 17/INTR 6 — build cost for a page nobody needs, plus a `kitchen/docs/
+examples_reference.md` linking all 8. `apidocs` (the real `src/matryoshka.zig` API reference)
+stays untouched — different content, not an "example doc."
+
+In its place: a hand-organized examples catalog. Discussion arc (owner + Claude, in-session):
+mirror `examples/`'s existing folder layout 1:1 under `kitchen/docs/examples/` via a new
+permanent script, with reader-facing grouping (how-to categories, not `layer1..4`) living
+entirely in hand-authored catalog/group pages that link into the mirrored tree — so regrouping
+later is a doc edit, never a script change. Owner confirmed each per-example generated page
+holds: title, the `//!` description + fenced diagram verbatim, the full embedded source (not a
+relative link — the deployed site only serves `kitchen/docs/`, so a relative link to
+`examples/*.zig` would 404 once published), then a GitHub-blob "Open source" new-tab link
+(`attr_list`, already enabled) as a secondary reference. First-pass grouping: Items/Hooks/
+Helpers intro, How-to groups (PolyNode, Mailbox, Pool, Io — Select/Group/Future), and a
+trailing Flow group for cross-layer Master compositions plus the video transcoder story —
+owner-flagged as likely to be reshuffled later.
+
+**Changes**:
+- `build.zig` — removed the 8 doc-target call sites and their supporting helpers
+  (`addLayerDocTarget`, `stageDir`, `addDocTargetForModule`); `docs_step`/`apidocs_lib`/
+  `install_apidocs` untouched.
+- `kitchen/tools/gen_examples_docs.sh` (new, permanent) — mirrors `examples/`+`stories/` into
+  `kitchen/docs/examples/`, one `.md` per non-barrel `.zig` file (barrel = every non-comment
+  line is `pub const X = @import(...)`); only clears its own mirrored subdirs on each run, never
+  the hand-authored catalog/group pages living alongside them.
+- `kitchen/tools/build_site.sh`, `kitchen/tools/preview_site.sh` — call the new script before
+  `mkdocs build`/`serve`.
+- `kitchen/docs/examples/index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`, `flow.md`
+  (new, hand-authored) — catalog + 5 group pages, covering all 76 mirrored pages exactly once
+  (68 across the 5 groups, 8 items/hooks/helpers referenced from the index).
+- Deleted `kitchen/docs/examples_reference.md`.
+- `kitchen/mkdocs.yml` — removed the `Examples Reference` nav entry; added an `Examples
+  Catalog` nav section (Overview + 5 group pages).
+- `.gitignore` — replaced the 8 generated-dir entries with `/kitchen/docs/examples/` (same
+  gitignored-generated-output treatment as `/kitchen/docs/apidocs/`).
+- `design/rules-019.md` → `-020.md` — "Doc-generation module size" rule updated: general
+  principle kept, the multi-target staging workaround marked historical (targets removed).
+- `design/context.md` — rules/plan/docs-plan pointers bumped.
+- `design/matryoshka-io-implementation-plan-039.md` → `-040.md` — DOC 20 summary bullet.
+- `design/STATUS.md` — Sources of Truth pointers; DOC 20 stage line; mirrored session log entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167), unchanged — build.zig doc-step-only |
+| `zig build docs` | succeeds, installs only `kitchen/docs/apidocs/` |
+| `bash kitchen/tools/gen_examples_docs.sh` (run twice, idempotency check) | 76 mirrored `.md` files, matching `examples/`+`stories/` structure 1:1; hand-authored catalog/group pages untouched across reruns |
+| `bash kitchen/tools/build_site.sh` | mkdocs builds clean, zero warnings (fixed two found during this session: a relative-link 404 risk on deploy, fixed by switching to GitHub-blob links; and the mirror script wiping the hand-authored catalog pages, fixed by scoping its `rm -rf` to only the mirrored subdirs) |
+| Headless-Chrome render + console check, catalog index + one example page + `apidocs` | clean, titles resolve, no console errors |
+| Coverage check: every one of the 76 mirrored pages appears in exactly one group/index link | confirmed, no duplicates, no omissions |
+| Grep sweep for the 8 removed target names + `examples_reference` across `build.zig`, `.gitignore`, `kitchen/mkdocs.yml`, `kitchen/docs/` | zero hits except historical STATUS.md session-log entries (exempt) |
+
+**Next**: Stage 9 continues. Examples-catalog grouping is a first pass — owner may reshuffle
+groups later (doc edit only, no script change). DOC 21+ TBD.
+
+---
 
 ### 2026-07-06 — DOC 14 session (audit Odin docs, add missing patterns/idioms)
 
@@ -1094,7 +1158,16 @@ Zig autodoc splices the first declaration's `///` comment onto the
 container page unconditionally (not a blank-line issue). Fix:
 `const _doc_stub = void;` as first declaration in mailbox.zig/pool.zig/
 polynode.zig. rules-016 → rules-017. DONE.
-DOC 19+ — TBD. Planned iteratively, one stage at a time, not in advance. Likely
+DOC 19 — moved GitHub Pages generated site from `kitchen/output/` to
+root-level `docs/`. DONE. See STATUS.md session log.
+DOC 20 — removed the 8 example-autodoc `zig build docs` targets; added a
+hand-organized examples catalog under `kitchen/docs/examples/`, generated
+by new permanent `kitchen/tools/gen_examples_docs.sh`; 6 hand-authored
+catalog/group pages; rules-019 → rules-020. DONE.
+DOC 20 follow-up — wired all 76 mirrored example pages into
+`kitchen/mkdocs.yml`'s Examples Catalog `nav:` (were link-only orphans);
+new examples-catalog nav sync rule; rules-020 → rules-021. DONE.
+DOC 21+ — TBD. Planned iteratively, one stage at a time, not in advance. Likely
 candidate: split api-reference-020.md into mkdocs Reference pages.
 
 ---

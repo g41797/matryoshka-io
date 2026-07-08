@@ -28,8 +28,8 @@
 
 pub fn job_pool_circular_flow(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -75,7 +75,7 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
         var slot: Slot = null;
         mailbox.receive(ctx.mbh, &slot, null) catch return;
         defer pool.put(ctx.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code *= 2;
         std.log.info("worker: processed job, result code={d}", .{ev.code});
     }
@@ -88,7 +88,7 @@ const Ctx = struct {
 
     fn spawnWorkerAndSetupSelect(self: *Ctx, ph: PoolHandle, worker_ctx: *WorkerCtx, sel: *std.Io.Select(MasterEvent)) !Io.Future(anyerror!void) {
         const fut = try self.io.concurrent(workerFn, .{worker_ctx});
-        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, items.Event.EventPolyHelper.TAG, null });
         return fut;
     }
 
@@ -100,14 +100,14 @@ const Ctx = struct {
                     .item => |handle| {
                         if (job_idx.* < N) {
                             var slot: Slot = handle;
-                            const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                            const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
                             ev.code = jobs[job_idx.*];
                             std.log.info("master: dispatching job {d} (code={d})", .{ job_idx.*, ev.code });
                             job_idx.* += 1;
                             try mailbox.send(self.mbh, &slot);
-                            try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+                            try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, items.Event.EventPolyHelper.TAG, null });
                         } else {
-                            const ev: *types.Event = types.EventPolyHelper.mustIdentifyNodeAs(handle);
+                            const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifyNodeAs(handle);
                             completed.* = job_idx.*;
                             std.log.info("master: last result code={d}, all {d} jobs complete", .{ ev.code, completed.* });
                             var slot: Slot = handle;
@@ -124,18 +124,20 @@ const Ctx = struct {
 
     fn closeMailboxAndAwait(self: *Ctx, worker_fut: *Io.Future(anyerror!void)) !void {
         var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-        helpers.freeList(&rem, self.alloc);
+        items.freeList(&rem, self.alloc);
         try worker_fut.await(self.io);
     }
 };
 
 fn seedContainer(ph: PoolHandle) !void {
     var slot: Slot = null;
-    try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+    try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
     pool.put(ph, &slot);
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -145,4 +147,3 @@ const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
 const Io = std.Io;
-const types = helpers.types;

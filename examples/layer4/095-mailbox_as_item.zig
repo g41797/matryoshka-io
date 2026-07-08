@@ -56,22 +56,22 @@ fn cleanupReturnedMailbox(slot: *Slot, alloc: std.mem.Allocator) void {
 fn workerFn(ctx: *WorkerCtx) void {
     while (true) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.worker_mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
 
-        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly) != null) {
-            helpers.freeSlot(&slot, ctx.alloc);
+        if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(poly) != null) {
+            items.freeSlot(&slot, ctx.alloc);
             slot = ctx.worker_mbh;
             mailbox.send(ctx.master_inbox, &slot) catch {};
             slot = null;
             return;
         }
 
-        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+        if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             ctx.processed += 1;
             std.log.info("worker processed Event code={d}", .{ev.code});
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
         }
     }
 }
@@ -80,15 +80,15 @@ fn sendJobsAndShutdown(worker_mbh: MailboxHandle, alloc: std.mem.Allocator) !voi
     var i: usize = 0;
     while (i < 3) : (i += 1) {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(alloc, &slot);
-        try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @as(i32, @intCast(i + 1));
+        defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+        try items.Event.EventPolyHelper.create(alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @as(i32, @intCast(i + 1));
         try mailbox.send(worker_mbh, &slot);
     }
 
     var slot: Slot = null;
-    defer types.ShutdownCommandPolyHelper.destroy(alloc, &slot);
-    try types.ShutdownCommandPolyHelper.create(alloc, &slot);
+    defer items.ShutdownCommand.ShutdownCommandPolyHelper.destroy(alloc, &slot);
+    try items.ShutdownCommand.ShutdownCommandPolyHelper.create(alloc, &slot);
     try mailbox.send(worker_mbh, &slot);
 
     std.log.info("master: sent 3 Events + ShutdownCommand to worker", .{});
@@ -111,7 +111,8 @@ fn receiveAndVerify(master_inbox: MailboxHandle, worker_mbh: MailboxHandle, allo
     cleanupReturnedMailbox(&slot, alloc);
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -119,4 +120,3 @@ const polynode = matryoshka.polynode;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

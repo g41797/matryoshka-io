@@ -27,7 +27,7 @@ pub fn mailbox_receive_as_select_event_source(allocator: std.mem.Allocator, io: 
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -65,9 +65,9 @@ const Ctx = struct {
     fn seedMailbox(self: *Ctx) !void {
         for (0..N_ITEMS) |i| {
             var slot: Slot = null;
-            defer types.EventPolyHelper.destroy(self.alloc, &slot);
-            try types.EventPolyHelper.create(self.alloc, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+            defer items.Event.EventPolyHelper.destroy(self.alloc, &slot);
+            try items.Event.EventPolyHelper.create(self.alloc, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh, &slot);
         }
     }
@@ -87,8 +87,8 @@ const Ctx = struct {
                 .inbox => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.alloc);
-                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                        defer items.freeSlot(&slot, self.alloc);
+                        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
                         self.received += 1;
                         std.log.info("inbox: Event code={d} ({d}/{d})", .{ ev.code, self.received, N_ITEMS });
                         if (self.received < N_ITEMS) {
@@ -111,11 +111,11 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

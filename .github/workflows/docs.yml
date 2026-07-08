@@ -31,6 +31,9 @@ jobs:
       - name: Regenerate Autodoc Artifacts
         run: ./kitchen/tools/docs_zig.sh
 
+      - name: Regenerate Examples Catalog
+        run: ./kitchen/tools/gen_examples_docs.sh
+
       - name: Build MkDocs Site
         run: |
           pip install mkdocs-material

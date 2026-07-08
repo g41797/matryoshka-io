@@ -21,7 +21,7 @@ pub fn multiple_event_sources_one_mailbox(allocator: std.mem.Allocator, io: std.
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -55,9 +55,9 @@ fn timerSenderFn(ctx: *SenderCtx) anyerror!void {
     for (0..N_TICKS) |_| {
         try std.Io.Timeout.sleep(sleep_t, ctx.io);
         var slot: Slot = null;
-        try types.TimerPolyHelper.create(ctx.alloc, &slot);
+        try items.Timer.TimerPolyHelper.create(ctx.alloc, &slot);
         mailbox.send(ctx.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
@@ -66,10 +66,10 @@ fn timerSenderFn(ctx: *SenderCtx) anyerror!void {
 fn eventSenderFn(ctx: *SenderCtx) anyerror!void {
     for (0..N_EVENTS) |i| {
         var slot: Slot = null;
-        try types.EventPolyHelper.create(ctx.alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        try items.Event.EventPolyHelper.create(ctx.alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         mailbox.send(ctx.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
@@ -77,8 +77,8 @@ fn eventSenderFn(ctx: *SenderCtx) anyerror!void {
 
 fn signalSenderFn(ctx: *SenderCtx) anyerror!void {
     var slot: Slot = null;
-    try types.ShutdownCommandPolyHelper.create(ctx.alloc, &slot);
-    mailbox.send(ctx.mbh, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
+    try items.ShutdownCommand.ShutdownCommandPolyHelper.create(ctx.alloc, &slot);
+    mailbox.send(ctx.mbh, &slot) catch items.freeSlot(&slot, ctx.alloc);
 }
 
 const WorkerCtx = struct {
@@ -92,16 +92,16 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) anyerror!void {
     while (true) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
 
-        if (types.TimerPolyHelper.identifySlotAs(&slot)) |_| {
+        if (items.Timer.TimerPolyHelper.identifySlotAs(&slot)) |_| {
             ctx.timer_count += 1;
             std.log.info("worker: timer tick {d}", .{ctx.timer_count});
-        } else if (types.EventPolyHelper.identifySlotAs(&slot)) |ev| {
+        } else if (items.Event.EventPolyHelper.identifySlotAs(&slot)) |ev| {
             ctx.event_count += 1;
             std.log.info("worker: Event code={d}", .{ev.code});
-        } else if (types.ShutdownCommandPolyHelper.identifySlotAs(&slot)) |_| {
+        } else if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifySlotAs(&slot)) |_| {
             ctx.signal_count += 1;
             std.log.info("worker: ShutdownCommand signal", .{});
         }
@@ -135,13 +135,13 @@ const Ctx = struct {
         futs.signal.await(self.io) catch {};
 
         var remaining: std.DoublyLinkedList = mailbox.close(self.mbh);
-        helpers.freeList(&remaining, self.alloc);
+        items.freeList(&remaining, self.alloc);
 
         futs.worker.await(self.io) catch {};
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -149,4 +149,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const Io = std.Io;
-const types = helpers.types;

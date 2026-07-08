@@ -21,7 +21,7 @@ pub fn fan_in(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -44,12 +44,12 @@ pub fn fan_in(allocator: std.mem.Allocator, io: std.Io) !void {
 
     while (batch.popFirst()) |node| {
         const poly: *PolyNode = @fieldParentPtr("node", node);
-        if (types.EventPolyHelper.identifyNodeAs(poly)) |_| {
+        if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |_| {
             events_received += 1;
-        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |_| {
+        } else if (items.Sensor.SensorPolyHelper.identifyNodeAs(poly)) |_| {
             sensors_received += 1;
         }
-        helpers.freeItem(poly, allocator);
+        items.freeItem(poly, allocator);
     }
 
     std.log.info("fan-in: sent={d} events={d} sensors={d}", .{ total_sent, events_received, sensors_received });
@@ -66,10 +66,10 @@ fn eventSenderFn(ctx: *SenderCtx) void {
     var i: i32 = 0;
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
-        types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
+        items.Event.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
         mailbox.send(ctx.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
         ctx.sent += 1;
@@ -80,10 +80,10 @@ fn sensorSenderFn(ctx: *SenderCtx) void {
     var i: usize = 0;
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
-        types.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
-        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i)) * 0.1;
+        items.Sensor.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
+        items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i)) * 0.1;
         mailbox.send(ctx.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
         ctx.sent += 1;
@@ -95,21 +95,22 @@ fn altSenderFn(ctx: *SenderCtx) void {
     while (i < 4) : (i += 1) {
         var slot: Slot = null;
         if (@rem(i, 2) == 0) {
-            types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 100 + i;
+            items.Event.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 100 + i;
         } else {
-            types.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
-            types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i));
+            items.Sensor.SensorPolyHelper.create(ctx.alloc, &slot) catch return;
+            items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = @as(f64, @floatFromInt(i));
         }
         mailbox.send(ctx.mbh, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
         ctx.sent += 1;
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;
@@ -117,4 +118,3 @@ const mailbox = matryoshka.mailbox;
 const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

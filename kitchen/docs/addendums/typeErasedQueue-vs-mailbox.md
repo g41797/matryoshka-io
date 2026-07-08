@@ -1,7 +1,4 @@
-# Addendums — TypeErasedQueue vs Mailbox
-
-Rewritten from the original design note (`kitchen/docs/typeErasedQueue-vs-mailbox.md`) in
-house style. Same argument, staccato form.
+# TypeErasedQueue vs Mailbox
 
 ---
 

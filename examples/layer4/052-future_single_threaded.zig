@@ -22,7 +22,7 @@ pub fn concurrencyunavailable_on_single_threaded(allocator: std.mem.Allocator, i
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -39,22 +39,21 @@ fn testFutureUnavailable(mbh: MailboxHandle) !void {
 
 fn testSynchronousReceive(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
-    defer types.EventPolyHelper.destroy(alloc, &slot);
-    try types.EventPolyHelper.create(alloc, &slot);
-    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
+    defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+    try items.Event.EventPolyHelper.create(alloc, &slot);
+    items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
     try mailbox.send(mbh, &slot);
 
     var received: Slot = null;
-    defer helpers.freeSlot(&received, alloc);
+    defer items.freeSlot(&received, alloc);
     try mailbox.receive(mbh, &received, null);
-    std.log.info("synchronous receive still works: code={d}", .{types.EventPolyHelper.mustIdentifySlotAs(&received).code});
+    std.log.info("synchronous receive still works: code={d}", .{items.Event.EventPolyHelper.mustIdentifySlotAs(&received).code});
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

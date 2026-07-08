@@ -23,8 +23,8 @@
 
 pub fn pool_mailbox_pool_roundtrip(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -34,7 +34,7 @@ pub fn pool_mailbox_pool_roundtrip(allocator: std.mem.Allocator, io: std.Io) !vo
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -49,38 +49,40 @@ const Ctx = struct {
     mbh: MailboxHandle,
     alloc: std.mem.Allocator,
 
-    fn getAndSend(self: *Ctx) !*types.Event {
+    fn getAndSend(self: *Ctx) !*items.Event {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(self.alloc, &slot);
-        try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        defer items.Event.EventPolyHelper.destroy(self.alloc, &slot);
+        try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code = 42;
         std.log.info("pool.get: code={d} ptr={*}", .{ ev.code, ev });
         try mailbox.send(self.mbh, &slot);
         return ev;
     }
 
-    fn receiveAndVerify(self: *Ctx, sent_ptr: *types.Event) !void {
+    fn receiveAndVerify(self: *Ctx, sent_ptr: *items.Event) !void {
         var slot: Slot = null;
         try mailbox.receive(self.mbh, &slot, null);
         defer pool.put(self.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.CrossLayerRoundtripFailed, ev.code == 42, "wrong code after receive");
         try helpers.expect(error.CrossLayerRoundtripFailed, ev == sent_ptr, "not same pointer after receive");
         std.log.info("mailbox.receive: code={d} same_ptr={}", .{ ev.code, ev == sent_ptr });
     }
 
-    fn verifyRecycle(self: *Ctx, sent_ptr: *types.Event) !void {
+    fn verifyRecycle(self: *Ctx, sent_ptr: *items.Event) !void {
         var slot: Slot = null;
         defer pool.put(self.ph, &slot);
-        try pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         try helpers.expect(error.CrossLayerRoundtripFailed, ev == sent_ptr, "not same pointer on second get");
         std.log.info("pool.get (recycled): same_ptr={} — pool→mailbox→pool roundtrip complete", .{ev == sent_ptr});
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -89,4 +91,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

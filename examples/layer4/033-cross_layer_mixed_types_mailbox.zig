@@ -25,7 +25,7 @@ pub fn mixed_types_through_shared_mailbox(allocator: std.mem.Allocator, io: std.
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -36,18 +36,18 @@ pub fn mixed_types_through_shared_mailbox(allocator: std.mem.Allocator, io: std.
 
 fn sendEvent(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
-    defer types.EventPolyHelper.destroy(alloc, &slot);
-    try types.EventPolyHelper.create(alloc, &slot);
-    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 10;
+    defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+    try items.Event.EventPolyHelper.create(alloc, &slot);
+    items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 10;
     std.log.info("send: Event code={d}", .{10});
     try mailbox.send(mbh, &slot);
 }
 
 fn sendSensor(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
-    defer types.SensorPolyHelper.destroy(alloc, &slot);
-    try types.SensorPolyHelper.create(alloc, &slot);
-    types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 3.14;
+    defer items.Sensor.SensorPolyHelper.destroy(alloc, &slot);
+    try items.Sensor.SensorPolyHelper.create(alloc, &slot);
+    items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 3.14;
     std.log.info("send: Sensor value={d}", .{3.14});
     try mailbox.send(mbh, &slot);
 }
@@ -59,13 +59,13 @@ fn receiveAndDispatch(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     for (0..2) |_| {
         var slot: Slot = null;
         try mailbox.receive(mbh, &slot, null);
-        defer helpers.freeSlot(&slot, alloc);
+        defer items.freeSlot(&slot, alloc);
         const poly: *polynode.PolyNode = slot.?;
-        if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+        if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             try helpers.expect(error.CrossLayerMixedTypesFailed, ev.code == 10, "wrong Event code");
             std.log.info("received: Event code={d}", .{ev.code});
             event_ok = true;
-        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
+        } else if (items.Sensor.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
             try helpers.expect(error.CrossLayerMixedTypesFailed, sn.value == 3.14, "wrong Sensor value");
             std.log.info("received: Sensor value={d}", .{sn.value});
             sensor_ok = true;
@@ -79,11 +79,11 @@ fn receiveAndDispatch(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     std.log.info("done: Event + Sensor through shared mailbox, dispatched on tag", .{});
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

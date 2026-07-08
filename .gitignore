@@ -11,7 +11,14 @@ site/
 #docs_site/docs/api/*
 #!docs_site/docs/api/.gitkeep
 /kitchen/docs/apidocs/
-/kitchen/docs/examplesdocs/
+/kitchen/docs/examples/layer1/
+/kitchen/docs/examples/layer2/
+/kitchen/docs/examples/layer3/
+/kitchen/docs/examples/layer4/
+/kitchen/docs/examples/items/
+/kitchen/docs/examples/hooks/
+/kitchen/docs/examples/helpers/
+/kitchen/docs/examples/stories/
 /docs/
 /zig-pkg/
 .antigravitycli/

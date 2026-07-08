@@ -28,8 +28,8 @@
 
 pub fn pool_future_simple_worker(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -38,7 +38,7 @@ pub fn pool_future_simple_worker(allocator: std.mem.Allocator, io: std.Io) !void
 
     try seedContainer(ph);
 
-    var ctx: WorkerCtx = .{ .ph = ph, .tag = types.EventPolyHelper.TAG, .n = N };
+    var ctx: WorkerCtx = .{ .ph = ph, .tag = items.Event.EventPolyHelper.TAG, .n = N };
     var fut: std.Io.Future(anyerror!void) = try io.concurrent(workerFn, .{&ctx});
     try fut.await(io);
 
@@ -60,7 +60,7 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
         var slot: Slot = null;
         try pool.get_wait(ctx.ph, ctx.tag, &slot, null);
         defer pool.put(ctx.ph, &slot);
-        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
         ev.code = @intCast(ctx.counter); // write counter into empty container
         ctx.counter += 1;
         std.log.info("worker: cycle {d} — wrote counter into empty container (code={d})", .{ ctx.counter, ev.code });
@@ -69,15 +69,16 @@ fn workerFn(ctx: *WorkerCtx) anyerror!void {
 
 fn seedContainer(ph: PoolHandle) !void {
     var slot: Slot = null;
-    try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+    try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
     pool.put(ph, &slot);
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

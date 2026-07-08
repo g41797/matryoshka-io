@@ -26,7 +26,7 @@ pub fn define_a_polynode_type(allocator: std.mem.Allocator, io: std.Io) !void {
     MessagePolyHelper.init(&msg);
 
     try helpers.expect(error.DefineTypeFailed, MessagePolyHelper.isIt(msg.poly.tag), "expected Message tag");
-    try helpers.expect(error.DefineTypeFailed, !types.EventPolyHelper.isIt(msg.poly.tag), "unexpected Event tag");
+    try helpers.expect(error.DefineTypeFailed, !items.Event.EventPolyHelper.isIt(msg.poly.tag), "unexpected Event tag");
 
     const poly: *polynode.PolyNode = &msg.poly;
     const recovered: *Message = MessagePolyHelper.identifyNodeAs(poly) orelse return error.CastFailed;
@@ -42,7 +42,7 @@ pub const Message = struct {
 
 pub const MessagePolyHelper = polynode.PolyHelper(Message);
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const polynode = @import("matryoshka").polynode;
 const std = @import("std");
-const types = helpers.types;

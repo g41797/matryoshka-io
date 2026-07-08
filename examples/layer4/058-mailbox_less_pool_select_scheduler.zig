@@ -32,8 +32,8 @@
 
 pub fn pool_select_job_scheduler(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -70,7 +70,7 @@ fn sleepFn(sleep_t: std.Io.Timeout, io: std.Io) void {
 fn seedPool(ph: PoolHandle) !void {
     for (0..N_ITEMS) |_| {
         var slot: Slot = null;
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+        try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
         pool.put(ph, &slot);
     }
 }
@@ -79,7 +79,7 @@ fn setupSelect(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent)) !vo
     const sleep_t: std.Io.Timeout = .{
         .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real },
     };
-    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+    try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, items.Event.EventPolyHelper.TAG, null });
     try sel.concurrent(.timer, sleepFn, .{ sleep_t, io });
 }
 
@@ -91,12 +91,12 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent), cy
                 .item => |handle| {
                     var slot: Slot = handle;
                     defer pool.put(ph, &slot);
-                    const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                    const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
                     ev.code = @intCast(cycle.*);
                     cycle.* += 1;
                     std.log.info("pool_ev: filled container with cycle index={d} ({d}/{d})", .{ ev.code, cycle.*, TARGET });
                     if (cycle.* < TARGET) {
-                        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, types.EventPolyHelper.TAG, null });
+                        try sel.concurrent(.pool_ev, pool.getWaitResult, .{ ph, items.Event.EventPolyHelper.TAG, null });
                     } else {
                         break;
                     }
@@ -118,11 +118,12 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *std.Io.Select(MasterEvent), cy
     sel.cancelDiscard();
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

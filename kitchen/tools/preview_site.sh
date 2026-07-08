@@ -15,6 +15,7 @@ if ! command -v mkdocs >/dev/null 2>&1; then
 fi
 
 bash "$TOOLS_DIR/docs_zig.sh"
+bash "$TOOLS_DIR/gen_examples_docs.sh"
 
 echo "--- Starting MkDocs site ---"
 echo "Preview: http://localhost:8000"

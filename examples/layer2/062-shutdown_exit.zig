@@ -20,7 +20,7 @@ pub fn shutdown_via_shutdowncommand(allocator: std.mem.Allocator, io: std.Io) !v
 
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -30,17 +30,17 @@ pub fn shutdown_via_shutdowncommand(allocator: std.mem.Allocator, io: std.Io) !v
     const codes = [_]i32{ 10, 20, 30 };
     for (codes) |code| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(allocator, &slot);
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = code;
+        defer items.Event.EventPolyHelper.destroy(allocator, &slot);
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = code;
         try mailbox.send(mbh, &slot);
     }
 
     // Send shutdown signal — mailbox stays open.
     {
         var slot: Slot = null;
-        defer types.ShutdownCommandPolyHelper.destroy(allocator, &slot);
-        try types.ShutdownCommandPolyHelper.create(allocator, &slot);
+        defer items.ShutdownCommand.ShutdownCommandPolyHelper.destroy(allocator, &slot);
+        try items.ShutdownCommand.ShutdownCommandPolyHelper.create(allocator, &slot);
         try mailbox.send(mbh, &slot);
     }
 
@@ -59,24 +59,24 @@ const WorkerCtx = struct {
 fn workerFn(ctx: *WorkerCtx) void {
     while (true) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
         const poly: *PolyNode = slot.?;
-        if (types.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
+        if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(poly)) |_| {
             std.log.info("worker: ShutdownCommand received, exiting cleanly", .{});
             return;
-        } else if (types.EventPolyHelper.identifyNodeAs(poly)) |ev| {
+        } else if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |ev| {
             std.log.debug("worker: Event code={d}", .{ev.*.code});
             ctx.processed += 1;
-        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
+        } else if (items.Sensor.SensorPolyHelper.identifyNodeAs(poly)) |sn| {
             std.log.debug("worker: Sensor value={d:.1}", .{sn.*.value});
             ctx.processed += 1;
         }
     }
 }
 
-const helpers = @import("helpers");
-const types = helpers.types;
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;

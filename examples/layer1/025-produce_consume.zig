@@ -25,8 +25,8 @@ pub fn produce_consume_with_defer_cleanup(allocator: std.mem.Allocator, io: std.
     var i: i32 = 0;
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
         list.append(&slot.?.*.node);
         slot = null;
     }
@@ -34,9 +34,9 @@ pub fn produce_consume_with_defer_cleanup(allocator: std.mem.Allocator, io: std.
     var sum: i32 = 0;
     while (list.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-        const ev: *types.Event = types.EventPolyHelper.identifyNodeAs(poly) orelse return error.CastFailed;
+        const ev: *items.Event = items.Event.EventPolyHelper.identifyNodeAs(poly) orelse return error.CastFailed;
         sum += ev.*.code;
-        helpers.freeItem(poly, allocator);
+        items.freeItem(poly, allocator);
     }
 
     try helpers.expect(error.ProduceConsumeFailed, sum == 0 + 1 + 2 + 3 + 4, "wrong sum");
@@ -45,12 +45,12 @@ pub fn produce_consume_with_defer_cleanup(allocator: std.mem.Allocator, io: std.
 fn freeRemaining(list: *std.DoublyLinkedList, alloc: std.mem.Allocator) void {
     while (list.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-        helpers.freeItem(poly, alloc);
+        items.freeItem(poly, alloc);
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const polynode = @import("matryoshka").polynode;
 const std = @import("std");
 const Slot = polynode.Slot;
-const types = helpers.types;

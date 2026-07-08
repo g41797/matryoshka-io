@@ -23,9 +23,9 @@ pub fn pipeline(allocator: std.mem.Allocator, io: std.Io) !void {
     const stage2: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var r1: std.DoublyLinkedList = mailbox.close(stage1);
-        helpers.freeList(&r1, allocator);
+        items.freeList(&r1, allocator);
         var r2: std.DoublyLinkedList = mailbox.close(stage2);
-        helpers.freeList(&r2, allocator);
+        items.freeList(&r2, allocator);
         mailbox.destroy(stage1, allocator);
         mailbox.destroy(stage2, allocator);
     }
@@ -57,18 +57,18 @@ fn producerFn(ctx: *ProducerCtx) void {
     var i: i32 = 0;
     while (i < 5) : (i += 1) {
         var slot: Slot = null;
-        types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
+        items.Event.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = i;
         mailbox.send(ctx.outbox, &slot) catch {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         };
     }
     {
         var slot: Slot = null;
-        types.EventPolyHelper.create(ctx.alloc, &slot) catch return;
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = -1;
-        mailbox.send(ctx.outbox, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
+        items.Event.EventPolyHelper.create(ctx.alloc, &slot) catch return;
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = -1;
+        mailbox.send(ctx.outbox, &slot) catch items.freeSlot(&slot, ctx.alloc);
     }
 }
 
@@ -82,16 +82,16 @@ fn transformerFn(ctx: *StageCtx) void {
     while (true) {
         var slot: Slot = null;
         mailbox.receive(ctx.inbox, &slot, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse {
-            helpers.freeSlot(&slot, ctx.alloc);
+        const ev: *items.Event = items.Event.EventPolyHelper.identifySlotAs(&slot) orelse {
+            items.freeSlot(&slot, ctx.alloc);
             continue;
         };
         if (ev.code == -1) {
-            mailbox.send(ctx.outbox, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
+            mailbox.send(ctx.outbox, &slot) catch items.freeSlot(&slot, ctx.alloc);
             return;
         }
         ev.code = ev.code * ev.code;
-        mailbox.send(ctx.outbox, &slot) catch helpers.freeSlot(&slot, ctx.alloc);
+        mailbox.send(ctx.outbox, &slot) catch items.freeSlot(&slot, ctx.alloc);
     }
 }
 
@@ -106,26 +106,26 @@ fn consumerFn(ctx: *ConsumerCtx) void {
     while (true) {
         var slot: Slot = null;
         mailbox.receive(ctx.mbh, &slot, null) catch return;
-        const ev: *types.Event = types.EventPolyHelper.identifySlotAs(&slot) orelse {
-            helpers.freeSlot(&slot, ctx.alloc);
+        const ev: *items.Event = items.Event.EventPolyHelper.identifySlotAs(&slot) orelse {
+            items.freeSlot(&slot, ctx.alloc);
             continue;
         };
         if (ev.code == -1) {
-            helpers.freeSlot(&slot, ctx.alloc);
+            items.freeSlot(&slot, ctx.alloc);
             return;
         }
         std.log.info("pipeline: result={d}", .{ev.code});
         ctx.sum += ev.code;
         ctx.count += 1;
-        helpers.freeSlot(&slot, ctx.alloc);
+        items.freeSlot(&slot, ctx.alloc);
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

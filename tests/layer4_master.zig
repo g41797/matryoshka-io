@@ -8,7 +8,7 @@ const WorkerCtx = struct {
 
 fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc);
+    defer items.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => return error.Canceled,
         error.Closed, error.Timeout, error.Wakeup => return,
@@ -25,7 +25,7 @@ test "1 - single worker spawn and join" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -52,7 +52,7 @@ test "2 - worker group spawn and join" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -85,10 +85,9 @@ const PolyNode = polynode.PolyNode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 
-const helpers = @import("helpers");
-const types = helpers.types;
-const Event = types.Event;
-const EventPolyHelper = types.EventPolyHelper;
+const items = @import("examples").items;
+const Event = items.Event;
+const EventPolyHelper = items.Event.EventPolyHelper;
 const std = @import("std");
 const testing = std.testing;
 const Io = std.Io;

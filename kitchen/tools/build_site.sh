@@ -17,6 +17,9 @@ fi
 echo "--- Generating API docs ---"
 bash "$TOOLS_DIR/docs_zig.sh"
 
+echo "--- Generating examples catalog ---"
+bash "$TOOLS_DIR/gen_examples_docs.sh"
+
 echo "--- Building MkDocs site ---"
 cd "$KITCHEN_DIR"
 mkdocs build -f mkdocs.yml

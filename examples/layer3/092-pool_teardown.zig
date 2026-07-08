@@ -13,13 +13,13 @@
 //!  (pool holds 4 items)
 //!       │ pool.close
 //!       ▼
-//!  on_close ──► AlwaysCreateCtx: destroys all 4 items
+//!  on_close ──► AlwaysCreateHooks: destroys all 4 items
 //! ```
 //!
 
 pub fn pool_teardown(allocator: std.mem.Allocator, io: std.Io) !void {
-    var ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
 
     const ph = try pool.new(io, allocator);
     defer pool.destroy(ph, allocator);
@@ -30,20 +30,20 @@ pub fn pool_teardown(allocator: std.mem.Allocator, io: std.Io) !void {
     while (i < n) : (i += 1) {
         var slot: Slot = null;
         defer pool.put(ph, &slot);
-        try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
+        try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
     }
     std.log.info("pool holds {d} Events before teardown", .{n});
 
-    // Close: on_close receives all pooled items and frees them via AlwaysCreateCtx.
+    // Close: on_close receives all pooled items and frees them via AlwaysCreateHooks.
     pool.close(ph);
     std.log.info("pool closed: on_close freed all {d} items", .{n});
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

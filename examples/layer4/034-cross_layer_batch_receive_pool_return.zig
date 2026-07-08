@@ -22,8 +22,8 @@
 
 pub fn batch_receive_pool_return(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -33,7 +33,7 @@ pub fn batch_receive_pool_return(allocator: std.mem.Allocator, io: std.Io) !void
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -54,9 +54,9 @@ const Ctx = struct {
     fn fillMailbox(self: *Ctx) !void {
         for (0..N_ITEMS) |i| {
             var slot: Slot = null;
-            defer types.EventPolyHelper.destroy(self.alloc, &slot);
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+            defer items.Event.EventPolyHelper.destroy(self.alloc, &slot);
+            try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh, &slot);
         }
         std.log.info("sent {d} items to mailbox", .{N_ITEMS});
@@ -71,14 +71,15 @@ const Ctx = struct {
     fn verifyPool(self: *Ctx) !void {
         var slot: Slot = null;
         defer pool.put(self.ph, &slot);
-        pool.get(self.ph, types.EventPolyHelper.TAG, .available_only, &slot) catch {
+        pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot) catch {
             return error.CrossLayerBatchFailed;
         };
         std.log.info("verified: pool has items after put_all", .{});
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -87,4 +88,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

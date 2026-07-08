@@ -58,21 +58,21 @@ const GracefulShutdownMaster = struct {
     fn seedResources(self: *GracefulShutdownMaster) !void {
         for (0..N_EVENTS) |i| {
             var slot: Slot = null;
-            defer types.EventPolyHelper.destroy(self.allocator, &slot);
-            try types.EventPolyHelper.create(self.allocator, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+            defer items.Event.EventPolyHelper.destroy(self.allocator, &slot);
+            try items.Event.EventPolyHelper.create(self.allocator, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh, &slot);
         }
         {
             var slot: Slot = null;
-            defer types.ShutdownCommandPolyHelper.destroy(self.allocator, &slot);
-            try types.ShutdownCommandPolyHelper.create(self.allocator, &slot);
+            defer items.ShutdownCommand.ShutdownCommandPolyHelper.destroy(self.allocator, &slot);
+            try items.ShutdownCommand.ShutdownCommandPolyHelper.create(self.allocator, &slot);
             try mailbox.send(self.mbh, &slot);
         }
         {
             var slot: Slot = null;
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 99;
+            try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 99;
             pool.put(self.ph, &slot);
         }
     }
@@ -82,7 +82,7 @@ const GracefulShutdownMaster = struct {
             .duration = .{ .raw = .{ .nanoseconds = TIMER_NS }, .clock = .real },
         };
         try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.EventPolyHelper.TAG, null });
+        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, items.Event.EventPolyHelper.TAG, null });
         try self.sel.concurrent(.timer, sleepFn, .{ sleep_t, self.io });
 
         outer: while (true) {
@@ -90,21 +90,21 @@ const GracefulShutdownMaster = struct {
             switch (event) {
                 .inbox => |r| switch (r) {
                     .item => |handle| {
-                        if (types.EventPolyHelper.identifyNodeAs(handle)) |ev| {
+                        if (items.Event.EventPolyHelper.identifyNodeAs(handle)) |ev| {
                             var slot: Slot = handle;
-                            defer helpers.freeSlot(&slot, self.allocator);
+                            defer items.freeSlot(&slot, self.allocator);
                             self.events_processed += 1;
                             std.log.info("inbox: Event code={d}", .{ev.code});
                             try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-                        } else if (types.ShutdownCommandPolyHelper.identifyNodeAs(handle)) |_| {
+                        } else if (items.ShutdownCommand.ShutdownCommandPolyHelper.identifyNodeAs(handle)) |_| {
                             var slot: Slot = handle;
-                            helpers.freeSlot(&slot, self.allocator);
+                            items.freeSlot(&slot, self.allocator);
                             std.log.info("inbox: ShutdownCommand — initiating graceful shutdown", .{});
                             self.shutdown_seen = true;
                             break :outer;
                         } else {
                             var slot: Slot = handle;
-                            helpers.freeSlot(&slot, self.allocator);
+                            items.freeSlot(&slot, self.allocator);
                         }
                     },
                     .closed, .canceled, .timeout, .wakeup => break :outer,
@@ -114,7 +114,7 @@ const GracefulShutdownMaster = struct {
                         var slot: Slot = handle;
                         defer pool.put(self.ph, &slot);
                         std.log.info("pool_ev: item received", .{});
-                        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.EventPolyHelper.TAG, null });
+                        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, items.Event.EventPolyHelper.TAG, null });
                     },
                     .closed, .canceled, .timeout, .not_created => {},
                 },
@@ -132,7 +132,7 @@ const GracefulShutdownMaster = struct {
                 .inbox => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.allocator);
+                        items.freeSlot(&slot, self.allocator);
                         self.freed_inbox += 1;
                         std.log.info("graceful cancel: freed inbox item", .{});
                     },
@@ -156,7 +156,7 @@ const GracefulShutdownMaster = struct {
     io: std.Io,
     mbh: MailboxHandle,
     ph: PoolHandle,
-    pool_ctx: helpers.AlwaysCreateCtx,
+    pool_ctx: hooks.AlwaysCreateHooks,
     tags: [1]*const anyopaque,
     events_processed: usize,
     shutdown_seen: bool,
@@ -177,11 +177,11 @@ const GracefulShutdownMaster = struct {
         self.mbh = try mailbox.new(io, allocator);
         errdefer {
             var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-            helpers.freeList(&rem, allocator);
+            items.freeList(&rem, allocator);
             mailbox.destroy(self.mbh, allocator);
         }
         self.pool_ctx = .{ .alloc = allocator };
-        self.tags = .{types.EventPolyHelper.TAG};
+        self.tags = .{items.Event.EventPolyHelper.TAG};
         self.ph = try pool.new(io, allocator);
         errdefer {
             pool.close(self.ph);
@@ -194,7 +194,7 @@ const GracefulShutdownMaster = struct {
 
     fn destroy(self: *GracefulShutdownMaster) void {
         var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-        helpers.freeList(&rem, self.allocator);
+        items.freeList(&rem, self.allocator);
         mailbox.destroy(self.mbh, self.allocator);
         pool.close(self.ph);
         pool.destroy(self.ph, self.allocator);
@@ -202,7 +202,9 @@ const GracefulShutdownMaster = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -211,4 +213,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

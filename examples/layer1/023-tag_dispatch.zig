@@ -27,16 +27,16 @@ pub fn tag_dispatch_consume_loop(allocator: std.mem.Allocator, io: std.Io) !void
 
     {
         var slot: Slot = null;
-        try types.EventPolyHelper.create(allocator, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
+        try items.Event.EventPolyHelper.create(allocator, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
         list.append(&slot.?.*.node);
         slot = null;
     }
 
     {
         var slot: Slot = null;
-        try types.SensorPolyHelper.create(allocator, &slot);
-        types.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 2.71;
+        try items.Sensor.SensorPolyHelper.create(allocator, &slot);
+        items.Sensor.SensorPolyHelper.mustIdentifySlotAs(&slot).value = 2.71;
         list.append(&slot.?.*.node);
         slot = null;
     }
@@ -47,14 +47,14 @@ pub fn tag_dispatch_consume_loop(allocator: std.mem.Allocator, io: std.Io) !void
     while (list.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
 
-        if (types.EventPolyHelper.identifyNodeAs(poly)) |recovered_ev| {
+        if (items.Event.EventPolyHelper.identifyNodeAs(poly)) |recovered_ev| {
             try helpers.expect(error.TagDispatchFailed, recovered_ev.*.code == 7, "wrong event code");
             processed_events += 1;
-            helpers.freeItem(poly, allocator);
-        } else if (types.SensorPolyHelper.identifyNodeAs(poly)) |recovered_sn| {
+            items.freeItem(poly, allocator);
+        } else if (items.Sensor.SensorPolyHelper.identifyNodeAs(poly)) |recovered_sn| {
             try helpers.expect(error.TagDispatchFailed, recovered_sn.*.value == 2.71, "wrong sensor value");
             processed_sensors += 1;
-            helpers.freeItem(poly, allocator);
+            items.freeItem(poly, allocator);
         } else {
             return error.UnknownTag;
         }
@@ -67,12 +67,12 @@ pub fn tag_dispatch_consume_loop(allocator: std.mem.Allocator, io: std.Io) !void
 fn freeRemaining(list: *std.DoublyLinkedList, alloc: std.mem.Allocator) void {
     while (list.popFirst()) |node| {
         const poly: *polynode.PolyNode = @fieldParentPtr("node", node);
-        helpers.freeItem(poly, alloc);
+        items.freeItem(poly, alloc);
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const polynode = @import("matryoshka").polynode;
 const std = @import("std");
 const Slot = polynode.Slot;
-const types = helpers.types;

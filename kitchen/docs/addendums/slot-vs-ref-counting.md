@@ -1,7 +1,4 @@
-# Addendums — Slot vs Reference Counting
-
-Rewritten from the original design note (`kitchen/docs/slot-vs-ref-counting.md`) in house
-style. Same argument, staccato form.
+# Slot vs Reference Counting
 
 ---
 

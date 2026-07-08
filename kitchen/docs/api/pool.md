@@ -97,7 +97,7 @@ pub const PoolHooks = struct {
 - Example: use `Io.Mutex` and call `lockUncancelable` to acquire it.
   Hooks return `void` — `lock` (cancelable) is not an option here.
 - Obtain `io` from the surrounding context that holds the pool; do not acquire it inside the hook.
-- `CappedPoolCtx` in `helpers/helpers.zig` is the reference implementation of these rules.
+- `CappedPoolHooks` in `examples/hooks/CappedPoolHooks.zig` is the reference implementation of these rules.
 
 ## Functions
 

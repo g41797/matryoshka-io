@@ -82,7 +82,7 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const pool = matryoshka.pool;

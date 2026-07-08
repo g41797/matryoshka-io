@@ -23,8 +23,8 @@
 
 pub fn close_ordering_mailbox_then_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -47,16 +47,16 @@ pub fn close_ordering_mailbox_then_pool(allocator: std.mem.Allocator, io: std.Io
 
 fn seedPool(ph: PoolHandle) !void {
     var slot: Slot = null;
-    try pool.get(ph, types.EventPolyHelper.TAG, .new_only, &slot);
-    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
+    try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+    items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 1;
     pool.put(ph, &slot);
 }
 
 fn seedMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator) !void {
     var slot: Slot = null;
-    defer types.EventPolyHelper.destroy(alloc, &slot);
-    try types.EventPolyHelper.create(alloc, &slot);
-    types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 2;
+    defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+    try items.Event.EventPolyHelper.create(alloc, &slot);
+    items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 2;
     try mailbox.send(mbh, &slot);
 }
 
@@ -74,12 +74,14 @@ fn returnCloseListToPool(ph: PoolHandle, rem: *std.DoublyLinkedList) usize {
         var slot: Slot = poly;
         pool.put(ph, &slot);
         returned += 1;
-        std.log.info("mailbox close list: returned item to pool (code={d})", .{types.EventPolyHelper.mustIdentifyNodeAs(poly).code});
+        std.log.info("mailbox close list: returned item to pool (code={d})", .{items.Event.EventPolyHelper.mustIdentifyNodeAs(poly).code});
     }
     return returned;
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -88,4 +90,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

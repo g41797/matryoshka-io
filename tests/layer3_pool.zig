@@ -462,7 +462,7 @@ test "77 - pool.put on closed pool: caller retains ownership" {
     try testing.expectEqual(raw, slot.?);
 
     // Manually free item since pool rejected it, then destroy.
-    helpers.freeItem(slot.?, alloc);
+    items.freeItem(slot.?, alloc);
     pool.destroy(ph, alloc);
 }
 
@@ -529,7 +529,7 @@ test "79 - pool seeding: pre-allocate N items, then available_only consumes them
         var slot: Slot = null;
         pool.get(ph, EventPolyHelper.TAG, .available_only, &slot) catch break;
         retrieved += 1;
-        helpers.freeItem(slot.?, alloc);
+        items.freeItem(slot.?, alloc);
     }
     try testing.expectEqual(@as(usize, 3), retrieved);
 }
@@ -882,7 +882,7 @@ fn onPutAdaptive(ctx_opaque: *anyopaque, in_pool_count: usize, slot: *Slot) void
     ctx.last_put_count = in_pool_count;
     if (ctx.destroy_on_put or in_pool_count >= ctx.cap) {
         if (slot.*) |poly| {
-            helpers.freeItem(poly, ctx.alloc);
+            items.freeItem(poly, ctx.alloc);
             slot.* = null;
         }
     }
@@ -894,11 +894,11 @@ fn onCloseAdaptive(ctx_opaque: *anyopaque, list: *std.DoublyLinkedList) void {
     while (list.popFirst()) |node| {
         const poly: *PolyNode = @fieldParentPtr("node", node);
         ctx.close_item_count += 1;
-        helpers.freeItem(poly, ctx.alloc);
+        items.freeItem(poly, ctx.alloc);
     }
 }
 
-const helpers = @import("helpers");
+const items = @import("examples").items;
 
 const matryoshka = @import("matryoshka");
 const polynode = matryoshka.polynode;
@@ -908,11 +908,10 @@ const PoolHooks = pool.PoolHooks;
 const Slot = polynode.Slot;
 const PolyNode = polynode.PolyNode;
 
-const types = helpers.types;
-const Event = types.Event;
-const Sensor = types.Sensor;
-const EventPolyHelper = types.EventPolyHelper;
-const SensorPolyHelper = types.SensorPolyHelper;
+const Event = items.Event;
+const Sensor = items.Sensor;
+const EventPolyHelper = items.Event.EventPolyHelper;
+const SensorPolyHelper = items.Sensor.SensorPolyHelper;
 const std = @import("std");
 const testing = std.testing;
 const Thread = std.Thread;

@@ -30,10 +30,10 @@ pub fn timer_cancel_close_walk_remaining(allocator: std.mem.Allocator, io: std.I
     const mbh2: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem1: std.DoublyLinkedList = mailbox.close(mbh1);
-        helpers.freeList(&rem1, allocator);
+        items.freeList(&rem1, allocator);
         mailbox.destroy(mbh1, allocator);
         var rem2: std.DoublyLinkedList = mailbox.close(mbh2);
-        helpers.freeList(&rem2, allocator);
+        items.freeList(&rem2, allocator);
         mailbox.destroy(mbh2, allocator);
     }
 
@@ -95,7 +95,7 @@ const Ctx = struct {
                     },
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.alloc);
+                        items.freeSlot(&slot, self.alloc);
                     },
                     .closed, .timeout, .wakeup => {},
                 },
@@ -106,7 +106,7 @@ const Ctx = struct {
                     },
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.alloc);
+                        items.freeSlot(&slot, self.alloc);
                     },
                     .closed, .timeout, .wakeup => {},
                 },
@@ -116,11 +116,11 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

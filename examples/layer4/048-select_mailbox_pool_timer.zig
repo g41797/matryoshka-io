@@ -56,7 +56,7 @@ const MailboxPoolTimerMaster = struct {
 
     fn setupSelect(self: *MailboxPoolTimerMaster) !void {
         try self.sel.concurrent(.inbox, mailbox.receiveResult, .{ self.mbh, null });
-        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, types.EventPolyHelper.TAG, null });
+        try self.sel.concurrent(.pool_ev, pool.getWaitResult, .{ self.ph, items.Event.EventPolyHelper.TAG, null });
         try self.sel.concurrent(.timer, sleepFn, .{ timerTimeout(), self.io });
     }
 
@@ -67,8 +67,8 @@ const MailboxPoolTimerMaster = struct {
                 .inbox => |r| switch (r) {
                     .item => |handle| {
                         var slot: Slot = handle;
-                        defer helpers.freeSlot(&slot, self.allocator);
-                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                        defer items.freeSlot(&slot, self.allocator);
+                        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
                         self.inbox_count += 1;
                         std.log.info("inbox: Event code={d} ({d}/2)", .{ ev.code, self.inbox_count });
                         if (self.inbox_count < 2) {
@@ -81,7 +81,7 @@ const MailboxPoolTimerMaster = struct {
                     .item => |handle| {
                         var slot: Slot = handle;
                         defer pool.put(self.ph, &slot);
-                        const ev: *types.Event = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+                        const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
                         self.pool_count += 1;
                         std.log.info("pool_ev: Event code={d} ({d}/1)", .{ ev.code, self.pool_count });
                     },
@@ -101,7 +101,7 @@ const MailboxPoolTimerMaster = struct {
     io: std.Io,
     mbh: MailboxHandle,
     ph: PoolHandle,
-    pool_ctx: helpers.AlwaysCreateCtx,
+    pool_ctx: hooks.AlwaysCreateHooks,
     tags: [1]*const anyopaque,
     inbox_count: usize,
     pool_count: usize,
@@ -120,11 +120,11 @@ const MailboxPoolTimerMaster = struct {
         self.mbh = try mailbox.new(io, allocator);
         errdefer {
             var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-            helpers.freeList(&rem, allocator);
+            items.freeList(&rem, allocator);
             mailbox.destroy(self.mbh, allocator);
         }
         self.pool_ctx = .{ .alloc = allocator };
-        self.tags = .{types.EventPolyHelper.TAG};
+        self.tags = .{items.Event.EventPolyHelper.TAG};
         self.ph = try pool.new(io, allocator);
         errdefer {
             pool.close(self.ph);
@@ -138,7 +138,7 @@ const MailboxPoolTimerMaster = struct {
 
     fn destroy(self: *MailboxPoolTimerMaster) void {
         var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-        helpers.freeList(&rem, self.allocator);
+        items.freeList(&rem, self.allocator);
         mailbox.destroy(self.mbh, self.allocator);
         pool.close(self.ph);
         pool.destroy(self.ph, self.allocator);
@@ -148,21 +148,23 @@ const MailboxPoolTimerMaster = struct {
     fn seedResources(self: *MailboxPoolTimerMaster) !void {
         for (0..2) |i| {
             var slot: Slot = null;
-            defer types.EventPolyHelper.destroy(self.allocator, &slot);
-            try types.EventPolyHelper.create(self.allocator, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+            defer items.Event.EventPolyHelper.destroy(self.allocator, &slot);
+            try items.Event.EventPolyHelper.create(self.allocator, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
             try mailbox.send(self.mbh, &slot);
         }
         {
             var slot: Slot = null;
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .new_only, &slot);
-            types.EventPolyHelper.mustIdentifySlotAs(&slot).code = 10;
+            try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
+            items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 10;
             pool.put(self.ph, &slot);
         }
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -171,4 +173,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

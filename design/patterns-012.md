@@ -677,7 +677,7 @@ fn onPut(_: *anyopaque, _: usize, _: *Slot) void {}                             
 - `on_put`: set `slot.* = null` to destroy; leave non-null to keep.
 - Allocation policy stays outside business logic.
 
-Example: `examples/layer3/capped_pool.zig` (cap policy), `helpers/helpers.zig` `CappedPoolCtx` (thread-safe reference).
+Example: `examples/layer3/capped_pool.zig` (cap policy), `examples/hooks/CappedPoolHooks.zig` (thread-safe reference).
 
 ### Hook outside lock
 
@@ -698,7 +698,7 @@ Why.
 - Pool does not serialize hook execution.
 - Protect shared state with `Io.Mutex.lockUncancelable`.
 
-Example: `helpers/helpers.zig` `CappedPoolCtx`.
+Example: `examples/hooks/CappedPoolHooks.zig`.
 
 ### on_close hook
 

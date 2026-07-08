@@ -1,9 +1,9 @@
-site_name: matryoshka-io
+site_name: Matryoshka-Io
 docs_dir: docs
 site_dir: ../docs
 site_description: Building Blocks for Modular Monoliths in Zig
-repo_url: https://github.com/g41797/matryoshka-io/
-repo_name: matryoshka-io on GitHub
+repo_url: https://github.com/g41797/Matryoshka-Io/
+repo_name: Matryoshka-Io on GitHub
 
 theme:
   name: material
@@ -33,11 +33,11 @@ theme:
 nav:
   - Home: index.md
   - The Manifesto: manifesto.md
-  - Story — Print Server:
-      - Discussion: story/print-server/discussion.md
-      - Requirements: story/print-server/requirements.md
-      - Matryoshka Translation: story/print-server/translation.md
-      - Flow Diagram: story/print-server/flow.md
+#  - Story — Print Server:
+#      - Discussion: story/print-server/discussion.md
+#      - Requirements: story/print-server/requirements.md
+#      - Matryoshka Translation: story/print-server/translation.md
+#      - Flow Diagram: story/print-server/flow.md
   - Building Blocks:
       - Overview: building-blocks/index.md
       - PolyNode: building-blocks/polynode.md
@@ -61,7 +61,96 @@ nav:
       - Pool Patterns: patterns/pool.md
       - Futures, Select, Group, Cancellation: patterns/async.md
       - Shutdown & Master Patterns: patterns/master-and-shutdown.md
-  - Deep Dive — Video Transcoder: deep-dive/video-transcoder.md
+#  - Deep Dive — Video Transcoder: deep-dive/video-transcoder.md
+  - Examples Catalog:
+      - Overview: examples/index.md
+      - Items, Hooks & Helpers:
+          - Items: examples/items/items.md
+          - "Item: Event": examples/items/Event.md
+          - "Item: Sensor": examples/items/Sensor.md
+          - "Item: ShutdownCommand": examples/items/ShutdownCommand.md
+          - "Item: Timer": examples/items/Timer.md
+          - "Hook: AlwaysCreateHooks": examples/hooks/AlwaysCreateHooks.md
+          - "Hook: CappedPoolHooks": examples/hooks/CappedPoolHooks.md
+          - Helpers: examples/helpers/helpers.md
+      - How to... PolyNode:
+          - Overview: examples/polynode.md
+          - Define a PolyNode type: examples/layer1/021-define_type.md
+          - Ownership transfer via Slot: examples/layer1/022-ownership_transfer.md
+          - Tag-dispatch consume loop: examples/layer1/023-tag_dispatch.md
+          - Builder pattern: examples/layer1/024-builder.md
+          - Produce-consume with defer cleanup: examples/layer1/025-produce_consume.md
+      - How to... Mailbox:
+          - Overview: examples/mailbox.md
+          - Simple send-receive: examples/layer2/053-simple_send_receive.md
+          - Worker loop pattern: examples/layer2/054-worker_loop.md
+          - OOB via send_oob: examples/layer2/055-oob_signal.md
+          - Pipeline: examples/layer2/056-pipeline.md
+          - Request-response: examples/layer2/057-request_response.md
+          - Fan-in: examples/layer2/058-fan_in.md
+          - Shutdown with remaining item cleanup: examples/layer2/059-shutdown_cleanup.md
+          - Batch processing: examples/layer2/060-batch_processing.md
+          - Fan-out: examples/layer2/061-fan_out.md
+          - Shutdown via ShutdownCommand: examples/layer2/062-shutdown_exit.md
+          - Wake blocked receiver without a message: examples/layer2/097-wake_up_all.md
+          - Timer via mailbox: examples/layer4/022-timer_via_mailbox.md
+          - "OOB via send_oob (Master)": examples/layer4/023-oob_signal.md
+          - Multiple event sources, one mailbox: examples/layer4/024-multi_source_mailbox.md
+          - Timeout on mailbox: examples/layer4/030-mailbox_timeout.md
+      - How to... Pool:
+          - Overview: examples/pool.md
+          - Basic recycler: examples/layer3/089-basic_recycler.md
+          - Backpressure pool: examples/layer3/090-capped_pool.md
+          - Pool seeding: examples/layer3/091-pool_seeding.md
+          - Pool teardown: examples/layer3/092-pool_teardown.md
+          - "Pool fan-in: many workers return": examples/layer4/053-pool_fan_in.md
+          - "Pool fan-out: many workers acquire": examples/layer4/054-pool_fan_out.md
+          - Producer → consumer with recycling: examples/layer4/055-producer_consumer_recycle.md
+          - Job pool circular flow: examples/layer4/056-job_pool_circular.md
+          - Worker finish signal via mailbox return: examples/layer4/095-mailbox_as_item.md
+          - Pool holds pools at teardown: examples/layer4/096-pool_as_item.md
+      - How to... Io (Select, Group, Future):
+          - Overview: examples/io.md
+          - Two mailboxes + timer in Select: examples/layer4/025-select_two_mailboxes.md
+          - Timer cancel → close → walk remaining: examples/layer4/026-select_cancel_close.md
+          - Cancel reports, Master decides: examples/layer4/027-select_cancel_master_decides.md
+          - Multiple event source types in one Select: examples/layer4/028-select_mixed_sources.md
+          - Cancel → Master close → pool.put_all: examples/layer4/029-select_cancel_recycle.md
+          - Graceful shutdown with in-flight items: examples/layer4/031-select_graceful_shutdown.md
+          - Mailbox receive as Select event source: examples/layer4/042-select_mailbox_event.md
+          - Select direct queue push: examples/layer4/043-select_direct_push.md
+          - Select mailbox close propagation: examples/layer4/044-select_mailbox_close.md
+          - Select cancel propagation: examples/layer4/045-select_mailbox_cancel.md
+          - Pool get_wait as Select event source: examples/layer4/046-select_pool_event.md
+          - Job pool pattern: examples/layer4/047-select_job_pool.md
+          - Mixed mailbox + pool event sources in Select: examples/layer4/048-select_mailbox_pool_timer.md
+          - receive_future awaited directly: examples/layer4/049-receive_future_direct.md
+          - get_wait_future awaited directly: examples/layer4/050-get_wait_future_direct.md
+          - receive_future with timeout: examples/layer4/051-receive_future_timeout.md
+          - ConcurrencyUnavailable on single-threaded: examples/layer4/052-future_single_threaded.md
+          - "Pool + Future: simple worker": examples/layer4/057-mailbox_less_pool_future_worker.md
+          - "Pool + Select: job scheduler": examples/layer4/058-mailbox_less_pool_select_scheduler.md
+          - "Pool + Group: worker pool": examples/layer4/059-mailbox_less_pool_group_workers.md
+          - Pool + Select + Network: examples/layer4/060-mailbox_less_pool_select_network.md
+          - When to add Mailbox: examples/layer4/061-mailbox_less_to_mailbox_transition.md
+      - Flow — Master compositions:
+          - Overview: examples/flow.md
+          - Minimal Master: examples/layer4/017-minimal_master.md
+          - Master with Pool: examples/layer4/018-master_with_pool.md
+          - Multi-worker Master: examples/layer4/019-multi_worker_master.md
+          - Pipeline of Masters: examples/layer4/020-pipeline_masters.md
+          - Request-response between Masters: examples/layer4/021-request_response.md
+          - Pool → Mailbox → Pool roundtrip: examples/layer4/032-cross_layer_pool_mailbox_roundtrip.md
+          - Mixed types through shared mailbox: examples/layer4/033-cross_layer_mixed_types_mailbox.md
+          - Batch receive + pool return: examples/layer4/034-cross_layer_batch_receive_pool_return.md
+          - Pool hooks + mailbox flow: examples/layer4/035-cross_layer_pool_hooks_mailbox_flow.md
+          - "Close ordering: pool then mailbox": examples/layer4/036-cross_layer_close_pool_then_mailbox.md
+          - "Close ordering: mailbox then pool": examples/layer4/037-cross_layer_close_mailbox_then_pool.md
+          - Pool + Mailbox flow: examples/layer4/038-cross_layer_pool_mailbox_flow.md
+          - "Master shutdown: close → stdlib walk → free": examples/layer4/039-master_shutdown_stdlib_cleanup.md
+          - "Master batch collect: receive_batch → put_all": examples/layer4/040-master_batch_collect_receive_to_pool.md
+          - Master pre-shutdown collect: examples/layer4/041-master_multi_mailbox_collect.md
+          - Video transcoder story: examples/stories/video_transcoder/video_transcoder.md
   - Addendums:
       - Slot vs Ref-Counting: addendums/slot-vs-ref-counting.md
       - Tag vs Tagged Union: addendums/tag-vs-tagged-union.md
@@ -69,7 +158,6 @@ nav:
       - Io 101: addendums/io-101.md
   - Reference:
       - API Docs (autodoc): api_reference.md
-      - Examples Reference: examples_reference.md
 
 plugins:
   - search

@@ -22,8 +22,8 @@
 
 pub fn master_batch_collect_receive_batch_put_all(allocator: std.mem.Allocator, io: std.Io) !void {
     const ph: PoolHandle = try pool.new(io, allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = allocator };
-    const tags = [_]*const anyopaque{types.EventPolyHelper.TAG};
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = allocator };
+    const tags = [_]*const anyopaque{items.Event.EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
         pool.close(ph);
@@ -33,7 +33,7 @@ pub fn master_batch_collect_receive_batch_put_all(allocator: std.mem.Allocator, 
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, allocator);
+        items.freeList(&rem, allocator);
         mailbox.destroy(mbh, allocator);
     }
 
@@ -51,9 +51,9 @@ const N_ITEMS: usize = 5;
 fn fillMailbox(mbh: MailboxHandle, alloc: std.mem.Allocator, count: usize) !void {
     for (0..count) |i| {
         var slot: Slot = null;
-        defer types.EventPolyHelper.destroy(alloc, &slot);
-        try types.EventPolyHelper.create(alloc, &slot);
-        types.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
+        defer items.Event.EventPolyHelper.destroy(alloc, &slot);
+        try items.Event.EventPolyHelper.create(alloc, &slot);
+        items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = @intCast(i + 1);
         try mailbox.send(mbh, &slot);
     }
 }
@@ -67,13 +67,14 @@ fn batchCollectToPool(ph: PoolHandle, mbh: MailboxHandle) !void {
 fn verifyPool(ph: PoolHandle) !void {
     var slot: Slot = null;
     defer pool.put(ph, &slot);
-    pool.get(ph, types.EventPolyHelper.TAG, .available_only, &slot) catch {
+    pool.get(ph, items.Event.EventPolyHelper.TAG, .available_only, &slot) catch {
         return error.MasterBatchCollectFailed;
     };
     std.log.info("verified: pool has items after put_all", .{});
 }
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -82,4 +83,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;

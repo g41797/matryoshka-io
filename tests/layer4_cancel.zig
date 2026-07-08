@@ -11,7 +11,7 @@ const MbxCtx = struct {
 fn mbxLoopWorker(ctx: *MbxCtx) error{Canceled}!void {
     while (true) {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
             error.Canceled => return error.Canceled,
             error.Closed, error.Timeout, error.Wakeup => return,
@@ -28,7 +28,7 @@ test "3 - Future.cancel stops blocked worker" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -46,7 +46,7 @@ test "4 - Group.cancel stops all workers" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -95,7 +95,7 @@ test "5 - Worker not blocked when cancel takes effect" {
     const io: Io = threaded.io();
 
     const ph: PoolHandle = try pool.new(io, testing.allocator);
-    var pool_ctx5: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    var pool_ctx5: hooks.AlwaysCreateHooks = .{ .alloc = testing.allocator };
     const tags5 = [_]*const anyopaque{EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx5.poolHooks(&tags5));
     defer {
@@ -106,7 +106,7 @@ test "5 - Worker not blocked when cancel takes effect" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -137,7 +137,7 @@ test "6 - Broadcast shutdown: mailbox.close before join" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -145,7 +145,7 @@ test "6 - Broadcast shutdown: mailbox.close before join" {
     var fut = try io.concurrent(mbxLoopWorker, .{&ctx});
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
-    defer helpers.freeList(&rem, testing.allocator);
+    defer items.freeList(&rem, testing.allocator);
 
     try fut.await(io);
 }
@@ -176,7 +176,7 @@ test "7 - Cancel shutdown: future.cancel before close" {
     const io: Io = threaded.io();
 
     const ph: PoolHandle = try pool.new(io, testing.allocator);
-    var pool_ctx7: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    var pool_ctx7: hooks.AlwaysCreateHooks = .{ .alloc = testing.allocator };
     const tags7 = [_]*const anyopaque{EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx7.poolHooks(&tags7));
 
@@ -191,7 +191,7 @@ test "7 - Cancel shutdown: future.cancel before close" {
     pool.destroy(ph, testing.allocator);
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
-    helpers.freeList(&rem, testing.allocator);
+    items.freeList(&rem, testing.allocator);
     mailbox.destroy(mbh, testing.allocator);
 }
 
@@ -205,7 +205,7 @@ const Ctx8 = struct {
 
 fn worker8(ctx: *Ctx8) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc); // frees slot if pool.put left it non-null
+    defer items.freeSlot(&slot, ctx.alloc); // frees slot if pool.put left it non-null
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => return error.Canceled,
         error.Closed, error.Timeout, error.Wakeup => return,
@@ -226,7 +226,7 @@ test "8 - pool.put on closed pool" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -252,7 +252,7 @@ const Ctx9 = struct {
 fn worker9(ctx: *Ctx9) error{Canceled}!void {
     for (0..3) |_| {
         var slot: Slot = null;
-        defer helpers.freeSlot(&slot, ctx.alloc);
+        defer items.freeSlot(&slot, ctx.alloc);
         mailbox.receive(ctx.mbh, &slot, null) catch return;
     }
 }
@@ -266,7 +266,7 @@ test "9 - mailbox.close returns remaining items" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -283,7 +283,7 @@ test "9 - mailbox.close returns remaining items" {
     try fut.await(io);
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
-    defer helpers.freeList(&rem, testing.allocator);
+    defer items.freeList(&rem, testing.allocator);
 
     var count: usize = 0;
     var node: ?*std.DoublyLinkedList.Node = rem.first;
@@ -300,7 +300,7 @@ const Ctx10 = struct {
     fn onGet(ctx_ptr: *anyopaque, tag: *const anyopaque, _: usize, slot: *Slot) void {
         if (slot.* != null) return;
         const self: *Ctx10 = @ptrCast(@alignCast(ctx_ptr));
-        helpers.createByTag(tag, self.alloc, slot);
+        items.createByTag(tag, self.alloc, slot);
     }
 
     fn onPut(_: *anyopaque, _: usize, _: *Slot) void {}
@@ -309,7 +309,7 @@ const Ctx10 = struct {
         const self: *Ctx10 = @ptrCast(@alignCast(ctx_ptr));
         while (list.popFirst()) |node| {
             self.item_count += 1;
-            helpers.freeItem(@fieldParentPtr("node", node), self.alloc);
+            items.freeItem(@fieldParentPtr("node", node), self.alloc);
         }
     }
 };
@@ -356,7 +356,7 @@ const Ctx11 = struct {
 
 fn worker11(ctx: *Ctx11) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc);
+    defer items.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => {
             ctx.got_canceled.store(true, .release);
@@ -379,7 +379,7 @@ test "11 - error.Canceled distinct from error.Closed in mailbox.receive" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -391,7 +391,7 @@ test "11 - error.Canceled distinct from error.Closed in mailbox.receive" {
     try testing.expect(!ctx.got_closed.load(.acquire));
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
-    helpers.freeList(&rem, testing.allocator);
+    items.freeList(&rem, testing.allocator);
 
     var slot: Slot = null;
     try testing.expectError(error.Closed, mailbox.try_receive(mbh, &slot));
@@ -407,7 +407,7 @@ const Ctx12 = struct {
 
 fn worker12(ctx: *Ctx12) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc);
+    defer items.freeSlot(&slot, ctx.alloc);
     pool.get_wait(ctx.ph, EventPolyHelper.TAG, &slot, null) catch |err| switch (err) {
         error.Canceled => {
             ctx.got_canceled.store(true, .release);
@@ -424,7 +424,7 @@ test "12 - error.Canceled distinct from error.Closed in pool.get_wait" {
     const io: Io = threaded.io();
 
     const ph: PoolHandle = try pool.new(io, testing.allocator);
-    var pool_ctx12: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    var pool_ctx12: hooks.AlwaysCreateHooks = .{ .alloc = testing.allocator };
     const tags12 = [_]*const anyopaque{EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx12.poolHooks(&tags12));
     defer {
@@ -459,7 +459,7 @@ fn worker13(ctx: *Ctx13) error{Canceled}!void {
     pool.get(ctx.ph, EventPolyHelper.TAG, .available_or_new, &pool_slot) catch return;
 
     var msg_slot: Slot = null;
-    defer helpers.freeSlot(&msg_slot, ctx.alloc);
+    defer items.freeSlot(&msg_slot, ctx.alloc);
 
     mailbox.receive(ctx.mbh, &msg_slot, null) catch |err| switch (err) {
         error.Canceled => {
@@ -478,7 +478,7 @@ test "13 - pool.put is cancel-protected" {
     const io: Io = threaded.io();
 
     const ph: PoolHandle = try pool.new(io, testing.allocator);
-    var pool_ctx13: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    var pool_ctx13: hooks.AlwaysCreateHooks = .{ .alloc = testing.allocator };
     const tags13 = [_]*const anyopaque{EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx13.poolHooks(&tags13));
     defer {
@@ -489,7 +489,7 @@ test "13 - pool.put is cancel-protected" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -516,7 +516,7 @@ const Ctx14 = struct {
 
 fn worker14(ctx: *Ctx14) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc);
+    defer items.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh_listen, &slot, null) catch |err| switch (err) {
         error.Canceled => {
             ctx.io.recancel(); // activate cancel again
@@ -524,7 +524,7 @@ fn worker14(ctx: *Ctx14) error{Canceled}!void {
             var rem: std.DoublyLinkedList = mailbox.close(ctx.mbh_data);
             var node: ?*std.DoublyLinkedList.Node = rem.first;
             while (node) |n| : (node = n.next) ctx.close_count += 1;
-            helpers.freeList(&rem, ctx.alloc);
+            items.freeList(&rem, ctx.alloc);
             return error.Canceled;
         },
         error.Closed, error.Timeout, error.Wakeup => return,
@@ -541,7 +541,7 @@ test "14 - mailbox.close uses lockUncancelable" {
     const mbh_listen: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh_listen);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh_listen, testing.allocator);
     }
 
@@ -549,7 +549,7 @@ test "14 - mailbox.close uses lockUncancelable" {
     const mbh_data: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh_data);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh_data, testing.allocator);
     }
 
@@ -579,7 +579,7 @@ const Ctx15 = struct {
 
 fn worker15(ctx: *Ctx15) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc);
+    defer items.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
         error.Canceled => ctx.io.recancel(), // activate cancel again: next cancellation point returns error.Canceled
         error.Closed, error.Timeout, error.Wakeup => return,
@@ -602,7 +602,7 @@ test "15 - recancel propagation" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -625,7 +625,7 @@ const Ctx16 = struct {
 
 fn worker16(ctx: *Ctx16) error{Canceled}!void {
     var slot: Slot = null;
-    defer helpers.freeSlot(&slot, ctx.alloc);
+    defer items.freeSlot(&slot, ctx.alloc);
     mailbox.receive(ctx.mbh, &slot, null) catch return;
 
     ctx.in_loop.store(true, .release);
@@ -649,7 +649,7 @@ test "16 - checkCancel in CPU-bound work" {
     const mbh: MailboxHandle = try mailbox.new(io, testing.allocator);
     defer {
         var rem: std.DoublyLinkedList = mailbox.close(mbh);
-        helpers.freeList(&rem, testing.allocator);
+        items.freeList(&rem, testing.allocator);
         mailbox.destroy(mbh, testing.allocator);
     }
 
@@ -698,7 +698,7 @@ test "INTR4-1 - pool.put broadcasts: multi-tag waiters each get correct item" {
     const io: Io = threaded.io();
 
     const ph: PoolHandle = try pool.new(io, testing.allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = testing.allocator };
     const tags = [_]*const anyopaque{ EventPolyHelper.TAG, SensorPolyHelper.TAG };
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
@@ -767,7 +767,7 @@ test "INTR4-2 - re-signal on cancel: second waiter gets item after first is canc
     const io: Io = threaded.io();
 
     const ph: PoolHandle = try pool.new(io, testing.allocator);
-    var pool_ctx: helpers.AlwaysCreateCtx = .{ .alloc = testing.allocator };
+    var pool_ctx: hooks.AlwaysCreateHooks = .{ .alloc = testing.allocator };
     const tags = [_]*const anyopaque{EventPolyHelper.TAG};
     try pool.init(ph, pool_ctx.poolHooks(&tags));
     defer {
@@ -805,10 +805,10 @@ test "INTR4-2 - re-signal on cancel: second waiter gets item after first is canc
     try testing.expect(ctx_b.got_item.load(.acquire));
 }
 
-const helpers = @import("helpers");
-const types = helpers.types;
-const EventPolyHelper = types.EventPolyHelper;
-const SensorPolyHelper = types.SensorPolyHelper;
+const items = @import("examples").items;
+const hooks = @import("examples").hooks;
+const EventPolyHelper = items.Event.EventPolyHelper;
+const SensorPolyHelper = items.Sensor.SensorPolyHelper;
 const matryoshka = @import("matryoshka");
 const polynode = matryoshka.polynode;
 const mailbox = matryoshka.mailbox;

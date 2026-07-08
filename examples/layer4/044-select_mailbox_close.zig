@@ -28,7 +28,7 @@ pub fn select_mailbox_close_propagation(allocator: std.mem.Allocator, io: std.Io
     defer {
         if (!ctx.mbh_closed) {
             var rem: std.DoublyLinkedList = mailbox.close(ctx.mbh);
-            helpers.freeList(&rem, ctx.alloc);
+            items.freeList(&rem, ctx.alloc);
         }
         mailbox.destroy(ctx.mbh, ctx.alloc);
     }
@@ -75,7 +75,7 @@ const Ctx = struct {
                 .timer => {
                     std.log.info("timer: closing mailbox while receiveResult is running", .{});
                     var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-                    helpers.freeList(&rem, self.alloc);
+                    items.freeList(&rem, self.alloc);
                     self.mbh_closed = true;
                 },
                 .inbox => |r| switch (r) {
@@ -86,7 +86,7 @@ const Ctx = struct {
                     },
                     .item => |handle| {
                         var slot: Slot = handle;
-                        helpers.freeSlot(&slot, self.alloc);
+                        items.freeSlot(&slot, self.alloc);
                     },
                     .canceled, .timeout, .wakeup => break :loop,
                 },
@@ -96,11 +96,11 @@ const Ctx = struct {
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const helpers = @import("../helpers/helpers.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
 const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
-const types = helpers.types;

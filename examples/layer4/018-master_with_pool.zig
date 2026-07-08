@@ -50,8 +50,8 @@ const MasterWithPool = struct {
         for (0..3) |i| {
             var slot: Slot = null;
             defer pool.put(self.ph, &slot);
-            try pool.get(self.ph, types.EventPolyHelper.TAG, .available_or_new, &slot);
-            const ev = types.EventPolyHelper.mustIdentifySlotAs(&slot);
+            try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_or_new, &slot);
+            const ev = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
             ev.code = @intCast(i + 1);
             std.log.info("master: sending Event code={d}", .{ev.code});
             try mailbox.send(self.mbh, &slot);
@@ -60,7 +60,7 @@ const MasterWithPool = struct {
 
     allocator: std.mem.Allocator,
     io: std.Io,
-    pool_ctx: helpers.AlwaysCreateCtx,
+    pool_ctx: hooks.AlwaysCreateHooks,
     tags: [1]*const anyopaque,
     ph: PoolHandle,
     mbh: MailboxHandle,
@@ -72,7 +72,7 @@ const MasterWithPool = struct {
         self.allocator = allocator;
         self.io = io;
         self.pool_ctx = .{ .alloc = allocator };
-        self.tags = .{types.EventPolyHelper.TAG};
+        self.tags = .{items.Event.EventPolyHelper.TAG};
         self.ph = try pool.new(io, allocator);
         errdefer {
             pool.close(self.ph);
@@ -88,13 +88,14 @@ const MasterWithPool = struct {
         pool.close(self.ph);
         pool.destroy(self.ph, self.allocator);
         var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
-        helpers.freeList(&rem, self.allocator);
+        items.freeList(&rem, self.allocator);
         mailbox.destroy(self.mbh, self.allocator);
         self.allocator.destroy(self);
     }
 };
 
-const helpers = @import("helpers");
+const items = @import("../items/items.zig");
+const hooks = @import("../hooks/hooks.zig");
 const matryoshka = @import("matryoshka");
 const std = @import("std");
 const mailbox = matryoshka.mailbox;
@@ -103,4 +104,3 @@ const polynode = matryoshka.polynode;
 const Slot = polynode.Slot;
 const MailboxHandle = mailbox.MailboxHandle;
 const PoolHandle = pool.PoolHandle;
-const types = helpers.types;
