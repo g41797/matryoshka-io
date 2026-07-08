@@ -55,3 +55,10 @@ Python-Markdown otherwise treats the list as a lazy paragraph continuation
 and collapses every bullet into one run-on sentence (rules-018/022
 "mkdocs blank-line-before-list rule"). Skips fenced code blocks. Mechanical
 formatting only — no wording changes, safe to run repeatedly.
+
+## Visual language for Matryoshka
+
+- PolyNode → small tag attached to every object.
+- Mailbox → communication port / transfer station.
+- Pool → storage rack / warehouse of reusable objects.
+

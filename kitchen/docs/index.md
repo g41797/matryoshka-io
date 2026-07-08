@@ -1,8 +1,7 @@
 # Matryoshka-Io
 
-Building Blocks for Modular Monoliths — Zig implementation.
-
-Matryoshka's promise: make building Zig systems a little more ***boring***.
+Building Blocks for Modular Monoliths:
+>Make building Zig systems a little more ***boring***.
 
 ## Where to go next
 

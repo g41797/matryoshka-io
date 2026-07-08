@@ -54,4 +54,4 @@ The three pains now have names.
 
 This page: three pains, three blocks. Not how each one works.
 
-For that: read the building blocks in detail.
+For that: read [Building Blocks](building-blocks/index.md) in detail.
