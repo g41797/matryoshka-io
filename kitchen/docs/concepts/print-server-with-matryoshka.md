@@ -31,6 +31,7 @@ one of the four Matryoshka concepts: `PolyNode`, `Mailbox`, `Pool`, `Master`.
 
 - `mailbox.send_oob(job_queue, &cancel_slot)` — an out-of-band send that arrives at
   the front of the queue.
+
 - If the job has already been forwarded to the printer:
   `mailbox.send_oob(printer_inbox, &cancel_slot)`.
 

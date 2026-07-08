@@ -20,6 +20,9 @@ bash "$TOOLS_DIR/docs_zig.sh"
 echo "--- Generating examples catalog ---"
 bash "$TOOLS_DIR/gen_examples_docs.sh"
 
+echo "--- Fixing blank-line-before-list ---"
+bash "$TOOLS_DIR/fix_md_lists.sh"
+
 echo "--- Building MkDocs site ---"
 cd "$KITCHEN_DIR"
 mkdocs build -f mkdocs.yml

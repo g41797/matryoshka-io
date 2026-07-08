@@ -38,11 +38,13 @@ while it is yours.
 ```zig
 pub fn reset(n: *PolyNode) void
 ```
+
 - Clears intrusive link pointers (`prev`, `next` to null).
 
 ```zig
 pub fn is_linked(n: *PolyNode) bool
 ```
+
 - Returns true if node is currently linked into a list.
 
 ### One place, one state — read-only ops

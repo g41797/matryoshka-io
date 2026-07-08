@@ -31,9 +31,11 @@ Some patterns are always violations, comment or not:
 
 - Any `while` loop with a `switch` body inside a coordinator — extract as
   `eventLoop` or a domain equivalent.
+
 - Any `Io.Select` setup block inside a coordinator — extract as `setupSelect`.
 - Any cluster of `io.concurrent` / `group.concurrent` / `Thread.spawn` calls
   inside a coordinator — extract as `spawnWorkers` or equivalent.
+
 - Any for-loop that sends, fills, or seeds items inside a coordinator —
   extract as `sendItems`, `fillMailbox`, `seedPool`, or equivalent.
 

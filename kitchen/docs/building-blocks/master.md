@@ -38,6 +38,7 @@ defines a Master, not a particular shape of code.
 
 - **Flat** — one loop, one action per step, all state fits in local variables, short
   lifecycle. A plain function is enough.
+
 - **Coordinator** — multiple phases with shared state between them, a distinct
   startup / work / shutdown lifecycle. Worth its own struct once a flat function
   would get hard to follow.
@@ -51,6 +52,7 @@ A Master tells these apart:
 
 - **Cancel** — the scheduler says stop waiting right now. An external signal. A
   Master that gets it reports the fact; it decides what happens next.
+
 - **Close** — the Master itself says this Mailbox or Pool is shutting down. That's a
   deliberate decision, not something imposed from outside.
 
@@ -75,5 +77,7 @@ three small, fixed pieces.
 Next: [API Reference](../api/polynode.md) — the actual Zig types and functions behind
 PolyNode, Mailbox, and Pool.
 
+<!-- Temporarily hidden — Story section commented out of mkdocs.yml nav.
 See also: [Story — Print Server](../story/print-server/discussion.md) for these four
-concepts working together in a real system.
+concepts working together in a real system. -->
+

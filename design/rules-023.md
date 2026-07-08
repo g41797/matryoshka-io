@@ -1,9 +1,20 @@
-# Matryoshka Zig — Rules (021)
+# Matryoshka Zig — Rules (023)
 
-Versioned doc. Replaces [rules-020.md](rules-020.md).
+Versioned doc. Replaces [rules-022.md](rules-022.md).
 All coding, doc, and process rules for the project.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
 Companion: [patterns-012.md](patterns-012.md) — reusable coding patterns.
+
+Change from rules-022: the "blank line before every list" rule is now
+enforced by a script, not eyeballing — `kitchen/tools/fix_md_lists.sh`
+auto-fixes every `kitchen/docs/**/*.md` in place, wired into
+`build_site.sh`/`preview_site.sh`/CI right after the examples-catalog
+generation step. See "Documentation Rules" below.
+
+Change from rules-021: added "pitch" to the AI-sh/banned word list — found
+in `kitchen/docs/index.md` (site landing page duplicating `manifesto.md`'s
+content) and `docs-tooling-approach-001.md` → `-002.md` (reworded to
+"tagline"). See "Coding Standards" below.
 
 Change from rules-020: new rule — examples-catalog nav sync (see
 "Documentation Rules" below). Adding, removing, or renaming a file under
@@ -440,7 +451,7 @@ Banned words.
 - `drain` — use `clear`, `reset`, `empty`, or a domain verb. Example: `clearList` not `drainList`.
 - `dll` / `DLL` — clashes with Windows DLL. Use `List.Node`, `list_node_ptr`, or spell out `DoublyLinkedList`.
 - "commit" when meaning save/update/write — implies git, which is owner-only. Say "save", "update", or "write".
-- AI-sh word list: robust, seamlessly, comprehensive, leverage, efficient, powerful, facilitate, utilize, ensure, performant, ergonomic, idiomatic, streamline, orchestrate, sophisticated, intuitive, scalable, unlock, empower, harness, deliver, fed, arm, leg, idempotent, fires, faces.
+- AI-sh word list: robust, seamlessly, comprehensive, leverage, efficient, powerful, facilitate, utilize, ensure, performant, ergonomic, idiomatic, streamline, orchestrate, sophisticated, intuitive, scalable, unlock, empower, harness, deliver, fed, arm, leg, idempotent, fires, faces, pitch.
 - Scan `.zig` and `.md` after any stage that changes them. Report hits to owner. Do not fix without approval.
 
 ---
@@ -572,6 +583,11 @@ Banned words.
      line — do not rely on that as a check. Verify with
      `mkdocs build --strict` (or by eye in `mkdocs serve`), not by reading
      the raw `.md` source.
+   * Enforced by `kitchen/tools/fix_md_lists.sh` — auto-fixes every
+     `kitchen/docs/**/*.md` in place, part of `build_site.sh`/
+     `preview_site.sh`/CI (see `kitchen/notes.md`). Mechanical formatting
+     only; hand-written prose still needs a blank line for the fix to
+     recognize the list wasn't intentional inline text.
 
 * Examples-catalog nav sync — keep `kitchen/mkdocs.yml` matching `examples/`
   and `stories/`.

@@ -95,6 +95,7 @@ Adding `DatabaseConnection` next year:
 
 - **Pure application events** (a fixed, known set: timer, network, shutdown) — a tagged
   union is the better fit. Small, closed, compile-time checked.
+
 - **Matryoshka's own infrastructure** (Mailbox, Pool, anything that must move through
   them without the infrastructure knowing its type) — a `PolyNode` tag is required. There
   is no compile-time way to recover `*Event` / `*Sensor` / `*MailboxHandle` from the same

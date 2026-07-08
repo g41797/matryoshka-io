@@ -282,10 +282,15 @@ It's up to you. Each step is useful right away, and remains useful after the nex
 
 Keep reading:
 
+<!-- Temporarily hidden — Story section commented out of mkdocs.yml nav.
+
 * [Story — Print Server](story/print-server/discussion.md) — the constraint solving a
   real problem, no Zig required.
+-->
+
 * [Building Blocks](building-blocks/index.md) — PolyNode, Mailbox, Pool, Master, named
   and diagrammed.
+
 * [API Reference](api/polynode.md) — signatures and contracts.
 
 ---

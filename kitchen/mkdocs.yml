@@ -1,4 +1,4 @@
-site_name: Matryoshka-Io
+site_name: Be Master of your systems
 docs_dir: docs
 site_dir: ../docs
 site_description: Building Blocks for Modular Monoliths in Zig
@@ -51,7 +51,7 @@ nav:
       - Pool: api/pool.md
       - Tag Identity & Slot Programming: api/tags-and-slots.md
       - Cooperative Cleanup: api/cleanup.md
-      - matryoshka (root) & Master: api/root-and-master.md
+      - Matryoshka & Master: api/root-and-master.md
       - Cancel Model & Object Lifecycle: api/cancel-and-lifecycle.md
       - Invariants & Contracts: api/invariants.md
   - Patterns & Cookbook:
@@ -150,14 +150,15 @@ nav:
           - "Master shutdown: close → stdlib walk → free": examples/layer4/039-master_shutdown_stdlib_cleanup.md
           - "Master batch collect: receive_batch → put_all": examples/layer4/040-master_batch_collect_receive_to_pool.md
           - Master pre-shutdown collect: examples/layer4/041-master_multi_mailbox_collect.md
-          - Video transcoder story: examples/stories/video_transcoder/video_transcoder.md
+#          - Video transcoder story: examples/stories/video_transcoder/video_transcoder.md
   - Addendums:
+      - Why Boring: addendums/why-boring.md
+      - Io 101: addendums/io-101.md
       - Slot vs Ref-Counting: addendums/slot-vs-ref-counting.md
       - Tag vs Tagged Union: addendums/tag-vs-tagged-union.md
       - Mailbox vs TypeErasedQueue: addendums/typeErasedQueue-vs-mailbox.md
-      - Io 101: addendums/io-101.md
   - Reference:
-      - API Docs (autodoc): api_reference.md
+      - API Docs : api_reference.md
 
 plugins:
   - search

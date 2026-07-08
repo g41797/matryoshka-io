@@ -34,6 +34,9 @@ jobs:
       - name: Regenerate Examples Catalog
         run: ./kitchen/tools/gen_examples_docs.sh
 
+      - name: Fix Blank-Line-Before-List
+        run: ./kitchen/tools/fix_md_lists.sh
+
       - name: Build MkDocs Site
         run: |
           pip install mkdocs-material

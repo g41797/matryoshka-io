@@ -19,6 +19,7 @@ For infra handles (MailboxHandle, PoolHandle):
 - Tag identifies the class only. No per-instance role information is accessible.
 - **Instance identity**: resolved by pointer comparison against known handles.
   E.g. `received == worker_mbh` identifies which specific mailbox arrived.
+
 - **Role**: established by protocol — the channel the handle arrived on, message
   ordering, or prior agreement between sender and receiver.
 

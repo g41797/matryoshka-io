@@ -39,8 +39,10 @@ receive   ◄──────────────────    Receiver 
 
 - While a handle sits in a Mailbox, the Mailbox owns it — not the sender, not the
   receiver.
+
 - Exactly one party holds the handle at any moment: sender, then Mailbox, then
   receiver.
+
 - No locks needed while a receiver processes what it received — nobody else has it.
 
 ## Mailboxes are themselves exchangeable
@@ -58,6 +60,7 @@ coordinating it, instead of a separate finished-message.
 
 - Mailbox and Pool are containers on steroids — the steroid here is ownership
   transfer without copying.
+
 - A design that routes every cross-boundary interaction through Mailboxes never
   needs a shared status table. Whoever holds the handle owns the problem right now.
 

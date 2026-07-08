@@ -30,3 +30,14 @@ Reminder (rules-021, "Examples-catalog nav sync"): adding/removing/renaming
 a file under `examples/`/`stories/` means updating both the relevant group
 page above and `kitchen/mkdocs.yml`'s Examples Catalog `nav:` block — the
 generation script only mirrors `.zig` files, it never touches either.
+
+## kitchen/tools/fix_md_lists.sh
+
+Permanent script, part of the doc build/preview/CI sequence (runs after
+`gen_examples_docs.sh`, before `mkdocs build`/`serve`). Auto-fixes every
+`kitchen/docs/**/*.md` in place: inserts a blank line before any list that
+directly follows plain text with no blank line, since CommonMark/
+Python-Markdown otherwise treats the list as a lazy paragraph continuation
+and collapses every bullet into one run-on sentence (rules-018/022
+"mkdocs blank-line-before-list rule"). Skips fenced code blocks. Mechanical
+formatting only — no wording changes, safe to run repeatedly.

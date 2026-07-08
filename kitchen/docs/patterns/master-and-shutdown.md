@@ -370,8 +370,10 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 - The coordination logic of each Master lives in its own function.
 - `run` shows the startup order and the shutdown order — nothing else.
 
-Example: `stories/video_transcoder/video_transcoder.zig` — see the
-[Deep Dive](../deep-dive/video-transcoder.md) page.
+Example: `stories/video_transcoder/video_transcoder.zig`.
+<!-- Temporarily hidden — Deep Dive section commented out of mkdocs.yml nav.
+See the [Deep Dive](../deep-dive/video-transcoder.md) page. -->
+
 
 ### Mailbox + Pool integration
 
@@ -418,4 +420,7 @@ Purpose.
 
 ---
 
+<!-- Temporarily hidden — Deep Dive section commented out of mkdocs.yml nav.
 Next: [Deep Dive — Video Transcoder](../deep-dive/video-transcoder.md).
+-->
+Next: [Examples Catalog](../examples/index.md).

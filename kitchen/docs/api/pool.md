@@ -96,6 +96,7 @@ pub const PoolHooks = struct {
 - If your hook touches shared state, protect it.
 - Example: use `Io.Mutex` and call `lockUncancelable` to acquire it.
   Hooks return `void` — `lock` (cancelable) is not an option here.
+
 - Obtain `io` from the surrounding context that holds the pool; do not acquire it inside the hook.
 - `CappedPoolHooks` in `examples/hooks/CappedPoolHooks.zig` is the reference implementation of these rules.
 
@@ -104,12 +105,14 @@ pub const PoolHooks = struct {
 ```zig
 pub fn new(io: Io, alloc: std.mem.Allocator) !PoolHandle
 ```
+
 - Creates a new pool.
 - Stores `io` internally.
 
 ```zig
 pub fn destroy(ph: PoolHandle, alloc: std.mem.Allocator) void
 ```
+
 - Frees the pool.
 - Must be closed first.
 - Calling destroy on an open pool is a programming error (panic).
@@ -119,6 +122,7 @@ pub fn destroy(ph: PoolHandle, alloc: std.mem.Allocator) void
 ```zig
 pub fn init(ph: PoolHandle, hooks: PoolHooks) !void
 ```
+
 - Registers hooks.
 - Called once after `new`.
 - Assert:
@@ -129,6 +133,7 @@ pub fn init(ph: PoolHandle, hooks: PoolHooks) !void
 ```zig
 pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *Slot) GetError!void
 ```
+
 - Non-blocking acquisition.
 - Calls `on_get` hook.
 - Moves the handle — `slot.*` set to non-null on success.
@@ -141,6 +146,7 @@ pub fn get(ph: PoolHandle, tag: *const anyopaque, mode: GetMode, slot: *Slot) Ge
 ```zig
 pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *Slot, timeout_ns: ?u64) (GetError || Cancelable || error{Timeout})!void
 ```
+
 - Blocking acquisition.
 - `null` timeout = wait forever.
 - `timeout_ns = 0` returns `error.Timeout` immediately.
@@ -156,6 +162,7 @@ pub fn get_wait(ph: PoolHandle, tag: *const anyopaque, slot: *Slot, timeout_ns: 
 ```zig
 pub fn put(ph: PoolHandle, slot: *Slot) void
 ```
+
 - Returns handle to pool.
 - `slot.* == null` → returns immediately. No hook call. No assert on tag.
 - **Open pool**:
@@ -173,6 +180,7 @@ pub fn put(ph: PoolHandle, slot: *Slot) void
 ```zig
 pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
 ```
+
 - Returns batch of handles to pool.
 - Pops from caller's list.
 - Transfer is not atomic with respect to `close()`.
@@ -185,6 +193,7 @@ pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
 ```zig
 pub fn close(ph: PoolHandle) void
 ```
+
 - Can be called more than once.
 - Collects all handles from all per-tag free-lists.
 - Calls `on_close` once with the full list.
@@ -195,6 +204,7 @@ pub fn close(ph: PoolHandle) void
 ```zig
 pub fn is_it_you(tag: *const anyopaque) bool
 ```
+
 - Returns true if tag identifies a PoolHandle.
 
 ## Error sets
@@ -242,16 +252,19 @@ pub const PoolResult = union(enum) {
 ```zig
 pub fn getWaitResult(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) PoolResult
 ```
+
 - Blocking function. No error return — maps all outcomes to `PoolResult` variants.
 - Primary building block for Select integration:
   ```zig
   try select.concurrent(.pool, pool.getWaitResult, .{ph, TAG, null});
   ```
+
 - Also usable with `io.concurrent` or `group.concurrent`.
 
 ```zig
 pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) ConcurrentError!Io.Future(PoolResult)
 ```
+
 - Thin wrapper: `return p.*.io.concurrent(getWaitResult, .{ph, tag, timeout_ns})`.
 - No heap allocation — args copied by the runtime before `concurrent` returns.
 - Returns a Future for direct await or `Io.Group` use.

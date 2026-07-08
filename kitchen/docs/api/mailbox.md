@@ -61,12 +61,14 @@ Same rules as application objects.
 ```zig
 pub fn new(io: Io, alloc: std.mem.Allocator) !MailboxHandle
 ```
+
 - Creates a new mailbox.
 - Stores `io` internally.
 
 ```zig
 pub fn send(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```
+
 - Appends handle to tail.
 - Moves the handle — `slot.*` set to null.
 - Assert:
@@ -77,6 +79,7 @@ pub fn send(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```zig
 pub fn receive(mbh: MailboxHandle, slot: *Slot, timeout_ns: ?u64) (error{ Closed, Timeout, Wakeup } || Cancelable)!void
 ```
+
 - Blocks until handle available.
 - `null` timeout = wait forever.
 - `timeout_ns = 0` returns `error.Timeout` immediately — equivalent to `try_receive`.
@@ -93,6 +96,7 @@ pub fn receive(mbh: MailboxHandle, slot: *Slot, timeout_ns: ?u64) (error{ Closed
 ```zig
 pub fn try_receive(mbh: MailboxHandle, slot: *Slot) error{Closed}!bool
 ```
+
 - Non-blocking.
 - Returns true if handle received, false if queue empty.
 - Assert:
@@ -102,6 +106,7 @@ pub fn try_receive(mbh: MailboxHandle, slot: *Slot) error{Closed}!bool
 ```zig
 pub fn receive_batch(mbh: MailboxHandle) error{Closed}!std.DoublyLinkedList
 ```
+
 - Non-blocking.
 - Takes everything from the queue at once.
 - Returns empty `std.DoublyLinkedList` if queue is currently empty.
@@ -112,17 +117,20 @@ pub fn receive_batch(mbh: MailboxHandle) error{Closed}!std.DoublyLinkedList
 ```zig
 pub fn wakeUpAll(mbh: MailboxHandle) error{Closed}!void
 ```
+
 - Wakes every receiver currently blocked in `receive()` — no item is sent, nothing is queued.
 - Blocked receivers return `error.Wakeup`.
 - Future receivers (those that call `receive()` after `wakeUpAll()` returns) are not affected.
 - Distinct from `close()`: the mailbox is not torn down, and the effect does not persist for
   receivers that start later.
+
 - Assert:
   - `mailbox.is_it_you(mbh.*.tag)`
 
 ```zig
 pub fn close(mbh: MailboxHandle) std.DoublyLinkedList
 ```
+
 - Can be called more than once.
 - Returns remaining handles as list (empty list on second call).
 - Collects all handles still in the queue.
@@ -133,6 +141,7 @@ pub fn close(mbh: MailboxHandle) std.DoublyLinkedList
 ```zig
 pub fn destroy(mbh: MailboxHandle, alloc: std.mem.Allocator) void
 ```
+
 - Frees the mailbox.
 - Must be closed first.
 - Calling destroy on an open mailbox is a programming error (panic).
@@ -142,6 +151,7 @@ pub fn destroy(mbh: MailboxHandle, alloc: std.mem.Allocator) void
 ```zig
 pub fn is_it_you(tag: *const anyopaque) bool
 ```
+
 - Returns true if tag identifies a MailboxHandle.
 
 ## Error sets
@@ -182,16 +192,19 @@ pub const ReceiveResult = union(enum) {
 ```zig
 pub fn receiveResult(mbh: MailboxHandle, timeout_ns: ?u64) ReceiveResult
 ```
+
 - Blocking function. No error return — maps all outcomes to `ReceiveResult` variants.
 - Primary building block for Select integration:
   ```zig
   try select.concurrent(.inbox, mailbox.receiveResult, .{mbh, null});
   ```
+
 - Also usable with `io.concurrent` or `group.concurrent`.
 
 ```zig
 pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.Future(ReceiveResult)
 ```
+
 - Thin wrapper: `return mbx.*.io.concurrent(receiveResult, .{mbh, timeout_ns})`.
 - No heap allocation — args copied by the runtime before `concurrent` returns.
 - Returns a Future for direct await or `Io.Group` use.
@@ -231,6 +244,7 @@ const result = try fut.await(io);
 ```zig
 pub fn send_oob(mbh: MailboxHandle, slot: *Slot) error{Closed}!void
 ```
+
 - Inserts handle after last OOB handle.
 - FIFO among OOBs, all OOBs before regular handles.
 - Moves the handle — `slot.*` set to null.

@@ -37,6 +37,7 @@ until it sends the result. Nobody shares it.
 - The driver needs no locks while printing — it is the only owner.
 - The driver needs no progress reporting — it either finishes or fails, and sends
   the result either way. The spooler doesn't need to know which page it's on.
+
 - The spooler needs no status tracking — if the job is in its queue, it's
   responsible. If not, the driver has it.
 

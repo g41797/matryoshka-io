@@ -224,6 +224,141 @@ Current: 167/167 tests. DOC 20 + follow-up DONE.
 
 ## Session Log
 
+### 2026-07-08 — blank-line-before-list auto-fix script
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner spotted a rendering bug in a pasted `pool.md` snippet: bullets
+collapsed into one run-on sentence. Root cause: CommonMark/Python-Markdown
+treats a list directly following plain text with no blank line as a lazy
+paragraph continuation, not a list — the existing rules-018/022
+"blank line before every list" rule was never swept for compliance.
+Fixed as a permanent, auto-fixing script wired into the doc build sequence
+rather than a one-off manual pass.
+
+**Changes**:
+- `kitchen/tools/fix_md_lists.sh` (new) — scans every `kitchen/docs/**/*.md`,
+  fence-aware (skips ``` / ~~~ blocks), inserts a blank line before any list
+  that directly follows non-blank, non-list-item text. Auto-fixes in place;
+  mechanical formatting only, no wording changes.
+- `kitchen/tools/build_site.sh`, `kitchen/tools/preview_site.sh` — call it
+  after `gen_examples_docs.sh`, before `mkdocs build`/`serve`.
+- `.github/workflows/docs.yml` — added matching "Fix Blank-Line-Before-List"
+  step in the same position.
+- `kitchen/notes.md` — new section documenting the script and its place in
+  the sequence.
+- `design/rules-022.md` → `-023.md` — cross-referenced the script under the
+  existing blank-line-before-list rule.
+- `design/context.md` — Rules pointer → rules-023.md; Status pointer text
+  updated.
+- Ran the script once against the whole `kitchen/docs/` tree — 18 files
+  fixed (`api/pool.md`, `api/mailbox.md`, `building-blocks/master.md`,
+  `manifesto.md`, and 14 others).
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Spot-check `api/pool.md` "Blocking acquisition" list | now separate `<li>` bullets, blank line inserted correctly |
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: owner decision on the 4 confirmed-duplicate page groups from the
+prior audit still pending. Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — add "Why Boring" addendum
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner pointed at `design/boring-manifesto.md` (a short "boring enterprise
+programmer mindset" piece — business events over infra plumbing, one owner
+per state, architecture-over-microbenchmarks) and asked to add it as an
+addendum. Agreed: file name, nav label, and page H1 all read "Why Boring" /
+`why-boring.md`, content copied verbatim (already clean of banned words),
+and placed **first** in the Addendums nav — it's the motivating mindset
+behind "boring," which the other three addendums (design-rationale
+comparisons) assume the reader already bought into.
+
+**Changes**:
+- `kitchen/docs/addendums/why-boring.md` (new) — verbatim copy of
+  `design/boring-manifesto.md`.
+- `kitchen/mkdocs.yml` — added `Why Boring: addendums/why-boring.md` as the
+  first entry under `Addendums:`, ahead of `Io 101`.
+- `kitchen/docs/index.md` — Addendums link now points to
+  `addendums/why-boring.md` instead of `addendums/slot-vs-ref-counting.md`;
+  line text updated to "mindset, design-rationale essays, and an Io primer."
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| Banned-word grep on `design/boring-manifesto.md` | zero hits |
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+
+**Next**: owner decision on the 4 confirmed-duplicate page groups from the
+prior audit still pending. Stage 9 continues. DOC 21+ TBD.
+
+---
+
+### 2026-07-08 — audit kitchen/docs for duplicate/orphan pages; hide Story + Deep Dive, fix dangling refs
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner asked whether other `kitchen/docs/*.md` pages duplicate content the
+way the trimmed `index.md` did. Full-site audit found a repeated pattern:
+pages superseded by a newer, nav-wired page but left in place as unlinked
+orphans — `matryoshka-based-systems.md` (superseded by `manifesto.md` +
+`index.md`), `slot-vs-ref-counting.md`/`tag-vs-tagged-union.md`/
+`typeErasedQueue-vs-mailbox.md` at root level (superseded by their shorter
+`addendums/` counterparts), `building-blocks/core-concepts.md` (near-verbatim
+duplicates split out into `building-blocks/polynode.md`/`mailbox.md`/
+`pool.md`/`master.md`), and `concepts/index.md` +
+`print-server-the-system.md`/`print-server-with-matryoshka.md` (retells the
+same print-server story already covered by the nav-wired
+`story/print-server/*.md`, condensed to two pages instead of four).
+Reported rather than auto-fixed — a content-editorial decision. Also flagged
+non-duplicative orphans (`building-blocks/observable-by-human.md`, chat-log/
+draft files already known from the DOC 5 audit) as separate from the
+duplicate findings above.
+
+Separately, owner independently commented out the "Story — Print Server" and
+"Deep Dive — Video Transcoder" nav sections in `kitchen/mkdocs.yml` (temporary
+hide, not deletion) and asked about stale hand-written `Next:` footer links
+(confirmed still needed — `navigation.footer` is not enabled in the theme, so
+these are the only sequential-reading aid between pages). Owner then asked to
+hide Story/Deep Dive and fix the resulting dangling references to match.
+
+**Changes**:
+- `kitchen/docs/building-blocks/master.md` — wrapped the "See also: Story —
+  Print Server" line in an HTML comment (`<!-- -->`), same reversible-hide
+  treatment as the `mkdocs.yml` `#` comments.
+- `kitchen/docs/manifesto.md` — wrapped the "Story — Print Server" bullet in
+  the "Keep reading" list the same way.
+- `kitchen/docs/patterns/master-and-shutdown.md` — wrapped the inline "see the
+  Deep Dive page" reference and the trailing `Next: [Deep Dive...]` line in
+  HTML comments; added a live `Next: [Examples Catalog](../examples/index.md).`
+  line in its place, since Examples Catalog is now the section directly
+  following Patterns & Cookbook in the (Story/Deep-Dive-hidden) nav.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `bash kitchen/tools/build_site.sh` | clean, zero warnings |
+| Headless-Chrome DOM dump of `patterns/master-and-shutdown/` | both hidden references render as invisible `<!-- -->` comment nodes; `Next: Examples Catalog` renders as a real link |
+| `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
+
+**Next**: owner to decide on the 4 confirmed-duplicate page groups from the
+audit above (delete superseded originals, merge, or leave as-is) — reported,
+not auto-fixed. Stage 9 continues. DOC 21+ TBD.
+
+---
+
 ### 2026-07-08 — trim kitchen/docs/index.md, ban "pitch"
 
 **Participants**: human (owner), Claude (agent).
