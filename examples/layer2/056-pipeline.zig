@@ -34,13 +34,13 @@ pub fn pipeline(allocator: std.mem.Allocator, io: std.Io) !void {
     var tran_ctx: StageCtx = .{ .inbox = stage1, .outbox = stage2, .alloc = allocator };
     var cons_ctx: ConsumerCtx = .{ .mbh = stage2, .alloc = allocator };
 
-    const t_prod = try std.Thread.spawn(.{}, producerFn, .{&prod_ctx});
-    const t_tran = try std.Thread.spawn(.{}, transformerFn, .{&tran_ctx});
-    const t_cons = try std.Thread.spawn(.{}, consumerFn, .{&cons_ctx});
+    var f_prod = try io.concurrent(producerFn, .{&prod_ctx});
+    var f_tran = try io.concurrent(transformerFn, .{&tran_ctx});
+    var f_cons = try io.concurrent(consumerFn, .{&cons_ctx});
 
-    t_prod.join();
-    t_tran.join();
-    t_cons.join();
+    f_prod.await(io);
+    f_tran.await(io);
+    f_cons.await(io);
 
     // 0²+1²+2²+3²+4² = 30.
     std.log.info("pipeline: count={d} sum={d}", .{ cons_ctx.count, cons_ctx.sum });

@@ -54,9 +54,12 @@ Two constraints. In return you get:
 
 ---
 
-## Master is a role
+## Master is an Io task
 
 Master is the main concept of Matryoshka.
+
+* Io creates tasks through `io.concurrent()`.
+* A Master is an Io task that follows the Matryoshka rules.
 
 Master is **not**:
 
@@ -64,21 +67,23 @@ Master is **not**:
 * an interface
 * a runtime
 
-Master is a **role**.
-
-> A Master runs on its own.
+> A Master runs on its own, as an Io task.
 > It owns its state.
 > It talks through mailboxes.
 
 Everything that runs in Matryoshka is a Master:
 
 ```text
-            Master (role)
-                 │
-      ┌──────────┼──────────┐
-      │          │          │
- Single-role  Coordinator  Resource owner
-    Master       Master        Master
+Io tasks
+    │
+    ├── ordinary task
+    ├── ordinary task
+    └── Master
+             │
+    ┌────────┼────────┐
+    │        │         │
+Single-job Coordinator Resource owner
+ Master      Master       Master
 ```
 
 * Some Masters do one job.
@@ -146,7 +151,7 @@ Master
     Everything runs inside one.
 ```
 
-Master is a role. The other three are code.
+Master is an Io task. The other three are code.
 
 The one-line summary below is all this page gives you — see
 [Building Blocks](building-blocks/index.md) for a full page per concept, still no Zig
@@ -170,7 +175,7 @@ Given a `PolyNode`, you can identify the containing object:
 `Mailbox`:
 
 * transfers `PolyNode` objects between Masters
-* transfers ownership together with the object
+* transfers the object, not a reference to it
 * does not know or care about the concrete object type
 
 ### Pool
@@ -191,7 +196,7 @@ The steroids are simple:
 
 * intrusion
 * type erasure
-* ownership transfer
+* object transfer
 * object reuse
 
 Nothing else.
@@ -254,15 +259,16 @@ A good design test:
 
 > If you have to mention Io while designing your system, it is already too visible.
 
-Think about cars.
+Io creates every task through `io.concurrent()`.
 
-* A traditional threaded application is a conventional car.
-* A pure Io-based application is an electric car.
-* Matryoshka-Io is a hybrid.
+Matryoshka does not compete with Io. It lives inside the same task world.
+
+* Io answers: how do tasks run?
+* Matryoshka answers: how do tasks cooperate?
 
 Start building today.
 
-If Zig Io changes tomorrow—and it will—your architecture stays the same.
+If Zig Io changes tomorrow—and it will—Matryoshka's rules stay the same.
 
 See [Addendums — Io 101](addendums/io-101.md) for a deeper primer on Io concepts
 (Future, Select, Group, cancellation) once you're building for real.

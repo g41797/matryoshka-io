@@ -27,7 +27,7 @@ pub fn batch_processing(allocator: std.mem.Allocator, io: std.Io) !void {
     }
 
     var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
-    const t = try std.Thread.spawn(.{}, batchWorkerFn, .{&ctx});
+    var fut = try io.concurrent(batchWorkerFn, .{&ctx});
 
     const n: usize = 10;
     var i: usize = 0;
@@ -47,7 +47,7 @@ pub fn batch_processing(allocator: std.mem.Allocator, io: std.Io) !void {
         try mailbox.send(mbh, &slot);
     }
 
-    t.join();
+    fut.await(io);
 
     const total = ctx.first_count + ctx.batch_count;
     std.log.info("batch: first={d} batch={d} total={d}", .{ ctx.first_count, ctx.batch_count, total });

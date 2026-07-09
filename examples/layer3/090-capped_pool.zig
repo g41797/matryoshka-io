@@ -33,14 +33,14 @@ pub fn backpressure_pool(allocator: std.mem.Allocator, io: std.Io) !void {
     try pool.init(ph, pool_ctx.poolHooks(&tags));
 
     var workers: [thread_count]WorkerCtx = undefined;
-    var threads: [thread_count]std.Thread = undefined;
+    var futures: [thread_count]std.Io.Future(void) = undefined;
 
-    for (&workers, &threads) |*wctx, *t| {
+    for (&workers, &futures) |*wctx, *f| {
         wctx.* = .{ .ph = ph, .alloc = allocator };
-        t.* = try std.Thread.spawn(.{}, workerFn, .{wctx});
+        f.* = try io.concurrent(workerFn, .{wctx});
     }
 
-    for (&threads) |t| t.join();
+    for (&futures) |*f| f.await(io);
 
     // consume remaining items to count them
     var in_pool: usize = 0;

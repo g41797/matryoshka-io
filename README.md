@@ -20,11 +20,13 @@ Matryoshka is an attempt to make them a little more ***boring***.
 
 ## Main concept
 
-Matryoshka introduces one main concept.
+Zig creates tasks through `io.concurrent()`.
 
-**Master**.
+Matryoshka introduces one main concept: **Master**.
 
-Master is a role.
+* A Master is an Io task.
+* Created by `io.concurrent()`.
+* Follows the Matryoshka rules.
 
 Master is **not**:
 
@@ -32,7 +34,7 @@ Master is **not**:
 * an interface
 * a runtime
 
-A Master:
+A task becomes a Master when it:
 
 * typically has a long lifetime
 * owns application state
@@ -44,6 +46,9 @@ Some Masters also:
 * own shared resources
 
 A *worker* is simply a Master with a single dedicated responsibility.
+
+* Not every task is a Master.
+* Every Master is a task.
 
 ---
 
@@ -93,7 +98,7 @@ Given a `PolyNode`, you can:
 `Mailbox`:
 
 * transfers `PolyNode` objects between Masters
-* transfers ownership together with the object
+* transfers the object, not a reference to it
 * does not know or care about the concrete object type
 
 ### Pool
@@ -110,7 +115,7 @@ Just three small building blocks.
 
 > Together, this troika allows you to:
 >
-> * transfer ownership
+> * transfer objects
 > * reuse objects
 > * stay type-agnostic
 
@@ -128,7 +133,7 @@ The steroids are simple:
 
 * intrusion
 * type erasure
-* ownership transfer
+* object transfer
 * object reuse
 
 Nothing else.
@@ -140,50 +145,44 @@ Nothing else.
 
 ## The role of Zig Io
 
-Matryoshka-Io uses Zig Io in two situations.
+Io creates every task through `io.concurrent()`.
 
-### Required by Zig
+Matryoshka lives inside that task world. Not beside it.
 
-Some operations must use Zig Io because Zig exposes them only through the Io API.
+A Master is one of those tasks. It follows the Matryoshka rules.
 
-Matryoshka uses Io where it is required.
-
-The architecture remains unchanged.
-
-### Additional Io capabilities
-
-Matryoshka also uses Zig Io where it provides useful functionality.
-
-Examples include:
+Io still does the rest:
 
 * waiting for multiple event sources
 * timers
 * cancellation
 * integration with other Io-based libraries
 
-These capabilities extend Matryoshka.
+Matryoshka does not compete with these.
 
-They do not define it.
+* Io answers: how do tasks run?
+* Matryoshka answers: how do tasks cooperate?
 
 ---
 
 ## Why Matryoshka-Io?
 
-Think about cars.
+Io is large. Io does a lot.
 
-* A traditional threaded application is a conventional car.
-* A pure Io-based application is an electric car.
-* Matryoshka-Io is a hybrid.
+Matryoshka is small on purpose:
 
-Matryoshka:
+* a handful of rules
+* a few hundred lines of code
+
+It gives your Io tasks a simple, repeatable shape.
 
 * keeps the architecture simple
-* uses Zig Io where Zig requires it
-* uses Zig Io where it provides additional functionality
+* one way to create a task: `io.concurrent()`
+* one small set of rules for Masters to follow
 
 Start building today.
 
-If Zig Io changes tomorrow—and it will—your architecture stays the same.
+If Zig Io changes tomorrow—and it will—Matryoshka's rules stay the same.
 
 ---
 

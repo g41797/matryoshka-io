@@ -29,7 +29,7 @@ pub fn wake_blocked_receiver_without_a_message(allocator: std.mem.Allocator, io:
     }
 
     var ctx: WorkerCtx = .{ .mbh = mbh };
-    const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
+    var fut = try io.concurrent(workerFn, .{&ctx});
 
     // Give the worker time to reach mailbox.receive and block.
     std.Io.Timeout.sleep(.{ .duration = .{ .raw = .{ .nanoseconds = 50_000_000 }, .clock = .real } }, io) catch {};
@@ -37,7 +37,7 @@ pub fn wake_blocked_receiver_without_a_message(allocator: std.mem.Allocator, io:
     ctx.shutdown.store(true, .release);
     try mailbox.wakeUpAll(mbh);
 
-    t.join();
+    fut.await(io);
 
     std.log.info("wake up all: worker woke on error.Wakeup, saw shutdown flag, exited", .{});
     try helpers.expect(error.WakeUpAllFailed, ctx.woke_on_wakeup, "worker did not see error.Wakeup");

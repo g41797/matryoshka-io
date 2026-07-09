@@ -31,12 +31,12 @@ pub fn worker_finish_signal_via_mailbox_return(allocator: std.mem.Allocator, io:
     try sendJobsAndShutdown(worker_mbh, allocator);
 
     var worker_ctx: WorkerCtx = undefined;
-    const t = try spawnWorker(master_inbox, worker_mbh, &worker_ctx, allocator);
+    var fut = try spawnWorker(master_inbox, worker_mbh, &worker_ctx, allocator, io);
 
     try receiveAndVerify(master_inbox, worker_mbh, allocator);
     std.log.info("master: received worker_mbh back — worker finished (processed={d})", .{worker_ctx.processed});
 
-    t.join();
+    fut.await(io);
 }
 
 const WorkerCtx = struct {
@@ -94,9 +94,9 @@ fn sendJobsAndShutdown(worker_mbh: MailboxHandle, alloc: std.mem.Allocator) !voi
     std.log.info("master: sent 3 Events + ShutdownCommand to worker", .{});
 }
 
-fn spawnWorker(master_inbox: MailboxHandle, worker_mbh: MailboxHandle, ctx: *WorkerCtx, alloc: std.mem.Allocator) !std.Thread {
+fn spawnWorker(master_inbox: MailboxHandle, worker_mbh: MailboxHandle, ctx: *WorkerCtx, alloc: std.mem.Allocator, io: std.Io) !std.Io.Future(void) {
     ctx.* = .{ .master_inbox = master_inbox, .worker_mbh = worker_mbh, .alloc = alloc };
-    return std.Thread.spawn(.{}, workerFn, .{ctx});
+    return io.concurrent(workerFn, .{ctx});
 }
 
 fn receiveAndVerify(master_inbox: MailboxHandle, worker_mbh: MailboxHandle, alloc: std.mem.Allocator) !void {

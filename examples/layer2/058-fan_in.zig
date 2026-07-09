@@ -29,13 +29,13 @@ pub fn fan_in(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx_sn: SenderCtx = .{ .mbh = mbh, .alloc = allocator };
     var ctx_alt: SenderCtx = .{ .mbh = mbh, .alloc = allocator };
 
-    const t1 = try std.Thread.spawn(.{}, eventSenderFn, .{&ctx_ev});
-    const t2 = try std.Thread.spawn(.{}, sensorSenderFn, .{&ctx_sn});
-    const t3 = try std.Thread.spawn(.{}, altSenderFn, .{&ctx_alt});
+    var f1 = try io.concurrent(eventSenderFn, .{&ctx_ev});
+    var f2 = try io.concurrent(sensorSenderFn, .{&ctx_sn});
+    var f3 = try io.concurrent(altSenderFn, .{&ctx_alt});
 
-    t1.join();
-    t2.join();
-    t3.join();
+    f1.await(io);
+    f2.await(io);
+    f3.await(io);
 
     const total_sent: usize = ctx_ev.sent + ctx_sn.sent + ctx_alt.sent;
     var batch: std.DoublyLinkedList = try mailbox.receive_batch(mbh);

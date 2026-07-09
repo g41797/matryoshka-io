@@ -4,11 +4,13 @@ const testing = std.testing;
 const Io = std.Io;
 
 const allocator = std.testing.allocator;
-const io = std.Io.Threaded.global_single_threaded.*.io();
 
 test "95 - worker finish signal via mailbox return" {
     std.testing.log_level = .debug;
-    layer4.mailbox_as_item.worker_finish_signal_via_mailbox_return(allocator, io) catch |err| {
+    var threaded: std.Io.Threaded = std.Io.Threaded.init(testing.allocator, .{});
+    defer threaded.deinit();
+    const tio: Io = threaded.io();
+    layer4.mailbox_as_item.worker_finish_signal_via_mailbox_return(allocator, tio) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };
@@ -16,7 +18,10 @@ test "95 - worker finish signal via mailbox return" {
 
 test "96 - pool holds pools at teardown" {
     std.testing.log_level = .debug;
-    layer4.pool_as_item.pool_holds_pools_at_teardown(allocator, io) catch |err| {
+    var threaded: std.Io.Threaded = std.Io.Threaded.init(testing.allocator, .{});
+    defer threaded.deinit();
+    const tio: Io = threaded.io();
+    layer4.pool_as_item.pool_holds_pools_at_teardown(allocator, tio) catch |err| {
         std.log.err("example failed: {s}", .{@errorName(err)});
         return err;
     };

@@ -1,4 +1,4 @@
-# Matryoshka Zig — Rules (023)
+# Matryoshka Zig — Rules (024)
 
 Versioned doc. Replaces [rules-022.md](rules-022.md).
 All coding, doc, and process rules for the project.
@@ -352,7 +352,7 @@ Banned words.
 - `drain` — use `clear`, `reset`, `empty`, or a domain verb. Example: `clearList` not `drainList`.
 - `dll` / `DLL` — clashes with Windows DLL. Use `List.Node`, `list_node_ptr`, or spell out `DoublyLinkedList`.
 - "commit" when meaning save/update/write — implies git, which is owner-only. Say "save", "update", or "write".
-- AI-sh word list: robust, seamlessly, comprehensive, leverage, efficient, powerful, facilitate, utilize, ensure, performant, ergonomic, idiomatic, streamline, orchestrate, sophisticated, intuitive, scalable, unlock, empower, harness, deliver, fed, arm, leg, idempotent, fires, faces, pitch.
+- AI-sh word list: robust, seamlessly, comprehensive, leverage, efficient, powerful, facilitate, utilize, ensure, performant, ergonomic, idiomatic, streamline, orchestrate, sophisticated, intuitive, scalable, unlock, empower, harness, deliver, fed, arm, leg, idempotent, fires, faces, pitch, object model, execution context, execution model, programming model, paradigm, mindset, ownership, gained.
 - Scan `.zig` and `.md` after any stage that changes them. Report hits to owner. Do not fix without approval.
 
 ---
@@ -363,6 +363,13 @@ Banned words.
 - One fact per bullet.
 - No prose paragraphs with comma-separated lists.
 - No dense multi-fact sentences.
+- Bullet nesting: when a bullet splits at a colon, "and", or into multiple
+  sub-items, demote each part to a nested bullet, one level deeper, one item
+  per line. Do not cram a comma-list or colon-plus-list onto one line.
+- LONG SENTENCES DISABLED. Use bullets.
+  - Break a long sentence into several short sentences, one line each.
+  - Or break it into bullets.
+  - No prose. Ever.
 - Do not explain WHAT — names do that.
 - Explain WHY only if non-obvious.
 - No multi-paragraph docstrings.

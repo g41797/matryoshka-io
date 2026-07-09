@@ -25,9 +25,9 @@ pub fn fan_out(allocator: std.mem.Allocator, io: std.Io) !void {
     var ctx_b: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
     var ctx_c: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
 
-    const ta = try std.Thread.spawn(.{}, fanOutWorkerFn, .{&ctx_a});
-    const tb = try std.Thread.spawn(.{}, fanOutWorkerFn, .{&ctx_b});
-    const tc = try std.Thread.spawn(.{}, fanOutWorkerFn, .{&ctx_c});
+    var fa = try io.concurrent(fanOutWorkerFn, .{&ctx_a});
+    var fb = try io.concurrent(fanOutWorkerFn, .{&ctx_b});
+    var fc = try io.concurrent(fanOutWorkerFn, .{&ctx_c});
 
     const n_events: usize = 5;
     const n_sensors: usize = 4;
@@ -57,9 +57,9 @@ pub fn fan_out(allocator: std.mem.Allocator, io: std.Io) !void {
         remaining += 1;
     }
 
-    ta.join();
-    tb.join();
-    tc.join();
+    fa.await(io);
+    fb.await(io);
+    fc.await(io);
 
     const total: usize = ctx_a.received + ctx_b.received + ctx_c.received;
     std.log.info("fan-out: a={d} b={d} c={d} remaining={d}", .{ ctx_a.received, ctx_b.received, ctx_c.received, remaining });

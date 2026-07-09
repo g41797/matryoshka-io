@@ -24,7 +24,7 @@ pub fn request_response(allocator: std.mem.Allocator, io: std.Io) !void {
     defer mailbox.destroy(resp_mbh, allocator);
 
     var ctx: WorkerCtx = .{ .req_mbh = req_mbh, .resp_mbh = resp_mbh, .alloc = allocator };
-    const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
+    var fut = try io.concurrent(workerFn, .{&ctx});
 
     {
         var slot: Slot = null;
@@ -45,7 +45,7 @@ pub fn request_response(allocator: std.mem.Allocator, io: std.Io) !void {
 
     var rem_req: std.DoublyLinkedList = mailbox.close(req_mbh);
     items.freeList(&rem_req, allocator);
-    t.join();
+    fut.await(io);
 
     var rem_resp: std.DoublyLinkedList = mailbox.close(resp_mbh);
     items.freeList(&rem_resp, allocator);

@@ -57,10 +57,13 @@ carries no work intent on its own.
   poll, no explicit backpressure code — when a worker returns an item, the
   pool wakes the waiter.
 
-## Master — coordination, not a type
+## Master — an Io task, not a struct you must define
 
-Master is a role, not a struct you must define. Every running entity is a
-Master. A worker is simply a Master with one dedicated responsibility — it
+- Io creates tasks through `io.concurrent()`.
+- A Master is an Io task that follows the Matryoshka rules.
+- Not a struct you must define.
+
+A worker is simply a Master with one dedicated responsibility — it
 owns its mailbox, its private state, its execution, and it may coordinate
 nobody and own no shared resources. It is still a Master.
 

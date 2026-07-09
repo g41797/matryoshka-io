@@ -698,11 +698,11 @@ test "84 - pool.get_wait forever: item put from another thread" {
     }
 
     var pctx: Ctx84 = .{ .ph = ph, .io = io, .alloc = alloc };
-    const t: Thread = try Thread.spawn(.{}, putter84, .{&pctx});
+    var fut = try io.concurrent(putter84, .{&pctx});
 
     var slot: Slot = null;
     try pool.get_wait(ph, EventPolyHelper.TAG, &slot, null);
-    t.join();
+    fut.await(io);
 
     try testing.expect(slot != null);
     try testing.expect(EventPolyHelper.identifySlotAs(&slot) != null);
@@ -914,5 +914,4 @@ const EventPolyHelper = items.Event.EventPolyHelper;
 const SensorPolyHelper = items.Sensor.SensorPolyHelper;
 const std = @import("std");
 const testing = std.testing;
-const Thread = std.Thread;
 const Io = std.Io;

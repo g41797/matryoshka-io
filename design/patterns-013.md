@@ -1,13 +1,17 @@
-# Matryoshka Zig — Pattern and Idiom Catalog (012)
+# Matryoshka Zig — Pattern and Idiom Catalog (013)
 
-Versioned doc. Replaces [patterns-011.md](patterns-011.md).
+Versioned doc. Replaces [patterns-012.md](patterns-012.md).
+Change from patterns-012: `Thread.spawn` removed as an accepted task-creation
+option. `io.concurrent()` is the only way a task starts (New Mindset,
+`matryoshka-new-mindset-001.md`).
+
 Change from patterns-011: API 4 renamed `NodeHandle` → `ItemHandle` — the old
 name leaked the intrusive-node implementation detail. No pattern content
 changed, wording only.
 One unified catalog. Every pattern and idiom appears once, in logical order.
-Companion: [rules-013.md](rules-013.md) — what is mandatory.
+Companion: [rules-024.md](rules-024.md) — what is mandatory.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
-Companion: [matryoshka-api-reference-019.md](matryoshka-api-reference-019.md) — signatures and contracts.
+Companion: [matryoshka-api-reference-022.md](matryoshka-api-reference-022.md) — signatures and contracts.
 
 How this doc differs from rules.
 - Rules constrain. A rule says what you must or must not do.
@@ -34,7 +38,7 @@ Order of this catalog.
 
 ## Slot and ownership idioms
 
-The slot rule in full: [api-reference — Slot-based programming](matryoshka-api-reference-019.md).
+The slot rule in full: [api-reference — Slot-based programming](matryoshka-api-reference-022.md).
 
 ### Empty Slot initialization
 
@@ -202,7 +206,7 @@ Why.
 - Raw `allocator.create` skips both. The object is unusable for dispatch.
 
 Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.
-Full list: [api-reference — No raw allocator calls](matryoshka-api-reference-019.md).
+Full list: [api-reference — No raw allocator calls](matryoshka-api-reference-022.md).
 
 ---
 
@@ -332,7 +336,7 @@ Use.
 - Pointer comparison for infrastructure handles.
 - User fields (`kind`, `role`) for application roles.
 
-Details: [api-reference — Tag identity](matryoshka-api-reference-019.md).
+Details: [api-reference — Tag identity](matryoshka-api-reference-022.md).
 
 ### Wrapper type for infrastructure handles
 
@@ -387,7 +391,7 @@ Pattern.
 Why.
 - Replaces a thread join or a separate shutdown message with ownership transfer.
 
-Details: [api-reference — Transporting infra handles](matryoshka-api-reference-019.md).
+Details: [api-reference — Transporting infra handles](matryoshka-api-reference-022.md).
 
 ### Pool-as-message
 
@@ -1153,7 +1157,7 @@ Example: `examples/layer2/062-shutdown_exit.zig`.
 
 ### Observable function shapes
 
-Concrete templates for the "Observable by human" MUST rule. See [rules-013.md](rules-013.md).
+Concrete templates for the "Observable by human" MUST rule. See [rules-024.md](rules-024.md).
 
 #### Coordinator / run
 
@@ -1255,7 +1259,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 #### Thread-is-container
 
 When to use.
-- Spawning a worker thread or `io.concurrent` task for a Master.
+- Spawning an `io.concurrent` task for a Master.
 
 Rule.
 - The spawned function receives `*Master` (or a small `*Ctx`) directly as its argument.
@@ -1371,7 +1375,7 @@ Examples: `examples/layer4/046-select_pool_event.zig`, `examples/layer4/028-sele
 ### Coordinator with spawn + await (flat file)
 
 When to use.
-- A flat `pub fn run` that spawns concurrent workers (`io.concurrent`, `group.concurrent`, `Thread.spawn`) and awaits them.
+- A flat `pub fn run` that spawns concurrent workers (`io.concurrent`, `group.concurrent`) and awaits them.
 - The spawn block and the await block together form one named step.
 
 Code shape (single spawn+await step).

@@ -17,7 +17,7 @@ Reading path:
 7+ Cancellation, shutdown, idioms     (Part 2)
 ```
 
-For architecture and rationale → `matryoshka-architecture-foundation-4-001.md`.
+For architecture and rationale → `matryoshka-architecture-foundation-4-002.md`.
 
 For exact API signatures → `matryoshka-api-reference-006.md`.
 
@@ -667,7 +667,7 @@ Pool is not a symmetric acquire/release pair:
 
 The `on_put` hook decides fate: set `m.* = null` to destroy, leave non-null to keep in pool.
 
-See `matryoshka-architecture-foundation-4-001.md` for the rationale.
+See `matryoshka-architecture-foundation-4-002.md` for the rationale.
 
 ## Hook discipline
 
@@ -700,7 +700,7 @@ else if (pool_is_it_you(poly.tag)) { ... }
 
 There is no generic dispose. Use `mailbox.destroy` and `pool.destroy` directly. Application types destroy themselves.
 
-For the rationale see `matryoshka-architecture-foundation-4-001.md`, section 10.
+For the rationale see `matryoshka-architecture-foundation-4-002.md`, section 10.
 
 # 7. Cancellation
 

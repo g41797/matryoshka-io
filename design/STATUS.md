@@ -22,10 +22,10 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-021.md
+- API: matryoshka-api-reference-022.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
-- Architecture: matryoshka-architecture-foundation-4-001.md
-- Architecture introduction: matryoshka-architecture-002.md
+- Architecture: matryoshka-architecture-foundation-4-002.md
+- Architecture introduction: matryoshka-architecture-003.md
 - Tests: task1-tests-001.md (73 scenarios, Layers 1-3), task2-tests-001.md (16 scenarios, Layer 4)
 - Examples: task1-examples-003.md, task2-examples-003.md (index only; full description lives in each source file's `///` doc comment)
 - Scenarios (historical): task1-scenarios-001.md (92), task2-scenarios-001.md (61)
@@ -33,11 +33,12 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-040.md (slim, state-only)
-- Rules: rules-022.md
+- Rules: rules-024.md
+- New Mindset reference: matryoshka-new-mindset-001.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-012.md
+- Patterns: patterns-013.md
 - Docs plan: matryoshka-io-docs-plan-015.md
-- Manifesto: matryoshka-manifesto-003.md
+- Manifesto: matryoshka-manifesto-005.md
 - Latest context: collected-context-005.md
 
 ## Participants
@@ -230,6 +231,304 @@ README insertion deferred by owner. DONE (doc-only, 167/167 tests
 unchanged). Plan version pending.
 
 ## Session Log
+
+### 2026-07-09 — New Mindset: architecture-docs ownership-language pass
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Last item from the New Mindset punch list: the two architecture docs
+(`matryoshka-architecture-002.md`, `matryoshka-architecture-foundation-4-001.md`)
+carried "ownership" as core vocabulary — ~20 and ~120 hits respectively,
+including section/layer titles, not just prose. Confirmed both docs are
+active (`design/STATUS.md` Sources of Truth, `design/context.md`) before
+touching them. Owner directed: for "ownership transfer," describe what
+happens (per the existing `src/` comment rule — say what happens, don't
+say "ownership"); for "ownership model," pick plain replacement wording
+(flagged as AI-sh-style), left to the agent's judgment.
+
+**Changes**:
+- `design/matryoshka-architecture-002.md` → `design/matryoshka-architecture-003.md`
+  (new version) — "ownership"/"owner" replaced with "place"/"hold" (matches
+  the Slot-based "you hold it / you don't hold it" framing already in the
+  doc); "execution context(s)" → "task(s)".
+- `design/matryoshka-architecture-foundation-4-001.md` →
+  `design/matryoshka-architecture-foundation-4-002.md` (new version) —
+  "ownership"/"owner"/"owns"/"owned" replaced with "hold"/"holder"/"holds"/
+  "held" throughout, including renaming the "Ownership" layer/section name
+  to "Hold" (this reads better than "place" here and matches the doc's
+  pre-existing `HELD` state name); "execution context(s)"/"execution
+  model(s)" replaced with "task(s)". No structural or technical content
+  changed — same four layers, same states, same decisions.
+- `design/context.md` — Architecture pointer → `-003.md`; added a new
+  "Architecture foundation" pointer line for `-002.md` (previously the
+  foundation doc had a `STATUS.md` Sources-of-Truth entry but no
+  `context.md` entry).
+- `design/STATUS.md` — Sources of Truth "Architecture"/"Architecture
+  introduction" pointers updated to the new versions.
+- `design/matryoshka-io-0.16-implementation-guide-001.md` — 3 cross-references
+  to the old foundation-doc filename updated to `-002.md` (doc-link rule,
+  no exception).
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `grep -rl "matryoshka-architecture-foundation-4-001\|matryoshka-architecture-002.md"` (repo-wide, excluding `docs/` build output) | zero live pointers remain outside historical Session Log entries |
+| Banned-word sweep (`ownership`, `execution context`, `execution model`) on both new doc versions | zero hits (except the changelog line describing the change itself, same exemption as prior sweeps) |
+| `build_and_test_debug.sh` | PASS (167/167) — doc-only change, `src/` untouched |
+| `build_site.sh` | clean, zero warnings (both docs are `design/` internal references, not in mkdocs nav) |
+
+**Not fixed this pass (pre-existing, unrelated to ownership)**: 5 pre-existing
+banned-word hits found in `matryoshka-architecture-foundation-4-002.md`
+during the sweep — "deliver"/"delivers"/"delivery" (×4) and "fires" (×1),
+all present before this pass, not introduced by it. Reported per rules-024
+("report hits, don't fix without approval"), not auto-fixed — owner's call.
+
+**Next**: New Mindset punch list is now fully closed (code migration +
+doc audit + doc rewrite + this ownership pass). Owner's call on next
+priority; the 5 pre-existing banned-word hits above are the only known
+open item from this effort.
+
+---
+
+### 2026-07-09 — New Mindset: `Thread.spawn` → `io.concurrent()` code migration
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Follow-up code migration flagged in the prior Phase B audit entry: 33
+`std.Thread.spawn` call sites (16 in 9 `examples/` files, 17 in 2 `tests/`
+files) moved to `io.concurrent()`. Migrating the example files to
+`io.concurrent()` first surfaced a blocker: the driver files
+(`tests/layer2_examples.zig`, `tests/layer3_examples.zig`,
+`tests/layer4_examples.zig`) supplied a single-threaded
+`std.Io.Threaded.global_single_threaded.*.io()`, on which `io.concurrent()`
+structurally returns `error.ConcurrencyUnavailable` — regression: 157/167
+tests passed (8 failed, 2 crashed). Owner directed the fix: change the 3
+driver files to use real threaded `Io`, not revert the migrated examples.
+
+**Changes**:
+- 9 `examples/` files (16 call sites) — `std.Thread.spawn` replaced with
+  `io.concurrent()` / `Future.await`.
+- `tests/layer2_examples.zig`, `tests/layer3_examples.zig` — rewritten:
+  each test now builds its own local `std.Io.Threaded.init(testing.allocator,
+  .{})` instance (`defer .deinit()`, `.io()`) instead of a module-level
+  single-threaded `io`, matching the pattern already used by
+  `tests/layer4_examples.zig` tests 17–24.
+- `tests/layer4_examples.zig` — its 2 remaining `Thread.spawn` tests ("95",
+  "96") given the same per-test local threaded `Io` pattern.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `build_and_test_debug.sh` | PASS (167/167) |
+| `build_and_test_all.sh` (all 4 optimization modes) | PASS (167/167) |
+| `build_cross_debug.sh` (mac x86_64/aarch64, windows x86_64) | PASS (5/5 steps) |
+| `docs_zig.sh` | PASS |
+| `grep -rln "Thread.spawn" examples/ tests/ src/` | zero hits |
+| Banned-word sweep on the 3 driver files | zero hits |
+| `gen_examples_docs.sh` + `build_site.sh` (mirrored pages regenerated) | clean, zero warnings |
+| `grep -rl "Thread.spawn" kitchen/docs/examples/` | zero hits |
+
+**Not done this pass**: the architecture-docs `ownership` pass
+(`matryoshka-architecture-foundation-4-001.md`, `matryoshka-architecture-002.md`).
+
+**Next**: architecture-docs ownership-language pass.
+
+---
+
+### 2026-07-09 — New Mindset: README/manifesto "hybrid car" follow-up fix
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**: Owner flagged that README.md's "The role of Zig Io" / "Why
+Matryoshka-Io?" sections still carried old-mindset language ("Matryoshka-Io
+uses Zig Io in two situations", "hybrid car" analogy) despite the prior
+Phase C pass. Fixed those sections and found the same pattern repeated in
+`matryoshka-manifesto-004.md` and its mirrors.
+
+**Changes**:
+- `README.md` — "The role of Zig Io" and "Why Matryoshka-Io?" rewritten:
+  dropped "two situations" framing and the conventional/electric/hybrid car
+  analogy. Replaced with Io-creates-tasks / Matryoshka-answers-cooperation
+  framing, consistent with `matryoshka-new-mindset-001.md`.
+- `design/matryoshka-manifesto-004.md` → `design/matryoshka-manifesto-005.md`
+  (new version, no-overwrite rule). Same "hybrid car" section replaced.
+- `kitchen/docs/manifesto.md` — mirrored fix, edited in place.
+- `kitchen/docs/matryoshka-based-systems.md` — "Master is a role" and "two
+  situations" language replaced throughout with the task-based framing.
+- `design/context.md` — Manifesto pointer updated to `-005.md`.
+- `design/STATUS.md` — Sources of Truth Manifesto pointer updated to
+  `-005.md`.
+- `kitchen/docs/api/root-and-master.md` — "Master is an architectural role"
+  replaced with the `io.concurrent()` task connection (found by full-repo
+  audit below).
+- `README.md`, `kitchen/docs/manifesto.md`, `design/matryoshka-manifesto-005.md`,
+  `kitchen/docs/matryoshka-based-systems.md` — "transfers ownership together
+  with the object" / "ownership transfer" fixed to "transfers the object, not
+  a reference to it" / "object transfer" (found during banned-word sweep;
+  leftover from an earlier partial ownership→object pass, missed in the
+  Mailbox description sections).
+
+**Audit**: ran a full-repo sweep (Opus-model subagent) against
+`matryoshka-new-mindset-001.md` for old-mindset language beyond this
+session's known-fixed set. Found and fixed the one active, nav-linked file
+above. Two more hits are in unversioned, unlinked (not in `context.md`, not
+in `kitchen/mkdocs.yml` nav) files — `design/migration-io.md` and
+`kitchen/docs/matryoshka-io-chat-prolog.md` — left untouched as orphaned/
+historical, flagged here for owner's call rather than guessed at. Remaining
+hits are in already-superseded versioned docs (manifesto-003/-004,
+patterns-012, api-reference-021, rules-023) — no action needed, they're
+dead per the no-overwrite rule.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `build_and_test_debug.sh` | pass |
+| `docs_zig.sh` | pass |
+| `build_site.sh` (initial) | pass |
+| `build_site.sh` (after ownership fixes) | pass |
+| Banned-word sweep (files touched this pass) | clean after fixes; 2 remaining matches are the changelog note describing the "hybrid car" removal, not content |
+
+### 2026-07-09 — New Mindset: Phase B audit + Phase C downstream rewrite (doc pass)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Phase A reference doc (`matryoshka-new-mindset-001.md`) finished, iterated
+against owner feedback: prose converted to nested bullets, diagram fixed
+(task-world tree, not a floating role box), "gained" banned, long sentences
+split throughout.
+
+Phase B audit ran (background Explore agent), live-re-grepped rather than
+trusting the earlier ~10/2 estimate. Found: `std.Thread.spawn` at 33 call
+sites (0 in `src/`, 16 in `examples/` across 9 files, 17 in `tests/` across
+2 files, 0 in `stories/`), plus 16 more in mirrored `kitchen/docs/examples/`
+pages. Found old "Master is a role" language in `README.md`,
+`kitchen/docs/manifesto.md`, `design/matryoshka-manifesto-003.md`,
+`design/matryoshka-api-reference-021.md`, and three
+`kitchen/docs/building-blocks/*.md` pages (`master.md` worst — no
+`io.concurrent`/task mention at all). Found `Thread.spawn` presented as a
+co-equal option to `io.concurrent()` in `design/patterns-012.md` and
+`kitchen/docs/building-blocks/observable-by-human.md`.
+
+Owner confirmed continuing in auto mode. Phase C doc-level rewrite done this
+pass: every flagged file corrected to state "a Master is an Io task that
+follows the Matryoshka rules," created by `io.concurrent()`. Diagrams
+replaced with the task-tree shape. `Thread.spawn` removed as an accepted
+alternative.
+
+**Changes**:
+- `README.md` — Main concept section: Master connected to `io.concurrent()`.
+- `kitchen/docs/building-blocks/master.md` — task connection added, diagram
+  replaced, "Why Master is not in the API" section gets the `io.concurrent()`
+  line.
+- `kitchen/docs/building-blocks/core-concepts.md`,
+  `kitchen/docs/building-blocks/index.md` — "Master — coordination, not a
+  type" reworded to "an Io task, not a struct you must define."
+- `kitchen/docs/building-blocks/observable-by-human.md` — `Thread.spawn`
+  dropped from the concurrent-call list.
+- `design/patterns-012.md` → `design/patterns-013.md` (new version) —
+  `Thread.spawn` dropped from two pattern entries.
+- `design/matryoshka-api-reference-021.md` → `-022.md` (new version) —
+  "Master is an architectural role" → "Master is an Io task that follows
+  the Matryoshka rules," `io.concurrent()` stated up front; change-log row
+  added.
+- `design/matryoshka-manifesto-003.md` → `-004.md` (new version) — "Master
+  is a role" section and diagram replaced; header note added.
+- `kitchen/docs/manifesto.md` — same fix applied to the mirrored page.
+- `design/context.md` — pointers updated: API reference → `-022.md`,
+  manifesto → `-004.md`, patterns → `-013.md`; new pointer added for
+  `matryoshka-new-mindset-001.md`.
+
+**Not done this pass** (follow-up, tracked in the plan file):
+- `design/matryoshka-architecture-foundation-4-001.md` and
+  `-architecture-002.md` — heavy "ownership" language flagged by the audit,
+  not yet addressed; central to those docs' existing vocabulary, needs its
+  own pass.
+- `design/rules-024.md` — 8 non-list-line uses of "ownership," all
+  self-referential (describing the rule), flagged as worth a look but not
+  yet changed.
+- Code-level migration: 16 `std.Thread.spawn` call sites in 9 `examples/`
+  files, 17 in 2 `tests/` files, plus regenerating 16 mirrored
+  `kitchen/docs/examples/*.md` pages via `gen_examples_docs.sh`.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `build_and_test_debug.sh` | pass |
+| `build_and_test_all.sh` | pass |
+| `build_cross_debug.sh` | pass |
+| `docs_zig.sh` | pass |
+| `build_site.sh` | pass |
+| Banned-word sweep (all files touched this pass) | 2 hits found and fixed: "Io is powerful" → "Io does a lot" (`matryoshka-new-mindset-001.md`), "execution contexts" → "tasks" (`matryoshka-api-reference-022.md`); remaining matches are pre-existing substring false positives (`interfaces`/"faces", `unlock()` API calls) |
+| `Thread.spawn` co-equal-option check | clean — no remaining doc presents it as an alternative to `io.concurrent()` |
+
+**Next**: either the architecture-docs `ownership` pass or the `Thread.spawn`
+code migration, owner's call.
+
+---
+
+### 2026-07-09 — New Mindset: banned-word additions + Phase A reference doc
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+Owner is changing how Matryoshka is understood: triggered by Zig's
+`io.concurrent()`, Matryoshka is no longer positioned as infrastructure
+beside Io — it lives inside the Io task world. A Master is not a
+free-floating role; a Master is an Io task that adopts the Matryoshka
+rules. Owner directed a two-phase plan (see plan file
+`read-design-status-md-related-md-transient-lark.md`): Phase A, write a
+new authoritative reference doc capturing the new understanding; Phase B
+(not started), audit README/manifesto/patterns/rules/API-reference/
+building-blocks pages against it and report old-model language, banned-word
+hits, and `std.Thread.spawn` usages, before any downstream rewrite.
+
+Confirmed in conversation: `std.Thread.spawn` is banned throughout this
+codebase going forward (already absent from `src/`; still present in ~10
+`examples/` files and 2 `tests/` files — migration to `io.concurrent()` is
+follow-up work, not yet started). Six terms added to the banned-word list,
+usable in owner/agent conversation but banned from documentation and code
+comments: `object model`, `execution context`, `execution model`,
+`programming model`, `paradigm`, `mindset`. A seventh, `ownership`, was
+added separately — broadens the prior src/-only ownership-language rule
+(rules-012/013) to all docs and comments.
+
+**Changes**:
+- `design/rules-023.md` → `design/rules-024.md` — banned-word list extended
+  with the 7 terms above.
+- `design/context.md` — Rules pointer → `rules-024.md`, with a note on the
+  new banned words.
+- `design/matryoshka-new-mindset-001.md` (new) — Phase A reference doc: old
+  vs. new understanding diagrams, "a Master is a task" definition,
+  `std.Thread.spawn` ban statement, minimal-dependency claim
+  (`Io.Mutex`/`Io.Condition` unchanged), not-a-framework statement, and a
+  list of what downstream docs need to reconsider. Zero banned-word hits
+  (self-checked via grep for `ownership`).
+- `design/STATUS.md` — Sources of Truth "Rules" pointer corrected
+  `rules-022.md` → `rules-024.md` (was already stale before this change);
+  added the new-mindset reference pointer; this session log entry.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `grep -n "ownership" design/matryoshka-new-mindset-001.md` | zero hits |
+| Full banned-word sweep of the new doc against all 7 new terms | not yet run — do before Phase B |
+
+**Next**: owner review/approval of `matryoshka-new-mindset-001.md` wording.
+Once approved, Phase B audit (no rewrites yet) against README, manifesto,
+architecture docs, patterns, rules, API reference, and
+`kitchen/docs/building-blocks/*.md`. `std.Thread.spawn` → `io.concurrent()`
+migration in examples/tests is separate follow-up work, scoped after the
+audit.
+
+---
 
 ### 2026-07-08 — DOC 21: "The Shape of a Real System" page + diagram tooling
 

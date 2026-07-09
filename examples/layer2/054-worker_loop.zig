@@ -28,7 +28,7 @@ pub fn worker_loop_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
     }
 
     var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
-    const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
+    var fut = try io.concurrent(workerFn, .{&ctx});
 
     const codes = [_]i32{ 1, 2, 3 };
     for (codes) |code| {
@@ -54,7 +54,7 @@ pub fn worker_loop_pattern(allocator: std.mem.Allocator, io: std.Io) !void {
         items.freeItem(@fieldParentPtr("node", node), allocator);
         remaining += 1;
     }
-    t.join();
+    fut.await(io);
 
     std.log.info("worker loop: processed={d} remaining={d} event_sum={d} sensor_sum={d:.1}", .{
         ctx.count, remaining, ctx.event_sum, ctx.sensor_sum,

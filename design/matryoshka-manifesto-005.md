@@ -1,5 +1,13 @@
 # Matryoshka Manifesto
 
+Versioned doc. Replaces [matryoshka-manifesto-004.md](matryoshka-manifesto-004.md).
+Change from -004: New Mindset. Dropped the "hybrid car" analogy — it implied
+Matryoshka sometimes uses Io and sometimes doesn't. Replaced with: Io creates
+every task; Matryoshka is the small set of rules some of those tasks follow.
+Change from -003: New Mindset. Master connected to `io.concurrent()` — "Master
+is a role" replaced with "Master is an Io task that follows the Matryoshka
+rules." Task-world diagram replaces the old floating-role diagram.
+
 ## First rule of building great software systems
 
 > If you want to build a great software system, start by building a software system.
@@ -54,9 +62,12 @@ Two constraints. In return you get:
 
 ---
 
-## Master is a role
+## Master is an Io task
 
 Master is the main concept of Matryoshka.
+
+* Io creates tasks through `io.concurrent()`.
+* A Master is an Io task that follows the Matryoshka rules.
 
 Master is **not**:
 
@@ -64,21 +75,23 @@ Master is **not**:
 * an interface
 * a runtime
 
-Master is a **role**.
-
-> A Master runs on its own.
+> A Master runs on its own, as an Io task.
 > It owns its state.
 > It talks through mailboxes.
 
 Everything that runs in Matryoshka is a Master:
 
 ```text
-            Master (role)
-                 │
-      ┌──────────┼──────────┐
-      │          │          │
- Single-role  Coordinator  Resource owner
-    Master       Master        Master
+Io tasks
+    │
+    ├── ordinary task
+    ├── ordinary task
+    └── Master
+             │
+    ┌────────┼────────┐
+    │        │         │
+Single-job Coordinator Resource owner
+ Master      Master       Master
 ```
 
 * Some Masters do one job.
@@ -146,7 +159,7 @@ Master
     Everything runs inside one.
 ```
 
-Master is a role. The other three are code.
+Master is an Io task. The other three are code.
 
 ### PolyNode
 
@@ -166,7 +179,7 @@ Given a `PolyNode`, you can identify the containing object:
 `Mailbox`:
 
 * transfers `PolyNode` objects between Masters
-* transfers ownership together with the object
+* transfers the object, not a reference to it
 * does not know or care about the concrete object type
 
 ### Pool
@@ -187,7 +200,7 @@ The steroids are simple:
 
 * intrusion
 * type erasure
-* ownership transfer
+* object transfer
 * object reuse
 
 Nothing else.
@@ -250,15 +263,16 @@ A good design test:
 
 > If you have to mention Io while designing your system, it is already too visible.
 
-Think about cars.
+Io creates every task through `io.concurrent()`.
 
-* A traditional threaded application is a conventional car.
-* A pure Io-based application is an electric car.
-* Matryoshka-Io is a hybrid.
+Matryoshka does not compete with Io. It lives inside the same task world.
+
+* Io answers: how do tasks run?
+* Matryoshka answers: how do tasks cooperate?
 
 Start building today.
 
-If Zig Io changes tomorrow—and it will—your architecture stays the same.
+If Zig Io changes tomorrow—and it will—Matryoshka's rules stay the same.
 
 ---
 

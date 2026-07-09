@@ -11,23 +11,23 @@ Read this page and think: "that's how my server looks." Not: "that's how their q
 ## Three small building blocks
 
 - `PolyNode` — embedded in application objects. Gives them a place in intrusive lists and queues. Gives them safe run-time type identification.
-- `Mailbox` — moves `PolyNode` objects between Masters. Transfers ownership with the object.
+- `Mailbox` — moves `PolyNode` objects between Masters. Transfers the object, not a reference to it.
 - `Pool` — reuses `PolyNode` objects. Returns them for reuse instead of destroying them.
 
 Together they provide two capabilities: move objects, reuse objects. Nothing else.
 
 ## One architectural concept: Master
 
-Master is a role, not a type, not an interface, not a runtime.
+Io creates every task through `io.concurrent()`.
 
-Every running entity in a Matryoshka-based system is a Master.
+A Master is an Io task that follows the Matryoshka rules. Not a type, not an interface, not a runtime.
 
 - A Master owns state and communicates through Mailboxes.
 - A worker is a Master with one dedicated responsibility.
 - Some Masters also coordinate other Masters.
 - Some Masters also own shared Pools.
 
-Additional responsibilities — coordinating, owning Pools, creating and destroying Masters, routing messages, talking to the outside world — are optional, layered on top of the same role.
+Additional responsibilities — coordinating, owning Pools, creating and destroying Masters, routing messages, talking to the outside world — are optional, layered on top of the same task.
 
 ## What a Matryoshka-based system looks like
 
@@ -41,9 +41,14 @@ Matryoshka does not dictate how you compose them. Start with `PolyNode`. Add `Po
 
 ## Where Zig Io fits
 
-Matryoshka uses Zig Io in two situations: where Zig requires it, and where it adds real capability — waiting on multiple event sources, timers, cancellation, integration with other Io-based libraries.
+Matryoshka lives inside the Io task world. Not beside it.
 
-The architecture does not depend on Zig Io's shape. If Zig Io changes, your Masters, Mailboxes, and Pools stay the same.
+- Io answers: how do tasks run?
+- Matryoshka answers: how do tasks cooperate?
+
+Io still does the rest: waiting on multiple event sources, timers, cancellation, integration with other Io-based libraries.
+
+If Zig Io changes, Matryoshka's rules stay the same.
 
 ## Next
 

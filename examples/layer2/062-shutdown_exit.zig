@@ -25,7 +25,7 @@ pub fn shutdown_via_shutdowncommand(allocator: std.mem.Allocator, io: std.Io) !v
     }
 
     var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
-    const t = try std.Thread.spawn(.{}, workerFn, .{&ctx});
+    var fut = try io.concurrent(workerFn, .{&ctx});
 
     const codes = [_]i32{ 10, 20, 30 };
     for (codes) |code| {
@@ -44,7 +44,7 @@ pub fn shutdown_via_shutdowncommand(allocator: std.mem.Allocator, io: std.Io) !v
         try mailbox.send(mbh, &slot);
     }
 
-    t.join();
+    fut.await(io);
 
     std.log.info("shutdown_exit: worker processed {d} items before ShutdownCommand", .{ctx.processed});
     try helpers.expect(error.ShutdownExitFailed, ctx.processed == 3, "wrong processed count");

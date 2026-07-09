@@ -164,7 +164,7 @@ Event instance
 |   | node: List.Node     | |
 |   |   prev: ?*List.Node | |
 |   |   next: ?*List.Node | |
-|   | tag: *const anyopaque| |
+|   |tag: *const anyopaque| |
 |   +---------------------+ |
 | code: i32                 |
 +---------------------------+
@@ -221,7 +221,7 @@ Event                           Event
 +------------------+            +------------------+
 | poly: PolyNode   |            | poly: PolyNode   |
 |   node: {null}   |            |   node: {null}   |
-|   tag: undefined  |            |   tag: EVENT_TAG  |
+|   tag: undefined |            |   tag: EVENT_TAG |
 | code: 42         |            | code: 42         |
 +------------------+            +------------------+
 ```
@@ -331,9 +331,9 @@ list_node_ptr: *List.Node
 |   +---------------------+ |
 |   | node: List.Node     | | <-- list_node_ptr points here
 |   |   prev, next        | |
-|   | tag: EVENT_TAG       | |
+|   | tag: EVENT_TAG      | |
 |   +---------------------+ |
-| code: 42                 |
+| code: 42                  |
 +---------------------------+
 ^           ^
 |           |
@@ -575,7 +575,7 @@ Walk results with `popFirst()` — standard Zig, nothing Matryoshka-specific.
 
 ## mailbox
 
-Sends handles between execution contexts.
+Sends handles between tasks.
 
 ```zig
 const mailbox = @import("matryoshka").mailbox;
@@ -1382,7 +1382,8 @@ No `master` module.
 No `Master` struct.
 By design.
 
-Master is an architectural role — the coordination boundary.
+Io creates tasks through `io.concurrent()`.
+Master is an Io task that follows the Matryoshka rules — the coordination boundary.
 It holds and composes the lower layers.
 
 Applications build Masters from:
@@ -1651,6 +1652,7 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 022 | 2026-07-09 | New Mindset. Master connected to `io.concurrent()` up front — "Master is an architectural role" replaced with "Master is an Io task that follows the Matryoshka rules." No other content change. |
 | 021 | 2026-07-07 | API 4. Renamed `NodeHandle` → `ItemHandle` throughout — the old name leaked the intrusive-node implementation detail. `MailboxHandle`/`PoolHandle` aliases unchanged in meaning. `### What is a NodeHandle?` renamed to `### What is an ItemHandle?`, with a naming-rationale note and the `handle`/`ih` shorthand convention. Historical Change-log rows referencing `NodeHandle` left as-is. |
 | 020 | 2026-07-06 | DOC 18. Humanized the reference: dropped "ownership" framing throughout (section titles, diagrams, prose) in favor of plain language — a handle sits in exactly one place, in exactly one state, at any moment. Converted remaining prose paragraphs to staccato bullets. No content removed, no reordering, no new API surface.
 | 019 | 2026-07-05 | DOC 10. Dependency-ordered re-partition — no content change. send/receive ownership diagrams moved from Ownership model into mailbox. Tag identity (class, not instance) moved out of polynode to its own section after pool. Slot-based programming and Cooperative cleanup patterns moved after pool — every function they reference is now introduced first.

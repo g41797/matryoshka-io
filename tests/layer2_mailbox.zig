@@ -149,8 +149,8 @@ test "32 - receive wait forever (null timeout), item from thread" {
     };
     EventPolyHelper.init(&ctx.ev);
 
-    const t: Thread = try Thread.spawn(.{}, sender32, .{&ctx});
-    defer t.join();
+    var fut = try io.concurrent(sender32, .{&ctx});
+    defer fut.await(io);
 
     var slot: Slot = null;
     try mailbox.receive(mbh, &slot, null);
@@ -289,8 +289,8 @@ test "36 - send_oob wakes blocked receiver" {
     };
     EventPolyHelper.init(&ctx.ev);
 
-    const t: Thread = try Thread.spawn(.{}, oob_sender36, .{&ctx});
-    defer t.join();
+    var fut = try io.concurrent(oob_sender36, .{&ctx});
+    defer fut.await(io);
 
     var slot: Slot = null;
     try mailbox.receive(mbh, &slot, 5_000_000_000);
@@ -650,9 +650,9 @@ test "50 - fan-in (3+1): 3 sender threads, main receives all" {
     var ctx_b: Ctx50Sender = .{ .mbh = mbh, .alloc = alloc };
     var ctx_c: Ctx50Sender = .{ .mbh = mbh, .alloc = alloc };
 
-    const ta: Thread = try Thread.spawn(.{}, sender50_event, .{&ctx_a});
-    const tb: Thread = try Thread.spawn(.{}, sender50_sensor, .{&ctx_b});
-    const tc: Thread = try Thread.spawn(.{}, sender50_event, .{&ctx_c});
+    var fa = try io.concurrent(sender50_event, .{&ctx_a});
+    var fb = try io.concurrent(sender50_sensor, .{&ctx_b});
+    var fc = try io.concurrent(sender50_event, .{&ctx_c});
 
     var received: usize = 0;
     while (received < 3) {
@@ -664,9 +664,9 @@ test "50 - fan-in (3+1): 3 sender threads, main receives all" {
         }
     }
 
-    ta.join();
-    tb.join();
-    tc.join();
+    fa.await(io);
+    fb.await(io);
+    fc.await(io);
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
     while (rem.popFirst()) |node| {
@@ -715,13 +715,13 @@ test "51 - fan-slot (1+2): main sends, 2 receiver threads" {
     var ctx_a: Ctx51Receiver = .{ .mbh = mbh, .alloc = alloc };
     var ctx_b: Ctx51Receiver = .{ .mbh = mbh, .alloc = alloc };
 
-    const ta: Thread = try Thread.spawn(.{}, receiver51, .{&ctx_a});
-    const tb: Thread = try Thread.spawn(.{}, receiver51, .{&ctx_b});
+    var fa = try io.concurrent(receiver51, .{&ctx_a});
+    var fb = try io.concurrent(receiver51, .{&ctx_b});
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
 
-    ta.join();
-    tb.join();
+    fa.await(io);
+    fb.await(io);
 
     var remaining_count: usize = 0;
     while (rem.popFirst()) |node| {
@@ -819,11 +819,11 @@ test "52 - combined (3+2+main): fan-in + fan-slot, close after 100ms" {
     var ctx_ra: Ctx52Receiver = .{ .mbh = mbh, .alloc = alloc };
     var ctx_rb: Ctx52Receiver = .{ .mbh = mbh, .alloc = alloc };
 
-    const t_se: Thread = try Thread.spawn(.{}, sender52_event, .{&ctx_se});
-    const t_ss: Thread = try Thread.spawn(.{}, sender52_sensor, .{&ctx_ss});
-    const t_sa: Thread = try Thread.spawn(.{}, sender52_alt, .{&ctx_sa});
-    const t_ra: Thread = try Thread.spawn(.{}, receiver52, .{&ctx_ra});
-    const t_rb: Thread = try Thread.spawn(.{}, receiver52, .{&ctx_rb});
+    var f_se = try io.concurrent(sender52_event, .{&ctx_se});
+    var f_ss = try io.concurrent(sender52_sensor, .{&ctx_ss});
+    var f_sa = try io.concurrent(sender52_alt, .{&ctx_sa});
+    var f_ra = try io.concurrent(receiver52, .{&ctx_ra});
+    var f_rb = try io.concurrent(receiver52, .{&ctx_rb});
 
     const sleep_t: Io.Timeout = .{
         .duration = .{
@@ -835,11 +835,11 @@ test "52 - combined (3+2+main): fan-in + fan-slot, close after 100ms" {
 
     var rem: std.DoublyLinkedList = mailbox.close(mbh);
 
-    t_se.join();
-    t_ss.join();
-    t_sa.join();
-    t_ra.join();
-    t_rb.join();
+    f_se.await(io);
+    f_ss.await(io);
+    f_sa.await(io);
+    f_ra.await(io);
+    f_rb.await(io);
 
     var remaining_count: usize = 0;
     while (rem.popFirst()) |node| {
@@ -937,12 +937,12 @@ test "wakeUpAll wakes blocked receiver" {
         }
     }.run;
 
-    const t: Thread = try Thread.spawn(.{}, worker, .{&ctx});
+    var fut = try io.concurrent(worker, .{&ctx});
 
     std.Io.Timeout.sleep(.{ .duration = .{ .raw = .{ .nanoseconds = 50_000_000 }, .clock = .real } }, io) catch {};
     try mailbox.wakeUpAll(mbh);
 
-    t.join();
+    fut.await(io);
     try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx.result);
 }
 
@@ -1001,16 +1001,16 @@ test "wakeUpAll wakes all blocked receivers" {
         }
     }.run;
 
-    const ta: Thread = try Thread.spawn(.{}, worker, .{&ctx_a});
-    const tb: Thread = try Thread.spawn(.{}, worker, .{&ctx_b});
-    const tc: Thread = try Thread.spawn(.{}, worker, .{&ctx_c});
+    var fa = try io.concurrent(worker, .{&ctx_a});
+    var fb = try io.concurrent(worker, .{&ctx_b});
+    var fc = try io.concurrent(worker, .{&ctx_c});
 
     std.Io.Timeout.sleep(.{ .duration = .{ .raw = .{ .nanoseconds = 50_000_000 }, .clock = .real } }, io) catch {};
     try mailbox.wakeUpAll(mbh);
 
-    ta.join();
-    tb.join();
-    tc.join();
+    fa.await(io);
+    fb.await(io);
+    fc.await(io);
 
     try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx_a.result);
     try testing.expectEqual(@as(?anyerror, error.Wakeup), ctx_b.result);
@@ -1065,6 +1065,5 @@ const EventPolyHelper = items.Event.EventPolyHelper;
 const SensorPolyHelper = items.Sensor.SensorPolyHelper;
 const std = @import("std");
 const testing = std.testing;
-const Thread = std.Thread;
 const Io = std.Io;
 const freeItem = items.freeItem;

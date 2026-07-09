@@ -4,7 +4,11 @@ Everything runs inside one.
 
 ---
 
-## Master is a role, not a type
+## A Master is an Io task
+
+- Io creates tasks through `io.concurrent()`.
+- A Master is an Io task that follows the Matryoshka rules.
+- Not a special runtime object.
 
 Master is **not**:
 
@@ -12,19 +16,21 @@ Master is **not**:
 - an interface
 - a runtime
 
-Master is a **role**.
-
-> A Master runs on its own.
+> A Master runs on its own, as an Io task.
 > It owns its state.
 > It talks through Mailboxes.
 
 ```text
-            Master (role)
-                 │
-      ┌──────────┼──────────┐
-      │          │          │
- Single-role  Coordinator  Resource owner
-    Master       Master        Master
+Io tasks
+    │
+    ├── ordinary task
+    ├── ordinary task
+    └── Master
+             │
+    ┌────────┼────────┐
+    │        │         │
+Single-job Coordinator Resource owner
+ Master      Master       Master
 ```
 
 - Some Masters do one job. A *worker* is simply a Master with one job.
@@ -62,6 +68,7 @@ Cancel never triggers close on its own — they answer different questions.
 
 There is no `Master` type to import.
 
+- The task comes from `io.concurrent()`.
 - Transport comes from Mailbox.
 - Reuse comes from Pool.
 - Identity comes from PolyNode.

@@ -6,4 +6,4 @@ Four ideas, named and diagrammed. No Zig syntax yet — see
 - [PolyNode](polynode.md) — everything exchanged.
 - [Mailbox](mailbox.md) — everything communicates.
 - [Pool](pool.md) — everything reusable lives here.
-- [Master](master.md) — everything runs inside one. A role, not a type.
+- [Master](master.md) — everything runs inside one. An Io task, not a type.
