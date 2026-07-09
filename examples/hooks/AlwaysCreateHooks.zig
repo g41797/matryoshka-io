@@ -17,7 +17,10 @@ pub fn onGet(ptr: *anyopaque, tag: *const anyopaque, _: usize, slot: *polynode.S
     items.createByTag(tag, self.alloc, slot);
 }
 
-pub fn onPut(_: *anyopaque, _: usize, _: *polynode.Slot) void {}
+pub fn onPut(_: *anyopaque, _: usize, slot: *polynode.Slot) void {
+    if (slot.* == null) return;
+    items.resetOnPut(slot);
+}
 
 pub fn onClose(ptr: *anyopaque, list: *std.DoublyLinkedList) void {
     const self: *Self = @ptrCast(@alignCast(ptr));

@@ -1,4 +1,4 @@
-# Matryoshka-Io
+# Matryoshka-Io — a practical way to build great software systems
 
 ## First rule of building great software systems
 

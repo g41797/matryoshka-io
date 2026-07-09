@@ -5,14 +5,16 @@
 //!
 //! - Seed the pool with one Event.
 //! - pool.get_wait_future returns an Io.Future(PoolResult), no Select needed.
-//! - fut.await blocks until the item is available, then it's returned to the pool.
+//! - fut.await blocks until the item is available.
+//! - on_put already reset it to defaults when it was seeded — no fixed
+//!   value survives a put/get pass, regardless of what was set before put.
 //!
 //!
 //! ```
-//!  pool.get ──► slot ──► pool.put ──► pool
+//!  pool.get ──► slot ──► pool.put ──► on_put resets data ──► pool
 //!  │
 //!  get_wait_future ──► Future(PoolResult)
-//!  fut.await ──► PoolResult .item ──► slot (master owns)
+//!  fut.await ──► PoolResult .item ──► slot (default data, master owns)
 //!  │
 //!  pool.put ──► pool ──pool.close──► on_close ──► freeList
 //! ```
@@ -36,7 +38,7 @@ fn seedPool(ph: PoolHandle) !void {
     var slot: Slot = null;
     try pool.get(ph, items.Event.EventPolyHelper.TAG, .new_only, &slot);
     items.Event.EventPolyHelper.mustIdentifySlotAs(&slot).code = 7;
-    pool.put(ph, &slot);
+    pool.put(ph, &slot); // on_put resets code back to 0 — set value doesn't survive
 }
 
 fn receiveViaFuture(ph: PoolHandle, io: std.Io) !void {
@@ -48,8 +50,8 @@ fn receiveViaFuture(ph: PoolHandle, io: std.Io) !void {
             var slot: Slot = handle;
             defer pool.put(ph, &slot);
             const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
-            try helpers.expect(error.GetWaitFutureDirectFailed, ev.code == 7, "wrong code");
-            std.log.info("get_wait_future direct: got Event code={d}", .{ev.code});
+            try helpers.expect(error.GetWaitFutureDirectFailed, ev.code == 0, "expected reset default, not the pre-put value");
+            std.log.info("get_wait_future direct: got Event code={d} (reset by on_put)", .{ev.code});
         },
         else => return error.GetWaitFutureDirectFailed,
     }

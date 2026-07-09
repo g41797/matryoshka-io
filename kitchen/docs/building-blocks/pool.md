@@ -31,8 +31,16 @@ close()
 
 ## A Pool resource is an empty container
 
-Whatever the previous owner wrote has already been consumed or reset by the time you
-get an item back — it carries no work intent on its own.
+A Pool is not storage.
+
+- Getting an item back tells you nothing about what it holds — that's entirely up to your hooks.
+- `put` can keep the item as-is.
+- `put` can keep it after resetting its data.
+- `put` can delete it.
+- `put` can delete it and hand back a different item instead.
+- Nothing you `put` in is guaranteed to still be there on the next `get`.
+- No fixed count/order/identity survives a put/get sequence unless your hooks are written to guarantee it.
+- See [API Reference — Pool](../api/pool.md) for the four `put` outcomes.
 
 - A Pool resource alone never defines a complete pattern.
 - Useful work always needs at least one other input too: a Mailbox message, a

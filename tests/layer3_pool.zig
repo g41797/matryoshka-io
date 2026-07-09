@@ -876,6 +876,11 @@ fn onGetAlways(ctx_opaque: *anyopaque, tag: *const anyopaque, in_pool_count: usi
     }
 }
 
+fn resetOnPut(slot: *Slot) void {
+    if (EventPolyHelper.identifySlotAs(slot)) |ev| ev.*.code = 0;
+    if (SensorPolyHelper.identifySlotAs(slot)) |sn| sn.*.value = 0.0;
+}
+
 fn onPutAdaptive(ctx_opaque: *anyopaque, in_pool_count: usize, slot: *Slot) void {
     const ctx: *TestCtx = @ptrCast(@alignCast(ctx_opaque));
     ctx.put_call_count += 1;
@@ -885,8 +890,9 @@ fn onPutAdaptive(ctx_opaque: *anyopaque, in_pool_count: usize, slot: *Slot) void
             items.freeItem(poly, ctx.alloc);
             slot.* = null;
         }
+    } else {
+        resetOnPut(slot);
     }
-    // else: keep — leave slot.* unchanged
 }
 
 fn onCloseAdaptive(ctx_opaque: *anyopaque, list: *std.DoublyLinkedList) void {

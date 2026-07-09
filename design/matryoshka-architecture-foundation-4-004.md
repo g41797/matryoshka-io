@@ -166,7 +166,7 @@ Some should be reused.
 
 Some should be discarded.
 
-Matryoshka separates storage from lifecycle policy.
+Matryoshka separates reuse from lifecycle policy.
 
 ---
 
@@ -609,15 +609,27 @@ Every item ends up in exactly one holder's hands.
 
 Two implementation models satisfy this invariant:
 
-**Receive-empties model**: `mailbox_close` sets the closed flag only. Receivers continue consuming items until the queue is empty, then get the closed signal. Inside the receive loop, data has priority — a queued item is returned before any closed or interrupted signal is checked.
+**Receive-empties model**:
 
-**Close-snapshots model**: `mailbox_close` removes all items from the queue atomically under the lock, then signals closed. Receivers that arrive after close find an empty queue and get the closed signal. Items go to `mailbox_close`'s caller.
+- `mailbox_close` sets the closed flag only.
+- Receivers continue consuming items until the queue is empty.
+- Only then do they get the closed signal.
+- Inside the receive loop, data has priority — a queued item is returned before any closed or interrupted signal is checked.
+
+**Close-snapshots model**:
+
+- `mailbox_close` removes all items from the queue atomically under the lock, then signals closed.
+- Receivers that arrive after close find an empty queue and get the closed signal.
+- Items go to `mailbox_close`'s caller.
 
 In both models, no item is lost. The close caller recovers remaining items:
 - receive-empties: by consuming them via receive
 - close-snapshots: by walking the list returned by close
 
-**Data priority over interrupt** applies in both models. Inside the receive loop, when the queue is non-empty, items are dequeued before checking interrupt signals. An interrupt does not preempt an already-queued item.
+**Data priority over interrupt** applies in both models.
+
+- Inside the receive loop, when the queue is non-empty, items are dequeued before checking interrupt signals.
+- An interrupt does not preempt an already-queued item.
 
 ---
 
@@ -758,7 +770,7 @@ The obvious solution is a pool.
 
 Unfortunately, many pools mix together several responsibilities:
 
-* storage
+* backpressure
 * allocation
 * construction
 * destruction
@@ -768,7 +780,7 @@ Eventually the pool becomes a second memory manager.
 
 Matryoshka separates these concerns.
 
-Pool stores items.
+Pool is not storage — it is a backpressure signal for reuse.
 
 Hooks decide what happens to items.
 
@@ -793,7 +805,7 @@ Pool is not:
 * an object manager
 * a dependency container
 
-Pool is simply a storage area for reusable hold.
+Pool is simply a backpressure signal for reusable hold.
 
 ---
 
@@ -854,7 +866,7 @@ Caller holds item
 
 ### Put
 
-Put does not guarantee storage.
+Put does not guarantee reuse.
 
 Put asks a policy question:
 
@@ -880,7 +892,7 @@ This asymmetry is intentional.
 
 ## Hooks
 
-Pool contains storage.
+Pool is not storage.
 
 Hooks contain policy.
 
@@ -960,14 +972,14 @@ Policy decides.
 
 ---
 
-## Pool Storage vs Policy
+## Pool Reuse vs Policy
 
 This separation is important.
 
 Pool answers:
 
 ```text
-Where do reusable items live?
+Is a reusable item available right now?
 ```
 
 Hooks answer:
@@ -998,7 +1010,7 @@ Pool
 
 Hold moves.
 
-Storage remains centralized.
+Reuse stays centralized.
 
 Reuse remains explicit.
 
@@ -1697,7 +1709,7 @@ A Master can coordinate Matryoshka items alongside external operations.
 
 ## Pool Availability as an Event
 
-Pool is not just storage.
+Pool is not storage — it is a backpressure signal.
 
 Pool availability can drive work.
 
@@ -2436,7 +2448,7 @@ Combining transport and lifecycle creates coupling between unrelated concerns.
 
 ## Decision: Pool Manages Reuse
 
-Pool stores reusable hold.
+Pool signals when reusable hold is available. It is not storage.
 
 ### Reason
 
@@ -2450,11 +2462,11 @@ But reuse should remain explicit and policy-driven.
 
 Hooks define policy.
 
-Pool provides storage.
+Pool provides the backpressure signal, not storage.
 
 ### Reason
 
-Storage and lifecycle decisions are different responsibilities.
+Reuse and lifecycle decisions are different responsibilities.
 
 Keeping them separate prevents Pool from becoming a second memory manager.
 
@@ -2796,5 +2808,6 @@ Everything else is built on top of that foundation.
 
 | Version | Date       | Description |
 |---------|------------|-------------|
+| 003     | 2026-07-09 | INTR 7: "Pool is storage"/"warehouse" framing replaced with "Pool is not storage — it is a backpressure signal for reuse" throughout (including the "Pool Storage vs Policy" heading → "Pool Reuse vs Policy"). No structural or technical changes. |
 | 002     | 2026-07-09 | New Mindset ownership-language pass: "ownership"/"owner"/"owns"/"owned" replaced with "hold"/"holder"/"holds"/"held" throughout (including the "Ownership" layer/section name → "Hold", matching the existing HELD state name); "execution context(s)"/"execution model(s)" replaced with "task(s)". No structural or technical changes. |
 | 001     | (undated)  | First draft — twelve sections: what Matryoshka is, why it exists, problems solved, core concepts, four layers, concurrency contract, infrastructure as items, design decisions, non-goals, Zig addendum, architecture summary. |

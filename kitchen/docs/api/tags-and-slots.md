@@ -27,7 +27,7 @@ For infra handles (MailboxHandle, PoolHandle):
 
 **Worker-finish-signal pattern**
 
-Master creates `worker_mbh`, spawns a worker thread and passes `worker_mbh` as parameter.
+Master creates `worker_mbh`, spawns a worker via `io.concurrent` and passes `worker_mbh` as parameter.
 Worker processes items until a shutdown signal, then:
 
 - Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
@@ -38,9 +38,9 @@ Master receives a PolyNode from its inbox:
 - `mailbox.is_it_you(received.*.tag)` — confirms class (it is a mailbox).
 - `received == worker_mbh` — confirms instance (it is the expected worker mailbox).
 - Master closes and destroys `worker_mbh`.
-- Master joins the thread (OS resource cleanup only — the mailbox return was the logical finish signal).
+- Master awaits the worker's future (cleanup only — the mailbox return was the logical finish signal).
 
-This pattern replaces a thread join or a separate shutdown message with a handle handoff.
+This pattern replaces relying on the future await as a completion signal, or a separate shutdown message, with a handle handoff.
 
 **Wrapper pattern** (for tag-level role discrimination)
 

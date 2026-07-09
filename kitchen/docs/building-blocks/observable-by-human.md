@@ -21,11 +21,13 @@ Level 2 — the step functions.
 ## The signal
 
 If you feel the need to place a comment explaining a block of code: stop.
-That block must be a named step function instead. A comment marks a step
-you should have named before writing.
 
-A 1-2 line guard or log between step calls stays inline. Only blocks with a
-distinct, nameable purpose are extracted.
+- That block must be a named step function instead.
+- A comment marks a step you should have named before writing.
+
+A 1-2 line guard or log between step calls stays inline.
+
+- Only blocks with a distinct, nameable purpose are extracted.
 
 Some patterns are always violations, comment or not:
 

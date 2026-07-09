@@ -5,7 +5,9 @@
 //!
 //! - produce: pool.get fills an item, mailbox.send transfers it.
 //! - consume: mailbox.receive gets it back, verifies same pointer, pool.put recycles it.
-//! - verifyRecycle: pool.get(available_only) confirms the same pointer, same data.
+//! - verifyRecycle: pool.get(available_only) confirms the same pointer — but
+//!   on_put already reset the data, so the recycled item holds defaults, not
+//!   the value the producer set.
 //!
 //!
 //! ```
@@ -14,10 +16,10 @@
 //!  │
 //!  consumer: mailbox.receive ──► slot (same pointer)
 //!            verify code==1
-//!            pool.put ──► pool (item recycled)
+//!            pool.put ──► on_put resets data ──► pool (item recycled)
 //!  │
-//!  pool.get ──► slot (same pointer, code still 1)
-//!  verify recycled ──► pool.put ──► pool
+//!  pool.get ──► slot (same pointer, data reset)
+//!  verify reset ──► pool.put ──► pool
 //!  pool.close ──► on_close ──► freeList
 //! ```
 //!
@@ -76,8 +78,8 @@ const Ctx = struct {
         defer pool.put(self.ph, &slot);
         try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot);
         const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
-        try helpers.expect(error.ProducerConsumerFailed, ev.code == 1, "wrong code after recycle");
-        std.log.info("recycled item: code={d} — pool → producer → mailbox → consumer → pool cycle complete", .{ev.code});
+        try helpers.expect(error.ProducerConsumerFailed, ev.code == 0, "expected reset default, not the producer's value");
+        std.log.info("recycled item: code={d} (reset by on_put) — pool → producer → mailbox → consumer → pool cycle complete", .{ev.code});
     }
 };
 

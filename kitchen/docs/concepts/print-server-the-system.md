@@ -30,9 +30,12 @@ No implementation detail yet. Just what the system must do.
 Submission and result are separate. A client submits, moves on, and waits for a
 result on its own channel — an application should never block on a slow printer.
 
-Ownership moves in a straight line: the client creates the job and hands it to the
-spooler. The spooler holds it until it hands it to the driver. The driver holds it
-until it sends the result. Nobody shares it.
+Ownership moves in a straight line:
+
+- The client creates the job and hands it to the spooler.
+- The spooler holds it until it hands it to the driver.
+- The driver holds it until it sends the result.
+- Nobody shares it.
 
 - The driver needs no locks while printing — it is the only owner.
 - The driver needs no progress reporting — it either finishes or fails, and sends
@@ -44,10 +47,11 @@ until it sends the result. Nobody shares it.
 Readiness is implicit. When the driver finishes a job, it is ready for the next one —
 no explicit signal required.
 
-Cancellation is the hard part. If the job is still queued, the spooler just removes
-it. But if the job has already reached the driver, the cancel has to get there before
-any job queued behind it — otherwise the driver may start printing the wrong
-document. The cancel has to jump the queue.
+Cancellation is the hard part.
+
+- If the job is still queued, the spooler just removes it.
+- If the job has already reached the driver, the cancel has to get there before any job queued behind it — otherwise the driver may start printing the wrong document.
+- The cancel has to jump the queue.
 
 **At any moment, whoever holds the job owns the problem.**
 

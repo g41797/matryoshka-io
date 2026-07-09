@@ -5,19 +5,24 @@
 //!
 //! - Seed the pool with N empty containers, one per worker mailbox.
 //! - dispatch fills each container from the Master's job list, sends it to its worker.
-//! - Each worker doubles the value, returns the container to the pool.
-//! - collectResults reads all N results back from the pool, sums them.
+//! - Each worker doubles the value, writes it to its results slot, returns the
+//!   (now-processed) container to the pool for reuse.
+//! - on_put resets the container's data on return — the pool lends reusable
+//!   containers, it does not carry results back. Results travel through a
+//!   dedicated results array instead, written before each worker's container
+//!   goes back to the pool.
+//! - collectResults sums the N results array entries after all workers finish.
 //!
 //!
 //! ```
 //!  Master job list: [{code=1},{code=2},{code=3}]
-//!  pool (3 empty containers seeded)
+//!  pool (N empty containers seeded)
 //!  │
-//!  master: pool.get ──► fill from job list ──► mailbox.send ──► mbh[0..2]
+//!  master: pool.get ──► fill from job list ──► mailbox.send ──► mbh[0..N]
 //!                                                                   │ worker[i] (io.concurrent)
-//!                                                                   │ mailbox.receive ──► process ──► pool.put ──► pool
+//!                                                                   │ mailbox.receive ──► process ──► results[i] ──► pool.put (on_put resets) ──► pool
 //!  master: fut[i].await ──► all workers done
-//!  master: pool.get ×3 ──► verify results
+//!  master: sum results[0..N] ──► verify results
 //!  pool.close ──► on_close ──► freeList
 //! ```
 //!
@@ -39,14 +44,16 @@ const jobs = [N]i32{ 10, 20, 30 };
 const WorkerCtx = struct {
     mbh: MailboxHandle,
     ph: PoolHandle,
+    result: *i32,
 };
 
 fn workerFn(ctx: *WorkerCtx) anyerror!void {
     var slot: Slot = null;
     mailbox.receive(ctx.mbh, &slot, null) catch return;
-    defer pool.put(ctx.ph, &slot); // return container to pool after processing
+    defer pool.put(ctx.ph, &slot); // return container to pool — on_put resets it, doesn't carry the result
     const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
     ev.code *= 2; // process: double the job value
+    ctx.result.* = ev.code; // capture the result before the container is reset
     std.log.info("worker: processed job, result code={d}", .{ev.code});
 }
 
@@ -55,10 +62,9 @@ const PoolFanInMaster = struct {
         try self.seedPool();
         try self.dispatch();
         try self.awaitWorkers();
-        const total: usize, const result_sum: i32 = try self.collectResults();
-        try helpers.expect(error.PoolFanInFailed, total == N, "expected N results in pool");
+        const result_sum: i32 = self.collectResults();
         try helpers.expect(error.PoolFanInFailed, result_sum == 120, "wrong result sum");
-        std.log.info("fan-in: {d} results — Master list → pool → worker mailboxes → pool → master", .{total});
+        std.log.info("fan-in: {d} results — Master list → pool → worker mailboxes → results array → master", .{N});
     }
 
     fn seedPool(self: *PoolFanInMaster) !void {
@@ -84,19 +90,13 @@ const PoolFanInMaster = struct {
         for (0..N) |i| try self.futs[i].await(self.io);
     }
 
-    fn collectResults(self: *PoolFanInMaster) !struct { usize, i32 } {
-        var total: usize = 0;
+    fn collectResults(self: *PoolFanInMaster) i32 {
         var result_sum: i32 = 0;
-        while (true) {
-            var slot: Slot = null;
-            pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot) catch break;
-            defer items.freeSlot(&slot, self.allocator);
-            const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
-            result_sum += ev.code;
-            total += 1;
-            std.log.info("master: result code={d}", .{ev.code});
+        for (self.results) |r| {
+            result_sum += r;
+            std.log.info("master: result code={d}", .{r});
         }
-        return .{ total, result_sum };
+        return result_sum;
     }
 
     allocator: std.mem.Allocator,
@@ -107,6 +107,7 @@ const PoolFanInMaster = struct {
     mbhs: [N]MailboxHandle,
     ctxs: [N]WorkerCtx,
     futs: [N]std.Io.Future(anyerror!void),
+    results: [N]i32,
 
     fn init(allocator: std.mem.Allocator, io: std.Io) !*PoolFanInMaster {
         const self = try allocator.create(PoolFanInMaster);
@@ -115,6 +116,7 @@ const PoolFanInMaster = struct {
         self.io = io;
         self.pool_ctx = .{ .alloc = allocator };
         self.tags = .{items.Event.EventPolyHelper.TAG};
+        self.results = .{0} ** N;
         self.ph = try pool.new(io, allocator);
         errdefer {
             pool.close(self.ph);
@@ -130,7 +132,7 @@ const PoolFanInMaster = struct {
         for (0..N) |i| {
             self.mbhs[i] = try mailbox.new(io, allocator);
             created += 1;
-            self.ctxs[i] = .{ .mbh = self.mbhs[i], .ph = self.ph };
+            self.ctxs[i] = .{ .mbh = self.mbhs[i], .ph = self.ph, .result = &self.results[i] };
             self.futs[i] = try io.concurrent(workerFn, .{&self.ctxs[i]});
         }
         return self;

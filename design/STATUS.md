@@ -22,9 +22,9 @@
 - AI-sh scan after every stage that changes *.md or *.zig.
 
 ## Sources of Truth
-- API: matryoshka-api-reference-022.md
+- API: matryoshka-api-reference-025.md
 - Zig details: matryoshka-io-0.16-implementation-guide-001.md
-- Architecture: matryoshka-architecture-foundation-4-002.md
+- Architecture: matryoshka-architecture-foundation-4-004.md
 - Architecture introduction: matryoshka-architecture-003.md
 - Tests: task1-tests-001.md (73 scenarios, Layers 1-3), task2-tests-001.md (16 scenarios, Layer 4)
 - Examples: task1-examples-003.md, task2-examples-003.md (index only; full description lives in each source file's `///` doc comment)
@@ -36,7 +36,7 @@
 - Rules: rules-024.md
 - New Mindset reference: matryoshka-new-mindset-001.md
 - Thinking model: matryoshka-model-003.md
-- Patterns: patterns-013.md
+- Patterns: patterns-015.md
 - Docs plan: matryoshka-io-docs-plan-015.md
 - Manifesto: matryoshka-manifesto-005.md
 - Latest context: collected-context-005.md
@@ -229,8 +229,219 @@ mkdocs nav after manifesto.md. New permanent kitchen/diagrams/src/ +
 kitchen/tools/gen_diagrams.sh (manual-run, committed output, not CI-wired).
 README insertion deferred by owner. DONE (doc-only, 167/167 tests
 unchanged). Plan version pending.
+INTR 7 — DONE (167/167 tests). Pool `on_put` reset convention added to every
+example/test hook; "Pool is not storage" correction in
+matryoshka-architecture-foundation-4-003.md; `put`'s four hook-driven
+outcomes + no-fixed-sequence-guarantee caveat documented in
+matryoshka-api-reference-023.md + kitchen/docs pool pages; audit of all
+32 pool-touching files found and fixed 5 wrong-assumption bugs the reset
+surfaced. Diagram-notation fixes (053's `mbh[0..2]`/`×3`, repo-wide sweep)
+and a mailbox-focused equivalent stage deferred, owner's call.
+Staccato sweep — DONE (167/167 tests). Repo-wide audit found 9 files with
+prose-paragraph violations of the staccato rule; fixed 8 (video-transcoder.md
+and a lower-confidence bucket left untouched, owner's call). Followed by a
+"thread" audit — DONE (167/167 tests): worker-finish-signal pattern's stale
+"spawns a worker thread"/"joins the thread" language corrected to
+`io.concurrent`/future-await across `matryoshka-api-reference-025.md`,
+`patterns-015.md`, and two `kitchen/docs` mirrors; 5 stale
+`matryoshka-api-reference-022.md` cross-references in patterns-015.md fixed.
+
+**Next stage**: diagram-notation sweep (053's `mbh[0..2]`/`×3` already fixed
+incidentally; no repo-wide sweep done yet) and/or the mailbox-focused
+equivalent of the pool `on_put`/"not storage" audit (reset-on-X hook review,
+"mailbox is not X" framing check, sequence-assumption sweep) — owner's call
+on order.
 
 ## Session Log
+
+### 2026-07-09 — "thread" audit: worker-finish-signal pattern terminology fix
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner asked for a repo-wide audit of the word "thread". Found no live
+`Thread.spawn` calls in `src/`/`examples/`/`tests/` (prior New Mindset
+migration holds), and most "thread" hits are legitimate (`std.Io.Threaded`
+backend, thread-safety contract language, `std.Thread.yield()` busy-wait
+polling in `tests/layer4_cancel.zig`). One real drift found: the
+Worker-finish-signal pattern, in 6 places, described the worker as "a worker
+thread" joined via "joins the thread" — but the actual implementation
+(`examples/layer4/095-mailbox_as_item.zig`) spawns via `io.concurrent()`
+and synchronizes via `std.Io.Future(void).await`, not a raw OS thread join.
+Also found 5 stale cross-references in `patterns-014.md` still pointing to
+the long-superseded `matryoshka-api-reference-022.md`.
+
+**Changes**:
+- `examples/layer4/095-mailbox_as_item.zig` — doc comment: "spawns a worker
+  thread" → "spawns a worker via `io.concurrent`"; "joins the thread" →
+  "awaits the worker's future"; diagram label "worker thread" → "worker
+  task". Regenerates `kitchen/docs/examples/layer4/095-mailbox_as_item.md`
+  automatically (verified via `build_site.sh`).
+- `design/matryoshka-api-reference-024.md` → `design/matryoshka-api-reference-025.md`
+  (new version) — same terminology fix in the Worker-finish-signal pattern
+  section.
+- `design/patterns-014.md` → `design/patterns-015.md` (new version) — same
+  terminology fix; all 5 stale `matryoshka-api-reference-022.md`
+  cross-references updated to `-025.md`.
+- `kitchen/docs/patterns/slot-and-polynode.md`,
+  `kitchen/docs/api/tags-and-slots.md` — same terminology fix, edited in
+  place (mirror pages, existing convention).
+- `design/context.md`, `design/STATUS.md` Sources of Truth — pointers
+  updated for both new-versioned docs.
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `grep -rn "Thread\.spawn" src/ examples/ tests/` | zero hits |
+| `build_and_test_debug.sh` | PASS (167/167) |
+| `build_site.sh` | clean, zero new warnings (same pre-existing orphan-page nav warnings) |
+| `grep -rl "matryoshka-api-reference-024.md\|patterns-014.md"` (repo-wide) | zero live pointers remain outside historical Session Log entries and the new docs' own "Replaces [...]" supersede links |
+| Regenerated `kitchen/docs/examples/layer4/095-mailbox_as_item.md` | confirmed "worker task"/`io.concurrent` wording present |
+
+**Not done this pass**: repo-wide diagram-notation sweep; mailbox-focused
+equivalent audit. Both deferred from the prior INTR 7 stage, still open.
+
+**Next**: diagram-notation sweep, or the mailbox-focused audit — owner's
+call on order (see updated Rules/Constraints summary above).
+
+---
+
+### 2026-07-09 — INTR 7: pool `on_put` reset, "pool is not storage" doc fix, put-semantics doc, examples/idioms audit
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+While reviewing `src/pool.zig` and `examples/layer4/053-pool_fan_in.zig`'s
+diagram, two diagram bugs surfaced (`mbh[0..2]` off-by-one, `pool.get ×3`
+mislabeling a drain-until-`NotAvailable` loop). Owner deferred diagram-
+notation fixes (053's and a full repo-wide sweep) to a later stage and
+redirected this stage to a deeper issue: no example pool hook reset an
+item's data on `put`, so stale data could silently survive recycling —
+and several docs (mainly `matryoshka-architecture-foundation-4-002.md`,
+`STATUS.md`'s own DOC 21 log) framed Pool as "storage"/a "warehouse," which
+owner corrected: Pool is not storage — `put`'s effect on a returned item is
+entirely hook-policy-driven (delete, keep-as-is, keep-after-reset, or
+delete-and-replace), and matryoshka imposes no reset requirement. A mailbox-
+focused equivalent audit was flagged as a next-stage candidate, not part of
+this stage.
+
+**Changes**:
+
+Step A (code — reset helper, first):
+- `examples/items/items.zig` — new `pub fn resetOnPut(slot: *polynode.Slot) void`,
+  by-tag dispatch zeroing `Event.code`/`Sensor.value` (default-value reset —
+  our examples' own convention, not a matryoshka rule).
+- `examples/hooks/AlwaysCreateHooks.zig`, `examples/hooks/CappedPoolHooks.zig`
+  — `on_put` now calls `items.resetOnPut(slot)` when keeping an item.
+- `tests/layer3_pool.zig` — new local `resetOnPut` helper (same field-zero
+  logic), called from `onPutAdaptive`. The pre-existing reset in
+  `onGetAlways` was **kept**, not removed — it is what scenario 66
+  ("on_get reinitializes recycled item") specifically tests, a deliberate,
+  different hook-policy choice, not a duplicate to clean up.
+- `tests/layer4_infra.zig` (`PoolTransportCtx`), `examples/layer4/096-pool_as_item.zig`
+  (`CarrierCtx`) — trivial no-op `resetOnPut` (pool-of-pools items carry no
+  scalar data), called for `on_put`-shape consistency with the other hooks.
+- `tests/layer4_cancel.zig` (`Ctx10.onPut`) — this one holds real scalar
+  items (`items.createByTag`), not `PoolHandle`s; wired to `items.resetOnPut`
+  like the example hooks, not exempted.
+- The reset immediately surfaced 5 pre-existing wrong-assumption bugs
+  (exactly the goal) — fixed as part of this step, not deferred:
+  - `examples/layer3/089-basic_recycler.zig` — taught "recycled item kept
+    its data"; now teaches the opposite (`code == 0` after recycle).
+  - `examples/layer4/050-get_wait_future_direct.zig` — seeded value (`code = 7`)
+    was always lost at the seeding `put`, before the future path even ran;
+    assertion and doc comment corrected to expect the reset default.
+  - `examples/layer4/055-producer_consumer_recycle.zig` — same pattern,
+    `verifyRecycle` now expects `code == 0`, not the producer's value.
+  - `examples/layer4/035-cross_layer_pool_hooks_mailbox_flow.zig` — same
+    pattern for `CappedPoolHooks`' "kept" path.
+  - `examples/layer4/053-pool_fan_in.zig` — a real architecture flaw, not
+    just an assertion fix: the worker wrote its result into the pool item,
+    then `put` (now correctly) wiped it before the master could collect it
+    via `pool.get`. Redesigned: workers write results into a dedicated
+    `results: [N]i32` array (workers are sequentially `fut[i].await`-ed by
+    the master, so no race) before returning the container to the pool;
+    `collectResults` sums the array instead of draining the pool. Diagram
+    and doc comment rewritten to match — incidentally also fixes the
+    `mbh[0..2]`/`×3` diagram bugs as an unavoidable side effect of the
+    logic rewrite (not a deliberate diagram-sweep fix).
+
+Step B (docs — "pool is not storage" + put semantics):
+- `design/matryoshka-architecture-foundation-4-002.md` →
+  `design/matryoshka-architecture-foundation-4-003.md` (new version) — every
+  "storage"/"warehouse" hit rewritten to "Pool is not storage — it is a
+  backpressure signal for reuse" (framing borrowed from
+  `design/stories/print-server-analysis-001.md`, which already had it
+  right); "Pool Storage vs Policy" heading → "Pool Reuse vs Policy". No
+  structural/technical change. `-001.md` (superseded) left untouched.
+  `design/STATUS.md`'s DOC 21 log line left as historical record, per
+  existing precedent for session-log entries.
+- `design/matryoshka-api-reference-022.md` → `-023.md` (new version) — `pool`
+  section opens with "Pool is not storage"; `put`'s four outcomes (deleted/
+  no-return, returned as-is, returned after reset, deleted-and-replaced)
+  documented as policy-neutral (matryoshka mandates none of them, hook
+  author's choice); added the no-fixed-sequence-guarantee caveat (put/get
+  call patterns carry no count/identity/ordering guarantee).
+- `kitchen/docs/api/pool.md` — same put-outcomes + caveat content, edited in
+  place (mirrored/generated-adjacent page, existing convention).
+- `kitchen/docs/building-blocks/pool.md` — "Whatever the previous owner
+  wrote has already been consumed or reset by the time you get an item
+  back" overstated a guarantee matryoshka doesn't make; rewritten
+  policy-neutral, pointing at the four `put` outcomes.
+- `design/patterns-013.md` — checked, no storage-framing hits (its "storage"
+  mentions are the video-transcoder's downstream storage task, unrelated).
+- `design/context.md`, `design/STATUS.md` Sources of Truth — pointers
+  updated for both new-versioned docs.
+- `design/matryoshka-io-0.16-implementation-guide-001.md` — 3 cross-references
+  to the old foundation-doc filename updated to `-003.md` (doc-link rule).
+
+Step C (audit — 32 pool-touching files + items/hooks + patterns-013.md):
+
+| File | Category | Finding | Fixed now |
+|---|---|---|---|
+| `examples/layer3/089-basic_recycler.zig` | sequence-assumption | doc comment + assertion claimed recycled item keeps its data | Y (Step A) |
+| `examples/layer4/050-get_wait_future_direct.zig` | sequence-assumption | seeded value lost at seeding `put`, assertion expected it to survive | Y (Step A) |
+| `examples/layer4/055-producer_consumer_recycle.zig` | sequence-assumption | `verifyRecycle` expected producer's value to survive `put`/`get` | Y (Step A) |
+| `examples/layer4/035-cross_layer_pool_hooks_mailbox_flow.zig` | sequence-assumption | kept item expected to retain round1's value | Y (Step A) |
+| `examples/layer4/053-pool_fan_in.zig` | sequence-assumption (architecture) | results collected via pool `get`, but `put` reset wiped them first | Y (Step A) |
+| `examples/layer4/032-cross_layer_pool_mailbox_roundtrip.zig` | sequence-assumption (checked) | asserts pointer identity only, not data value, across the second `get` — valid under `AlwaysCreateHooks` (never destroys/replaces) | N (no bug) |
+| `examples/layer4/038-cross_layer_pool_mailbox_flow.zig` | sequence-assumption (checked) | data check happens before the deferred `put`, not after — no bug | N (no bug) |
+| remaining 25 of the 32 files, `examples/items/*`, `examples/hooks/*`, `design/patterns-013.md` | storage-framing / sequence-assumption | none found (`storage` hits are unrelated video-transcoder downstream-task naming) | N (clean) |
+| `examples/layer4/053-pool_fan_in.zig` | diagram-notation (already known) | `mbh[0..2]` off-by-one, `pool.get ×3` mislabeling a drain loop | **deferred** (fixed incidentally by the Step A architecture rewrite, not as a deliberate diagram-sweep fix) |
+
+**Verification**:
+
+| Check | Result |
+|---|---|
+| `build_and_test_debug.sh` after every hook file change (Step A, one at a time) | PASS throughout, 167/167 |
+| `build_and_test_debug.sh` (final) | PASS (167/167) |
+| `build_and_test_all.sh` (all 4 optimization modes) | PASS (167/167 × 4) |
+| `build_site.sh` | clean, zero warnings (pre-existing orphan-page nav warnings unrelated to this stage) |
+| Banned-word sweep (all files touched this pass) | clean; only hits are historical changelog rows describing past work (exempt, existing precedent) |
+| `grep -rn "storage\|warehouse"` across touched design/kitchen docs | zero hits outside intentional "Pool is not storage" phrasing and the unrelated video-transcoder "storage task" |
+
+**Post-stage cleanup**: reviewed all files touched this pass for obsolete
+comments, wrong doc claims, and repeated logic. No extractable duplication
+found — `resetOnPut` is already the single shared helper for scalar-item
+hooks (`examples/items/items.zig`), and the 3 pool-of-pools no-op
+`resetOnPut`s are intentionally separate per-file (no shared state to
+extract, kept local for clarity). All 3 kitchen scripts re-run clean after
+cleanup review (see Verification table above — no further fixes needed).
+
+**Not done this pass** (deferred, owner's call): diagram-notation fixes
+(053's `mbh[0..2]`/`×3` — already incidentally correct after the Step A
+rewrite, but no repo-wide diagram sweep was done); mailbox-focused
+equivalent audit (reset-on-put-style hook review, "mailbox is not X"
+framing check, sequence-assumption sweep).
+
+**Next**: owner's call — repo-wide diagram-notation sweep, or the deferred
+mailbox audit (candidate stage). Stage 9 (docs + README + autodocs)
+otherwise continues.
+
+---
 
 ### 2026-07-09 — New Mindset: architecture-docs ownership-language pass
 

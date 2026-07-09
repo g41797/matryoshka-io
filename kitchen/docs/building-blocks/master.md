@@ -37,8 +37,9 @@ Single-job Coordinator Resource owner
 - Some Masters coordinate other Masters.
 - Some Masters own shared resources — a Pool, a shared Mailbox.
 
-There is no required Master struct, and no required interface. The responsibility
-defines a Master, not a particular shape of code.
+There is no required Master struct, and no required interface.
+
+- The responsibility defines a Master, not a particular shape of code.
 
 ## Two tiers of structure
 

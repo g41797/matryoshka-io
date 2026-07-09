@@ -5,14 +5,14 @@
 //!
 //! - Create a pool with hooks for the Event tag.
 //! - pool.get with available_or_new allocates a fresh item.
-//! - pool.put returns it, pool.get again recycles the same item.
-//! - Verify the recycled item kept its data.
+//! - pool.put returns it — the hook resets it to defaults on put.
+//! - pool.get again recycles the same item, now holding default data.
 //!
 //!
 //! ```
 //!  pool.get (available_or_new) ──► slot (new via on_get)
-//!       │ pool.put ──► pool (recycled)
-//!       │ pool.get (available_or_new) ──► slot (same item, data intact)
+//!       │ pool.put ──► on_put resets data ──► pool (recycled)
+//!       │ pool.get (available_or_new) ──► slot (same item, data reset)
 //!       │ EventPolyHelper.destroy ──► freed
 //! ```
 //!
@@ -42,7 +42,7 @@ pub fn basic_recycler(allocator: std.mem.Allocator, io: std.Io) !void {
     try pool.get(ph, items.Event.EventPolyHelper.TAG, .available_or_new, &slot);
     const ev2 = items.Event.EventPolyHelper.identifySlotAs(&slot) orelse return error.WrongTag;
     std.log.info("recycled Event code={d}", .{ev2.code});
-    try helpers.expect(error.BasicRecyclerFailed, ev2.code == 89, "recycled item lost its data");
+    try helpers.expect(error.BasicRecyclerFailed, ev2.code == 0, "recycled item was not reset by the hook");
 
     items.Event.EventPolyHelper.destroy(allocator, &slot);
 }

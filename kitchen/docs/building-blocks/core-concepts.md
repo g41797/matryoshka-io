@@ -12,17 +12,20 @@ Pool               should this item be reused or destroyed?
 Master             who coordinates startup, shutdown, cancellation, policy?
 ```
 
-Each layer adds exactly one capability. Need ownership and movement only: use
-PolyNode + Mailbox, stop there. Need backpressure and reuse: add Pool. Need
-coordination: add Master. The ownership model never changes — only
-capabilities are added.
+Each layer adds exactly one capability.
+
+- Need ownership and movement only: use PolyNode + Mailbox, stop there.
+- Need backpressure and reuse: add Pool.
+- Need coordination: add Master.
+- The ownership model never changes — only capabilities are added.
 
 ## PolyNode — the ownership atom
 
 Every design starts with one question: **who owns this item right now?**
-Not what data it holds, not which thread touches it — just who owns it.
-Ownership must be visible at the call site. If you need to read the
-implementation to know who owns an item, the design is wrong.
+
+- Not what data it holds, not which thread touches it — just who owns it.
+- Ownership must be visible at the call site.
+- If you need to read the implementation to know who owns an item, the design is wrong.
 
 - An item has exactly one owner at any moment.
 - Owners: user code (in flight), a mailbox (held), a pool (held).

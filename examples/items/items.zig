@@ -37,6 +37,14 @@ pub fn createByTag(tag: *const anyopaque, alloc: std.mem.Allocator, slot: *polyn
     }
 }
 
+pub fn resetOnPut(slot: *polynode.Slot) void {
+    if (Event.EventPolyHelper.identifySlotAs(slot)) |ev| {
+        ev.*.code = 0;
+    } else if (Sensor.SensorPolyHelper.identifySlotAs(slot)) |sn| {
+        sn.*.value = 0.0;
+    }
+}
+
 pub fn destroyByTag(tag: *const anyopaque, alloc: std.mem.Allocator, slot: *polynode.Slot) void {
     if (Event.EventPolyHelper.isIt(tag)) {
         Event.EventPolyHelper.destroy(alloc, slot);

@@ -381,16 +381,16 @@ When to use.
 
 Pattern.
 
-- Master creates `worker_mbh`, spawns a worker, passes `worker_mbh` as parameter.
+- Master creates `worker_mbh`, spawns a worker via `io.concurrent`, passes `worker_mbh` as parameter.
 - Worker processes items until a shutdown signal.
 - Worker sends `worker_mbh` back to the Master's inbox (unclosed) as the finish signal, then exits.
 - Master confirms class: `mailbox.is_it_you(received.*.tag)`.
 - Master confirms instance: `received == worker_mbh` (pointer comparison).
-- Master closes and destroys `worker_mbh`, then joins the thread.
+- Master closes and destroys `worker_mbh`, then awaits the worker's future.
 
 Why.
 
-- Replaces a thread join or a separate shutdown message with ownership transfer.
+- Replaces relying on the future await as a completion signal, or a separate shutdown message, with ownership transfer.
 
 Details: [API Reference — Transporting infra handles](../api/tags-and-slots.md).
 

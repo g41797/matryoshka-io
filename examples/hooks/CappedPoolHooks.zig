@@ -39,6 +39,7 @@ pub fn onPut(ptr: *anyopaque, _: usize, slot: *polynode.Slot) void {
         items.freeItem(slot.*.?, self.alloc);
         slot.* = null;
     } else {
+        items.resetOnPut(slot);
         self.count += 1;
     }
 }

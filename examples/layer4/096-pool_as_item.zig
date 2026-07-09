@@ -43,7 +43,11 @@ const CarrierCtx = struct {
 
 fn onGet(_: *anyopaque, _: *const anyopaque, _: usize, _: *Slot) void {}
 
-fn onPut(_: *anyopaque, _: usize, _: *Slot) void {}
+fn resetOnPut(_: *Slot) void {} // PoolHandle items carry no resettable scalar state — kept for on_put-shape consistency
+
+fn onPut(_: *anyopaque, _: usize, slot: *Slot) void {
+    resetOnPut(slot);
+}
 
 fn onClose(ctx_opaque: *anyopaque, list: *std.DoublyLinkedList) void {
     const ctx: *CarrierCtx = @ptrCast(@alignCast(ctx_opaque));

@@ -826,6 +826,12 @@ receive → O2:             [R1, R2, R3]            oob=0
 
 Lifecycle management with user supplied hooks.
 
+Pool is not storage.
+
+- It answers one question: is a reusable item available right now.
+- It signals backpressure through that answer.
+- What happens to an item on `put` is entirely up to the hooks.
+
 ```zig
 const pool = @import("matryoshka").pool;
 
@@ -976,15 +982,26 @@ pub fn put(ph: PoolHandle, slot: *Slot) void
 - `slot.* == null` → returns immediately. No hook call. No assert on tag.
 - **Open pool**:
   - Calls `on_put` hook.
-  - Policy decides keep or destroy.
-  - Keep: `slot.*` stays non-null, pool holds it.
-  - Destroy: `slot.*` set to null.
+  - `on_put` picks the outcome — matryoshka does not mandate any of them:
+    - **deleted, nothing returned** — hook frees the item, `slot.*` set to null, nothing added to the pool.
+    - **returned as-is** — hook leaves the item's data untouched, `slot.*` stays non-null, pool holds it.
+    - **returned after reset** — hook resets the item's data before keeping it, `slot.*` stays non-null.
+    - **deleted, a different item returned** — hook frees the original and puts a different item in `slot.*`.
+  - `slot.*` stays non-null exactly when an item — original or replacement — is kept in the pool; it's null when nothing is kept.
 - **Closed pool**:
   - Returns immediately, no hook call.
   - `slot.*` stays non-null — caller keeps the handle.
 - Assert (when slot.* != null):
   - `pool.is_it_you(ph.*.tag)`
   - `!polynode.is_linked(slot.*)`
+
+**No sequence guarantee.**
+
+- The outcome of `put` is entirely hook-policy-driven.
+- A call pattern like "put three times, then get three times" carries no fixed count, identity, or ordering guarantee.
+- What comes back — how many items, in what state, whether they're the same items that were put — depends on the hooks, not on the shape of the call sequence.
+- This repo's own example hooks (`examples/hooks/`) follow one specific convention: reset to default values on `put`.
+- That convention is our examples' choice, not a rule matryoshka imposes.
 
 ```zig
 pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
@@ -1127,7 +1144,7 @@ For infra handles (MailboxHandle, PoolHandle):
 
 **Worker-finish-signal pattern**
 
-Master creates `worker_mbh`, spawns a worker thread and passes `worker_mbh` as parameter.
+Master creates `worker_mbh`, spawns a worker via `io.concurrent` and passes `worker_mbh` as parameter.
 Worker processes items until a shutdown signal, then:
 - Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
 - Exits.
@@ -1136,9 +1153,9 @@ Master receives a PolyNode from its inbox:
 - `mailbox.is_it_you(received.*.tag)` — confirms class (it is a mailbox).
 - `received == worker_mbh` — confirms instance (it is the expected worker mailbox).
 - Master closes and destroys `worker_mbh`.
-- Master joins the thread (OS resource cleanup only — the mailbox return was the logical finish signal).
+- Master awaits the worker's future (cleanup only — the mailbox return was the logical finish signal).
 
-This pattern replaces a thread join or a separate shutdown message with a handle handoff.
+This pattern replaces relying on the future await as a completion signal, or a separate shutdown message, with a handle handoff.
 
 **Wrapper pattern** (for tag-level role discrimination)
 
@@ -1168,10 +1185,12 @@ The slot rule:
 - Transfer clears the slot: sender sets `slot.* = null`. After transfer, slot is null.
 - Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
 
-**Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`
-parameter. They move the handle via the returned union value (`ReceiveResult.item`,
-`PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union
-and holds it from that point. This is an intentional exception to the slot-pointer pattern.
+**Exception — event-source helpers**:
+
+- `receiveResult` and `getWaitResult` do not take a `*Slot` parameter.
+- They move the handle via the returned union value (`ReceiveResult.item`, `PoolResult.item`) instead.
+- The caller extracts the handle from the union and holds it from that point.
+- This is an intentional exception to the slot-pointer pattern.
 
 ### Why acquisition APIs assert null
 
@@ -1652,6 +1671,7 @@ Valid combinations:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 023 | 2026-07-09 | INTR 7. `pool` section: "Pool is not storage" stated up front; `put`'s four hook-driven outcomes documented (deleted/no-return, returned as-is, returned after reset, deleted-and-replaced); added the no-fixed-sequence-guarantee caveat for put/get call patterns. |
 | 022 | 2026-07-09 | New Mindset. Master connected to `io.concurrent()` up front — "Master is an architectural role" replaced with "Master is an Io task that follows the Matryoshka rules." No other content change. |
 | 021 | 2026-07-07 | API 4. Renamed `NodeHandle` → `ItemHandle` throughout — the old name leaked the intrusive-node implementation detail. `MailboxHandle`/`PoolHandle` aliases unchanged in meaning. `### What is a NodeHandle?` renamed to `### What is an ItemHandle?`, with a naming-rationale note and the `handle`/`ih` shorthand convention. Historical Change-log rows referencing `NodeHandle` left as-is. |
 | 020 | 2026-07-06 | DOC 18. Humanized the reference: dropped "ownership" framing throughout (section titles, diagrams, prose) in favor of plain language — a handle sits in exactly one place, in exactly one state, at any moment. Converted remaining prose paragraphs to staccato bullets. No content removed, no reordering, no new API surface.

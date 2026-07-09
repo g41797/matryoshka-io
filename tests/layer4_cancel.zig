@@ -303,7 +303,10 @@ const Ctx10 = struct {
         items.createByTag(tag, self.alloc, slot);
     }
 
-    fn onPut(_: *anyopaque, _: usize, _: *Slot) void {}
+    fn onPut(_: *anyopaque, _: usize, slot: *Slot) void {
+        if (slot.* == null) return;
+        items.resetOnPut(slot);
+    }
 
     fn onClose(ctx_ptr: *anyopaque, list: *std.DoublyLinkedList) void {
         const self: *Ctx10 = @ptrCast(@alignCast(ctx_ptr));

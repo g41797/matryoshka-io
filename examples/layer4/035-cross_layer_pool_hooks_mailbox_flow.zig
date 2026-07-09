@@ -3,23 +3,26 @@
 
 //! Pool hooks + mailbox flow.
 //!
-//! - round1: on_get creates an item, mailbox carries it, on_put keeps it (cap not yet reached).
-//! - round2: on_get creates a fresh item, mailbox carries it, on_put destroys it (cap reached).
-//! - verifyRecycled confirms the kept item (code=1) is the one still in the pool.
+//! - round1: on_get creates an item, mailbox carries it, on_put keeps it (cap
+//!   not yet reached) and resets its data.
+//! - round2: on_get creates a fresh item, mailbox carries it, on_put destroys
+//!   it (cap reached).
+//! - verifyRecycled confirms the kept item is still in the pool, holding
+//!   reset data — not the value round1 set.
 //!
 //!
 //! ```
 //!  pool.get (new_only) ──► on_get creates ──► slot (code=1)
 //!  mailbox.send ──► mailbox owns item
 //!  mailbox.receive ──► slot (same item)
-//!  pool.put ──► on_put: count<cap → keep ──► pool free-list
+//!  pool.put ──► on_put: count<cap → keep, reset data ──► pool free-list
 //!  │
 //!  pool.get (new_only) ──► on_get creates fresh ──► slot (code=2)
 //!  mailbox.send ──► mailbox owns item
 //!  mailbox.receive ──► slot (same item)
 //!  pool.put ──► on_put: count>=cap → destroy ──► freed
 //!  │
-//!  pool.get (.available_only) ──► recycled (code=1) ──► verify
+//!  pool.get (.available_only) ──► recycled (data reset) ──► verify
 //!  pool.close ──► on_close ──► freeList
 //! ```
 //!
@@ -94,8 +97,8 @@ const Ctx = struct {
         defer pool.put(self.ph, &slot);
         try pool.get(self.ph, items.Event.EventPolyHelper.TAG, .available_only, &slot);
         const ev: *items.Event = items.Event.EventPolyHelper.mustIdentifySlotAs(&slot);
-        try helpers.expect(error.CrossLayerHooksFailed, ev.code == 1, "expected recycled item code=1");
-        std.log.info("recycled item: code={d} — hooks decided keep/destroy correctly", .{ev.code});
+        try helpers.expect(error.CrossLayerHooksFailed, ev.code == 0, "expected reset default, not round1's value");
+        std.log.info("recycled item: code={d} (reset by on_put) — hooks decided keep/destroy correctly", .{ev.code});
     }
 };
 

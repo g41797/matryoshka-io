@@ -71,7 +71,11 @@ const PoolTransportCtx = struct {
 
 fn poolTransportOnGet(_: *anyopaque, _: *const anyopaque, _: usize, _: *Slot) void {}
 
-fn poolTransportOnPut(_: *anyopaque, _: usize, _: *Slot) void {}
+fn resetOnPut(_: *Slot) void {} // PoolHandle items carry no resettable scalar state — kept for on_put-shape consistency
+
+fn poolTransportOnPut(_: *anyopaque, _: usize, slot: *Slot) void {
+    resetOnPut(slot);
+}
 
 fn poolTransportOnClose(ctx_opaque: *anyopaque, list: *std.DoublyLinkedList) void {
     const ctx: *PoolTransportCtx = @ptrCast(@alignCast(ctx_opaque));

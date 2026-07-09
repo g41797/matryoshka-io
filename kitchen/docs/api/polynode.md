@@ -27,9 +27,9 @@ pub const ItemHandle = *PolyNode;
 pub const Slot = ?ItemHandle;
 ```
 
-`PolyNode` is the type every application object embeds. `ItemHandle` is a pointer to
-that embedded field — the only thing Matryoshka moves. `Slot` is where a handle lives
-while it is yours.
+- `PolyNode` is the type every application object embeds.
+- `ItemHandle` is a pointer to that embedded field — the only thing Matryoshka moves.
+- `Slot` is where a handle lives while it is yours.
 
 ## Functions
 

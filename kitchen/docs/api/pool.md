@@ -4,6 +4,12 @@ New to the concept? See [Building Blocks — Pool](../building-blocks/pool.md) f
 
 Lifecycle management with user supplied hooks.
 
+Pool is not storage.
+
+- It answers one question: is a reusable item available right now.
+- It signals backpressure through that answer.
+- What happens to an item on `put` is entirely up to the hooks.
+
 ```zig
 const pool = @import("matryoshka").pool;
 
@@ -81,8 +87,9 @@ pub const PoolHooks = struct {
 
 - `on_get`: count **after** removal — items remaining with this tag.
 - `on_put`: count **before** addition — items already stored with this tag.
-- Both values are **hints** — read under lock, passed to a hook running without lock;
-  the pool may have changed by the time the hook reads the value.
+- Both values are **hints**.
+- Read under lock, passed to a hook running without lock.
+- The pool may have changed by the time the hook reads the value.
 
 **Hook concurrency**
 
@@ -165,15 +172,24 @@ pub fn put(ph: PoolHandle, slot: *Slot) void
 - `slot.* == null` → returns immediately. No hook call. No assert on tag.
 - **Open pool**:
   - Calls `on_put` hook.
-  - Policy decides keep or destroy.
-  - Keep: `slot.*` stays non-null, pool holds it.
-  - Destroy: `slot.*` set to null.
+  - `on_put` picks the outcome — matryoshka does not mandate any of them:
+    - **deleted, nothing returned** — hook frees the item, `slot.*` set to null.
+    - **returned as-is** — hook leaves the item's data untouched, `slot.*` stays non-null.
+    - **returned after reset** — hook resets the item's data before keeping it.
+    - **deleted, a different item returned** — hook frees the original and puts a different item in `slot.*`.
+  - `slot.*` stays non-null exactly when an item — original or replacement — is kept.
 - **Closed pool**:
   - Returns immediately, no hook call.
   - `slot.*` stays non-null — caller keeps the handle.
 - Assert (when slot.* != null):
   - `pool.is_it_you(ph.*.tag)`
   - `!polynode.is_linked(slot.*)`
+
+**No sequence guarantee.** A call pattern like "put three times, then get
+three times" carries no fixed count, identity, or ordering guarantee — it
+depends entirely on hook policy. This repo's own example hooks
+(`examples/hooks/`) reset to default values on `put`, but that's our
+examples' convention, not a matryoshka rule.
 
 ```zig
 pub fn put_all(ph: PoolHandle, list: *std.DoublyLinkedList) void
@@ -285,8 +301,8 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
   - Must either leave `slot.* == null` (creation failed) OR set `slot.*` to a valid node with the same tag that was requested.
   - Returning an item with a different tag is a programming error (assert in Debug/ReleaseSafe).
 - `on_put`:
-  - Set `slot.*` to null = destroy.
-  - Leave non-null = keep in pool.
+  - Set `slot.*` to null = destroy (optionally after putting a different item there first — see the four `put` outcomes above).
+  - Leave non-null = keep in pool, as-is or after resetting its data — your choice.
 - `on_close`:
   - Receives `*std.DoublyLinkedList`.
   - Walks via `popFirst()`, frees each handle.

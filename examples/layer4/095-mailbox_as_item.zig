@@ -3,14 +3,14 @@
 
 //! Worker finish signal via mailbox return.
 //!
-//! - Master spawns a worker thread, sends 3 Events + a ShutdownCommand sentinel.
+//! - Master spawns a worker via `io.concurrent`, sends 3 Events + a ShutdownCommand sentinel.
 //! - On the sentinel, the worker sends its own mailbox handle back to the master's inbox.
 //! - Master confirms the returned item is a MailboxHandle and the expected instance.
-//! - Master closes and destroys the worker's mailbox, then joins the thread.
+//! - Master closes and destroys the worker's mailbox, then awaits the worker's future.
 //!
 //!
 //! ```
-//!  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker thread
+//!  master ──Event×3 + ShutdownCommand──► worker_mbh ──► worker task
 //!                                                           │ process
 //!                                                           │ send worker_mbh ──► master_inbox
 //!                                                           ▼ exit

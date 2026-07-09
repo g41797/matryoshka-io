@@ -1,17 +1,23 @@
-# Matryoshka Zig — Pattern and Idiom Catalog (013)
+# Matryoshka Zig — Pattern and Idiom Catalog (015)
 
-Versioned doc. Replaces [patterns-012.md](patterns-012.md).
-Change from patterns-012: `Thread.spawn` removed as an accepted task-creation
-option. `io.concurrent()` is the only way a task starts (New Mindset,
-`matryoshka-new-mindset-001.md`).
+Versioned doc. Replaces [patterns-014.md](patterns-014.md).
 
-Change from patterns-011: API 4 renamed `NodeHandle` → `ItemHandle` — the old
-name leaked the intrusive-node implementation detail. No pattern content
-changed, wording only.
+Change from patterns-014: "thread" audit — worker-finish-signal pattern's stale "spawns a worker thread"/"joins the thread" language corrected to `io.concurrent`/future-await; stale api-reference-022.md cross-references updated to -025.md. No pattern content changed, wording only.
+
+Change from patterns-013: staccato-style sweep, prose paragraphs converted to bullets. No pattern content changed, wording only.
+
+Change from patterns-012:
+- `Thread.spawn` removed as an accepted task-creation option.
+- `io.concurrent()` is the only way a task starts (New Mindset, `matryoshka-new-mindset-001.md`).
+
+Change from patterns-011:
+- API 4 renamed `NodeHandle` → `ItemHandle` — the old name leaked the intrusive-node implementation detail.
+- No pattern content changed, wording only.
+
 One unified catalog. Every pattern and idiom appears once, in logical order.
 Companion: [rules-024.md](rules-024.md) — what is mandatory.
 Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
-Companion: [matryoshka-api-reference-022.md](matryoshka-api-reference-022.md) — signatures and contracts.
+Companion: [matryoshka-api-reference-025.md](matryoshka-api-reference-025.md) — signatures and contracts.
 
 How this doc differs from rules.
 - Rules constrain. A rule says what you must or must not do.
@@ -38,7 +44,7 @@ Order of this catalog.
 
 ## Slot and ownership idioms
 
-The slot rule in full: [api-reference — Slot-based programming](matryoshka-api-reference-022.md).
+The slot rule in full: [api-reference — Slot-based programming](matryoshka-api-reference-025.md).
 
 ### Empty Slot initialization
 
@@ -206,7 +212,7 @@ Why.
 - Raw `allocator.create` skips both. The object is unusable for dispatch.
 
 Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.
-Full list: [api-reference — No raw allocator calls](matryoshka-api-reference-022.md).
+Full list: [api-reference — No raw allocator calls](matryoshka-api-reference-025.md).
 
 ---
 
@@ -336,7 +342,7 @@ Use.
 - Pointer comparison for infrastructure handles.
 - User fields (`kind`, `role`) for application roles.
 
-Details: [api-reference — Tag identity](matryoshka-api-reference-022.md).
+Details: [api-reference — Tag identity](matryoshka-api-reference-025.md).
 
 ### Wrapper type for infrastructure handles
 
@@ -381,17 +387,17 @@ When to use.
 - A worker signals completion by sending its own mailbox back to the Master.
 
 Pattern.
-- Master creates `worker_mbh`, spawns a worker, passes `worker_mbh` as parameter.
+- Master creates `worker_mbh`, spawns a worker via `io.concurrent`, passes `worker_mbh` as parameter.
 - Worker processes items until a shutdown signal.
 - Worker sends `worker_mbh` back to the Master's inbox (unclosed) as the finish signal, then exits.
 - Master confirms class: `mailbox.is_it_you(received.*.tag)`.
 - Master confirms instance: `received == worker_mbh` (pointer comparison).
-- Master closes and destroys `worker_mbh`, then joins the thread.
+- Master closes and destroys `worker_mbh`, then awaits the worker's future.
 
 Why.
-- Replaces a thread join or a separate shutdown message with ownership transfer.
+- Replaces relying on the future await as a completion signal, or a separate shutdown message, with ownership transfer.
 
-Details: [api-reference — Transporting infra handles](matryoshka-api-reference-022.md).
+Details: [api-reference — Transporting infra handles](matryoshka-api-reference-025.md).
 
 ### Pool-as-message
 
