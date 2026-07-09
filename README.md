@@ -89,24 +89,24 @@ In addition, it:
 
 Given a `PolyNode`, you can:
 
-* safely identify the containing object
 * without interfaces
 * without virtual dispatch
+* safely identify the containing item
 
 ### Mailbox
 
 `Mailbox`:
 
 * transfers `PolyNode` items between Masters
-* transfers the object, not a reference to it
-* does not know or care about the concrete object type
+* transfers the item, not a reference to it
+* does not know or care about the concrete item type
 
 ### Pool
 
 `Pool`:
 
 * reuses `PolyNode`-based items
-* does not know or care about the concrete object type
+* does not know or care about the concrete item type
 * returns items for reuse instead of destroying them
 
 ### Together
@@ -133,8 +133,8 @@ The steroids are simple:
 
 * intrusion
 * type erasure
-* object transfer
-* object reuse
+* item transfer
+* item reuse
 
 Nothing else.
 
@@ -192,7 +192,7 @@ There is no big-bang commitment.
 
 Start your first Master with the simplest building block: `PolyNode`.
 
-Add `Pool` when object reuse becomes useful.
+Add `Pool` when item reuse becomes useful.
 
 Add `Mailbox` when you need message passing.
 
