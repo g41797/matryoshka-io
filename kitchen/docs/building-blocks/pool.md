@@ -6,7 +6,7 @@ Everything reusable lives here.
 
 ## What a Pool does
 
-A Pool hands out objects for reuse instead of forcing a fresh allocation every time.
+A Pool hands out items for reuse instead of forcing a fresh allocation every time.
 
 ```text
 new()

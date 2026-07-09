@@ -60,7 +60,7 @@ Masters:
 
 * own state
 * communicate through Mailboxes
-* share reusable objects through Pools
+* share reusable items through Pools
 
 Matryoshka does not dictate the implementation.
 
@@ -76,7 +76,7 @@ A Master uses only three small building blocks.
 
 Like `Node`, it is:
 
-* embedded into application objects
+* embedded into application items
 * suitable for:
 
   * intrusive lists
@@ -97,7 +97,7 @@ Given a `PolyNode`, you can:
 
 `Mailbox`:
 
-* transfers `PolyNode` objects between Masters
+* transfers `PolyNode` items between Masters
 * transfers the object, not a reference to it
 * does not know or care about the concrete object type
 
@@ -105,9 +105,9 @@ Given a `PolyNode`, you can:
 
 `Pool`:
 
-* reuses `PolyNode`-based objects
+* reuses `PolyNode`-based items
 * does not know or care about the concrete object type
-* returns objects for reuse instead of destroying them
+* returns items for reuse instead of destroying them
 
 ### Together
 
@@ -115,8 +115,8 @@ Just three small building blocks.
 
 > Together, this troika allows you to:
 >
-> * transfer objects
-> * reuse objects
+> * transfer items
+> * reuse items
 > * stay type-agnostic
 
 Exactly what the doctor ordered.

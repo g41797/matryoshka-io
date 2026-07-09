@@ -115,9 +115,9 @@ The whole model fits in a few lines.
 * A Master may send a message to any mailbox.
 * Including its own.
 * Multiple Masters may share one mailbox.
-* A Master may borrow objects from one or more pools.
+* A Master may borrow items from one or more pools.
 * Pools may be shared by many Masters.
-* Mailboxes and Pools may hold typed or type-erased objects.
+* Mailboxes and Pools may hold typed or type-erased items.
 
 Nothing else is required.
 
@@ -165,7 +165,7 @@ Master is an Io task. The other three are code.
 
 `PolyNode` is the bigger brother of Zig's intrusive `Node`.
 
-* embedded into application objects
+* embedded into application items
 * works in intrusive lists, queues, and other intrusive containers
 * adds simple run-time type identification
 
@@ -178,7 +178,7 @@ Given a `PolyNode`, you can identify the containing object:
 
 `Mailbox`:
 
-* transfers `PolyNode` objects between Masters
+* transfers `PolyNode` items between Masters
 * transfers the object, not a reference to it
 * does not know or care about the concrete object type
 
@@ -186,8 +186,8 @@ Given a `PolyNode`, you can identify the containing object:
 
 `Pool`:
 
-* reuses `PolyNode`-based objects
-* returns objects for reuse instead of destroying them
+* reuses `PolyNode`-based items
+* returns items for reuse instead of destroying them
 * does not know or care about the concrete object type
 
 ### Together

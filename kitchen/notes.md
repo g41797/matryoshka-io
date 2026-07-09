@@ -60,5 +60,5 @@ formatting only — no wording changes, safe to run repeatedly.
 
 - PolyNode → small tag attached to every object.
 - Mailbox → communication port / transfer station.
-- Pool → storage rack / warehouse of reusable objects.
+- Pool → storage rack / warehouse of reusable items.
 

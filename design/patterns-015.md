@@ -848,7 +848,7 @@ try select.concurrent(
 ### Pool as event source
 
 When to use.
-- Wait for reusable objects.
+- Wait for reusable items.
 
 Code shape.
 ```zig

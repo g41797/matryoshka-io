@@ -10,11 +10,11 @@ Read this page and think: "that's how my server looks." Not: "that's how their q
 
 ## Three small building blocks
 
-- `PolyNode` — embedded in application objects. Gives them a place in intrusive lists and queues. Gives them safe run-time type identification.
-- `Mailbox` — moves `PolyNode` objects between Masters. Transfers the object, not a reference to it.
-- `Pool` — reuses `PolyNode` objects. Returns them for reuse instead of destroying them.
+- `PolyNode` — embedded in application items. Gives them a place in intrusive lists and queues. Gives them safe run-time type identification.
+- `Mailbox` — moves `PolyNode` items between Masters. Transfers the object, not a reference to it.
+- `Pool` — reuses `PolyNode` items. Returns them for reuse instead of destroying them.
 
-Together they provide two capabilities: move objects, reuse objects. Nothing else.
+Together they provide two capabilities: move items, reuse items. Nothing else.
 
 ## One architectural concept: Master
 
@@ -35,7 +35,7 @@ A system built from Masters:
 
 - owns state inside each Master;
 - communicates through Mailboxes;
-- shares reusable objects through Pools.
+- shares reusable items through Pools.
 
 Matryoshka does not dictate how you compose them. Start with `PolyNode`. Add `Pool` when reuse becomes useful. Add `Mailbox` when you need message passing. The Master concept comes naturally as the system grows.
 

@@ -47,7 +47,7 @@ A handle is what Matryoshka actually moves: a pointer to the embedded `PolyNode`
 the object itself.
 
 - One handle, one object.
-- Specialized names exist for handles to specific infrastructure objects — a mailbox
+- Specialized names exist for handles to specific infrastructure items — a mailbox
   handle, a pool handle — but they are all the same kind of pointer underneath.
 
 ## Slot — where a handle lives while it's yours
@@ -68,7 +68,7 @@ Given a handle, you can identify the object it came from and cast back to it:
 - with one runtime check (a tag comparison), not a chain of them
 
 That is the whole ownership atom. Everything else in Matryoshka — Mailbox, Pool,
-Master — moves handles like this one, never the objects directly.
+Master — moves handles like this one, never the items directly.
 
 ---
 

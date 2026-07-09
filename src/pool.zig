@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-//! Pool for PolyNode objects.
+//! Pool for PolyNode items.
 //!
 //! A pool:
-//! - stores free objects by type
-//! - creates objects through user hooks
-//! - recycles returned objects
+//! - stores free items by type
+//! - creates items through user hooks
+//! - recycles returned items
 //! - is itself a PolyNode.
 //!
 

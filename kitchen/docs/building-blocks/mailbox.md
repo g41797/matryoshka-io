@@ -66,6 +66,6 @@ coordinating it, instead of a separate finished-message.
 
 ---
 
-Next: [Pool](pool.md) — how objects get reused instead of allocated fresh each time.
+Next: [Pool](pool.md) — how items get reused instead of allocated fresh each time.
 
 See also: [API Reference — Mailbox](../api/mailbox.md) for the actual Zig functions.

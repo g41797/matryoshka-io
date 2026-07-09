@@ -625,7 +625,7 @@ A mailbox can be:
 - stored in pools
 - embedded into larger structures
 
-Same rules as application objects.
+Same rules as application items.
 
 ### Functions
 
@@ -876,7 +876,7 @@ A pool can be:
 - sent through a mailbox
 - embedded into larger structures
 
-Same rules as application objects.
+Same rules as application items.
 
 ```zig
 pub const GetMode = enum {

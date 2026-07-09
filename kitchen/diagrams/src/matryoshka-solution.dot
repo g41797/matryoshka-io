@@ -51,7 +51,7 @@ digraph matryoshka_solution {
     { rank=same; acceptor; polynode; }
     acceptor -> polynode [style=dotted, arrowhead=none];
 
-    // Pool: a warehouse of reusable objects. Cylinder is the storage
+    // Pool: a warehouse of reusable items. Cylinder is the storage
     // shape; Mailbox above stays a flat transfer device, not storage.
     node [shape=cylinder, style="filled", fillcolor="#dbe4ec", color="#5b7a94", fontcolor="#243642", fontsize=11];
     pool [label="Pool\nreuses items"];

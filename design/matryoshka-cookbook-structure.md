@@ -40,9 +40,9 @@ Foundation concepts.
 
 008 Slot lifecycle
 
-009 Stack allocated objects
+009 Stack allocated items
 
-010 Heap allocated objects
+010 Heap allocated items
 
 ---
 
@@ -85,7 +85,7 @@ Foundation concepts.
 
 025 Runtime type checking
 
-026 Wrapper objects
+026 Wrapper items
 
 027 MailboxHandle wrapper
 
@@ -99,7 +99,7 @@ Foundation concepts.
 
 ## Chapter 4 — Intrusive Lists
 
-031 Linked vs unlinked objects
+031 Linked vs unlinked items
 
 032 reset()
 

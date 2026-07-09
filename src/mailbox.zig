@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-//! Message queue for PolyNode objects.
+//! Message queue for PolyNode items.
 //!
 //! A mailbox:
 //! - queues ItemHandles

@@ -4,7 +4,7 @@ Latest changes - Master is result of io.concurrent() let's call it task
 
 It completely change all mindset - Matryoshka not is not side car, it's integral part of Io world
 
-Master difference to regular task - it works with PolyNode based items(objects), Has usually in Mailboxe, uses Mailbox(es) and Pool(s)
+Master difference to regular task - it works with PolyNode based items(items), Has usually in Mailboxe, uses Mailbox(es) and Pool(s)
 
 Now Matryoshka is one of the ways to build Zig based system.
 
@@ -114,7 +114,7 @@ Typically it:
 * owns application state
 * owns one or more Mailboxes
 * owns one or more Pools
-* exchanges PolyNode objects
+* exchanges PolyNode items
 * transfers items instead of sharing 
 
 That is an extremely simple definition.
@@ -131,7 +131,7 @@ Instead say
 
 because now `io.concurrent()` already creates the _task_.
 
-Matryoshka defines how those tasks communicate and own objects(PolyNode based items).
+Matryoshka defines how those tasks communicate and own items(PolyNode based items).
 
 ---
 
@@ -253,8 +253,8 @@ Typically a Master:
 - owns application state
 - owns one or more Mailboxes
 - owns one or more Pools
-- exchanges PolyNode objects
-- transfers ownership instead of sharing mutable objects
+- exchanges PolyNode items
+- transfers ownership instead of sharing mutable items
 
 Not every Io task is a Master.
 
@@ -272,7 +272,7 @@ Matryoshka answers:
 
 > How do tasks cooperate?
 
-Instead of sharing mutable state, Masters exchange ownership of objects.
+Instead of sharing mutable state, Masters exchange ownership of items.
 
 This keeps object lifetime and ownership explicit.
 

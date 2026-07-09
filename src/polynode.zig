@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: Copyright (c) 2026 g41797
 // SPDX-License-Identifier: MIT
 
-//! Runtime type support for intrusive objects.
+//! Runtime type support for intrusive items.
 //!
-//! Every Matryoshka object embeds a PolyNode.
+//! Every Matryoshka item embeds a PolyNode.
 //!
 //! PolyNode provides:
 //! - intrusive list links
@@ -22,10 +22,10 @@ pub const PolyTag = struct {
     _: u8 = 0,
 };
 
-/// Embedded in every managed object.
+/// Embedded in every managed item.
 ///
 /// Infrastructure works with PolyNode.
-/// Applications work with the parent object.
+/// Applications work with the parent item.
 pub const PolyNode = struct {
     node: std.DoublyLinkedList.Node = .{},
     tag: *const anyopaque = undefined,
@@ -132,21 +132,21 @@ pub fn PolyHelper(comptime T: type) type {
 
             /// Allocates and initializes T.
             ///
-            /// Stores the object in the Slot.
+            /// Stores the item in the Slot.
             pub fn create(
                 allocator: std.mem.Allocator,
                 slot: *Slot,
             ) !void {
                 std.debug.assert(slot.* == null);
 
-                const object = try allocator.create(T);
-                object.* = .{};
-                Self.init(object);
+                const item = try allocator.create(T);
+                item.* = .{};
+                Self.init(item);
 
-                slot.* = &object.poly;
+                slot.* = &item.poly;
             }
 
-            /// Destroys the object stored in the Slot.
+            /// Destroys the item stored in the Slot.
             ///
             /// Does nothing if the Slot is empty.
             pub fn destroy(
@@ -157,13 +157,13 @@ pub fn PolyHelper(comptime T: type) type {
 
                 std.debug.assert(!is_linked(poly));
 
-                const object = Self.identifyNodeAs(poly);
-                std.debug.assert(object != null);
+                const item = Self.identifyNodeAs(poly);
+                std.debug.assert(item != null);
 
-                // Clear the Slot before releasing the object.
+                // Clear the Slot before releasing the item.
                 slot.* = null;
 
-                allocator.destroy(object.?);
+                allocator.destroy(item.?);
             }
         };
     } else {

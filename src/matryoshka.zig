@@ -6,7 +6,7 @@
 //! Components:
 //! - polynode: runtime type support
 //! - mailbox: message passing
-//! - pool: object lifecycle management
+//! - pool: item lifecycle management
 //!
 
 pub const polynode = @import("polynode.zig");

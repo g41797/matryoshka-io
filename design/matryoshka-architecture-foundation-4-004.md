@@ -54,7 +54,7 @@ Most non-trivial systems eventually face the same questions:
 * How does it move between tasks?
 * Can it be reused safely?
 * What happens during shutdown?
-* What happens to objects still in flight?
+* What happens to items still in flight?
 
 Different subsystems often answer these questions differently.
 
@@ -756,7 +756,7 @@ Pool exists to answer that question.
 
 ## Why Pool Exists
 
-Many systems repeatedly create and destroy the same kinds of objects:
+Many systems repeatedly create and destroy the same kinds of items:
 
 * request buffers
 * events
@@ -1370,7 +1370,7 @@ Matryoshka does not impose a fixed shape.
 
 ## Master Is Not Required To Be A PolyNode
 
-Many infrastructure objects are represented as PolyNodes.
+Many infrastructure items are represented as PolyNodes.
 
 Master does not have to be.
 
@@ -1450,7 +1450,7 @@ Routing
 
 ### Resource Domain
 
-Lifecycle of reusable objects.
+Lifecycle of reusable items.
 
 Examples:
 
@@ -2128,7 +2128,7 @@ These responsibilities should remain independent.
 
 # 10. Infrastructure As Items
 
-One of the more unusual ideas in Matryoshka is that infrastructure can participate in the same rule set as user objects.
+One of the more unusual ideas in Matryoshka is that infrastructure can participate in the same rule set as user items.
 
 A mailbox can be an item.
 
@@ -2158,7 +2158,7 @@ Pools use a third lifecycle.
 Resources use a fourth lifecycle.
 ```
 
-A developer must remember different rules for different objects.
+A developer must remember different rules for different items.
 
 Matryoshka attempts to reduce that complexity.
 
@@ -2530,7 +2530,7 @@ Combining them introduces ambiguity and shutdown bugs.
 
 ## Decision: Infrastructure May Participate In Transfer
 
-Infrastructure can follow the same rule set as user objects.
+Infrastructure can follow the same rule set as user items.
 
 ### Reason
 

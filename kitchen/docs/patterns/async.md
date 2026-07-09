@@ -106,7 +106,7 @@ try select.concurrent(
 
 When to use.
 
-- Wait for reusable objects.
+- Wait for reusable items.
 
 Code shape.
 ```zig

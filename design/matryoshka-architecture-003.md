@@ -589,7 +589,7 @@ Built on Layer 2:
 
 - Registers mailboxes and pools as event sources.
 - Exposes them to `Io.Select` for concurrent waiting.
-- Manages `Future` objects for each source.
+- Manages `Future` items for each source.
 
 ### Layer 4 — matryoshka root (initialization)
 

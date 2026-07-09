@@ -152,7 +152,7 @@ fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
 // A Master is a coordination boundary: it owns its resources and coordinates
 // their flow. The Network Master owns the buffer pool (as a backpressure source)
 // and the ready queue. Its Io.Select loop fills buffers and routes StreamContext
-// objects to the workers.
+// items to the workers.
 
 const NetworkEvent = union(enum) {
     buf_ev: pool.PoolResult,
@@ -276,7 +276,7 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 
     try seedBufferPool(buf_ph, allocator);
 
-    // Ready queue: StreamContext objects route camera state to workers.
+    // Ready queue: StreamContext items route camera state to workers.
     // Storage mailbox: encoded segments flow from workers to storage task.
     // Both are closed and destroyed explicitly during shutdown below.
     const ready_queue: MailboxHandle = try mailbox.new(io, allocator);

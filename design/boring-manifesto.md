@@ -87,7 +87,7 @@ I think in business events.
 
 ---
 
-I don't want fifty objects touching the same state.
+I don't want fifty items touching the same state.
 
 I want one owner.
 

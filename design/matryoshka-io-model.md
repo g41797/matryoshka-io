@@ -26,7 +26,7 @@ Matryoshka mapping:
 
 ---
 
-> **Imagine your application consists only of independent Masters communicating through mailboxes and borrowing objects from pools.**
+> **Imagine your application consists only of independent Masters communicating through mailboxes and borrowing items from pools.**
 >
 > If you can picture your system that way, you're already thinking in Matryoshka.
 
@@ -51,11 +51,11 @@ Including its own mailbox.
 
 Masters may share the same mailbox.
 
-A Master may borrow objects from one or more pools.
+A Master may borrow items from one or more pools.
 
 Pools may be shared by many Masters.
 
-Mailboxes and Pools may store typed or type-erased objects.
+Mailboxes and Pools may store typed or type-erased items.
 
 Nothing else is required.
 

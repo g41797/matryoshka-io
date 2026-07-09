@@ -16,7 +16,7 @@
 ```text
 TypeErasedQueue                     Mailbox
 
-storage + sync + capacity           sync + moving objects between owners
+storage + sync + capacity           sync + moving items between owners
 ```
 
 ## TypeErasedQueue is a synchronization primitive
@@ -30,7 +30,7 @@ That means it needs:
 - per-waiter conditions
 - rules for who wakes next
 
-Slots are the center of the design. The objects passing through are secondary.
+Slots are the center of the design. The items passing through are secondary.
 
 ## Mailbox is a transport primitive
 
@@ -64,7 +64,7 @@ When the Pool is empty, the producer waits — the Mailbox itself has no opinion
 ## Four responsibilities, four owners
 
 ```text
-Mailbox     synchronization + moving objects between owners
+Mailbox     synchronization + moving items between owners
 Pool        lifecycle, capacity, reuse
 Allocator   memory
 Master      scheduling, application policy
