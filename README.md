@@ -1,4 +1,20 @@
+![](kitchen/_logo/matryoshka-io-logo.png)
+
+---
+
 # Matryoshka-Io — a practical way to build great software systems
+
+---
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Linux](https://github.com/g41797/matryoshka-io/actions/workflows/linux.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/linux.yml)
+[![Windows](https://github.com/g41797/matryoshka-io/actions/workflows/windows.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/windows.yml)
+[![macOS](https://github.com/g41797/matryoshka-io/actions/workflows/mac.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/mac.yml)
+[![Deploy Documentation](https://github.com/g41797/matryoshka-io/actions/workflows/docs.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/docs.yml)
+
+
+---
+
+
 
 ## First rule of building great software systems
 
@@ -203,8 +219,6 @@ It's up to you.
 Each step provides immediate value.
 
 Each step remains useful after the next one.
-
-The whole troika is only 582 lines of code.
 
 Don't be afraid.
 
