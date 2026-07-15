@@ -26,7 +26,7 @@ Why this order.
 - Await workers before closing the pool, or a worker returns an item to a closed pool.
 - A pool returns the item to the caller when closed — the worker must free it as a fallback.
 
-Code shape (worker fallback for closed pool).
+Code shape (worker fallback for closed pool).  
 ```zig
 pool.put(ctx.buf_ph, &sc.buffer_slot);
 if (sc.buffer_slot != null) {
@@ -44,7 +44,7 @@ When to use.
 - Simpler than the close-based sequence above when there is only one worker and no pool to
   empty in lockstep.
 
-Pattern.
+Pattern.  
 ```
 main ──Event×N──► mailbox ──► worker (processes, frees each)
 main ──ShutdownCommand──► mailbox ──► worker (recognizes tag, exits, frees it)
@@ -64,9 +64,13 @@ Example: `examples/layer2/062-shutdown_exit.zig`.
 
 ## Master patterns
 
-### Observable function shapes
+Actually these patterns were written for usage by AI during generation of Examples.  
 
-Concrete templates for the "Observable by human" MUST rule (`design/rules-017.md`).
+You can borrow several ideas here, but Matryoshka-Io does not dictate how to proceed.    
+
+It's your system.  
+
+### Observable function shapes
 
 #### Coordinator / run
 
@@ -74,7 +78,7 @@ When to use.
 
 - Any function that sequences discrete steps: `pub fn run`, a Master's `run`, any sequencing method.
 
-Code shape.
+Code shape.  
 ```zig
 fn run(self: *Master) !void {
     try self.seedResources();
@@ -97,7 +101,7 @@ When to use.
 
 - Any function that implements one discrete phase of the coordinator.
 
-Code shape.
+Code shape.  
 ```zig
 fn seedResources(self: *Master) !void {
     for (0..N) |i| {
@@ -122,7 +126,7 @@ When to use.
 
 - Allocating a Master struct and acquiring its resources.
 
-Code shape.
+Code shape.  
 ```zig
 fn init(allocator: std.mem.Allocator, io: std.Io) !*Master {
     const self = try allocator.create(Master);
@@ -152,7 +156,7 @@ When to use.
 
 - Releasing a Master struct and its resources.
 
-Code shape.
+Code shape.  
 ```zig
 fn destroy(self: *Master) void {
     var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
@@ -179,10 +183,10 @@ Rule.
 
 - The spawned function receives `*Master` (or a small `*Ctx`) directly as its argument.
 - It keeps no other thread-local bookkeeping — the thread's own stack holds no separate
-  ITC state to track and free later. The Master struct (heap-allocated, see Init above) is
+  ITC state to track and free later. The Master struct (heap-allocated, see Init above) is  
   the single source of truth, reachable through the one pointer the thread was given.
 
-Code shape.
+Code shape.  
 ```zig
 var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
 var fut = try io.concurrent(workerFn, .{&ctx});
@@ -212,7 +216,7 @@ When to use.
 - `buf` and `sel` are declared at coordinator scope; passed as `*Sel` (transient) to step functions.
 - Use when the file has 1-2 coordinator-scope params (explicit passing) or 3+ params (introduce a local Ctx struct).
 
-Code shape (explicit params, 1-2 shared values).
+Code shape (explicit params, 1-2 shared values).  
 ```zig
 const Sel = std.Io.Select(MasterEvent);
 
@@ -257,7 +261,7 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *Sel) !void {
 }
 ```
 
-Code shape (3+ shared values — local Ctx struct, stack-allocated).
+Code shape (3+ shared values — local Ctx struct, stack-allocated).  
 ```zig
 const Ctx = struct {
     mbh: MailboxHandle,
@@ -296,7 +300,7 @@ When to use.
 - A flat `pub fn run` that spawns concurrent workers (`io.concurrent`, `group.concurrent`, `Thread.spawn`) and awaits them.
 - The spawn block and the await block together form one named step.
 
-Code shape (single spawn+await step).
+Code shape (single spawn+await step).  
 ```zig
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
@@ -319,7 +323,7 @@ fn spawnAndAwaitWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io
 }
 ```
 
-Code shape (separate spawn and await steps).
+Code shape (separate spawn and await steps).  
 ```zig
 fn spawnWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, group: *std.Io.Group) !void {
     for (0..N_WORKERS) |i| {
@@ -358,7 +362,7 @@ Two Masters in the pilot story.
 - Worker set — an `Io.Group`. Each worker receives a `StreamContext`, encodes, returns the buffer to the pool, sends an `EncodedSegment` to storage.
 - Storage task — a single-mailbox loop. Receives `EncodedSegment`, logs, frees.
 
-Code shape (thin run).
+Code shape (thin run).  
 ```zig
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     // 1. initialize shared resources: pool, mailboxes
@@ -370,8 +374,8 @@ pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
 - The coordination logic of each Master lives in its own function.
 - `run` shows the startup order and the shutdown order — nothing else.
 
-Example: `stories/video_transcoder/video_transcoder.zig`.
-<!-- Temporarily hidden — Deep Dive section commented out of mkdocs.yml nav.
+Example: `stories/video_transcoder/video_transcoder.zig`.  
+<!-- Temporarily hidden — Deep Dive section commented out of mkdocs.yml nav.  
 See the [Deep Dive](../deep-dive/video-transcoder.md) page. -->
 
 
@@ -381,7 +385,7 @@ When to use.
 
 - Separate lifecycle from transport.
 
-Pattern.
+Pattern.  
 ```
 Pool
    │
@@ -396,7 +400,7 @@ Mailbox
 
 ### Full Layer-4 architecture
 
-Pattern.
+Pattern.  
 ```
           Io.Select
                │
@@ -420,7 +424,4 @@ Purpose.
 
 ---
 
-<!-- Temporarily hidden — Deep Dive section commented out of mkdocs.yml nav.
-Next: [Deep Dive — Video Transcoder](../deep-dive/video-transcoder.md).
--->
 Next: [Examples Catalog](../examples/index.md).

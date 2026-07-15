@@ -1,6 +1,6 @@
 # Patterns — Pool Patterns
 
-Concepts: [Building Blocks — Pool](../building-blocks/pool.md).
+Concepts: [Building Blocks — Pool](../building-blocks/pool.md).  
 API: [API Reference — Pool](../api/pool.md).
 
 ### Pool mode — .available_or_new
@@ -9,7 +9,7 @@ When to use.
 
 - The common case: reuse a stored item if one is free, otherwise create a fresh one.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer pool.put(ph, &slot);
@@ -26,7 +26,7 @@ When to use.
 
 - Seeding. You want a fresh item every time, never a stored one.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
@@ -43,7 +43,7 @@ When to use.
 - Consume what is stored. Stop when the pool is empty.
 - Empty pool returns `error.NotAvailable` — a normal end condition, not a failure.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 pool.get(ph, EventPolyHelper.TAG, .available_only, &slot) catch |err| switch (err) {
@@ -60,7 +60,7 @@ When to use.
 
 - A fixed-size pool. Pool capacity is set once at startup, no on-demand creation.
 
-Code shape.
+Code shape.  
 ```zig
 for (0..N_BUFFERS) |_| {
     var slot: Slot = null;
@@ -81,7 +81,7 @@ When to use.
 - `on_get`: decide how an item is created or reinitialized.
 - `on_put`: decide whether a returned item is kept or destroyed (cap policy).
 
-Pattern.
+Pattern.  
 ```
 on_get
     ↓
@@ -93,7 +93,7 @@ on_put
 keep or destroy
 ```
 
-Code shape.
+Code shape.  
 ```zig
 fn onGet(_: *anyopaque, _: *const anyopaque, _: usize, _: *Slot) void {}        // fixed-size: never create
 fn onPut(_: *anyopaque, _: usize, _: *Slot) void {}                              // keep all
@@ -110,7 +110,7 @@ When to use.
 
 - Shared hook state.
 
-Code shape.
+Code shape.  
 ```zig
 lockUncancelable()
 
@@ -133,7 +133,7 @@ When to use.
 
 - Free all stored items when the pool shuts down.
 
-Code shape.
+Code shape.  
 ```zig
 fn onClose(ctx: *anyopaque, list: *std.DoublyLinkedList) void {
     const self: *VideoBufCtx = @ptrCast(@alignCast(ctx));
@@ -156,7 +156,7 @@ When to use.
 
 - Pool stores multiple object types.
 
-Pattern.
+Pattern.  
 ```
 Pool
  ├── Event

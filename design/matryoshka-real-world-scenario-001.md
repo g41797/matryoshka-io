@@ -4,7 +4,7 @@ This document shows how a complex, large-scale system is designed. First, the ar
 
 ## Part 1: The Architects
 
-Two architects are designing a high-throughput video streaming router. 
+Two architects are designing a high-throughput video streaming router.   
 The system has strict boundaries:
 - **Inputs**: 10,000 external IP cameras sending live RTMP streams.
 - **Outputs**: Encoded HLS video segments written to a storage cluster.

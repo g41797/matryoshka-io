@@ -8,7 +8,7 @@
 
 ### The problem
 
-Concurrent systems are built from independent components.
+Concurrent systems are built from independent components.  
 These components need to exchange work items:
 
 - A sensor produces readings.
@@ -16,7 +16,7 @@ These components need to exchange work items:
 - A logger writes them to disk.
 - A monitor watches for anomalies.
 
-Each component runs in its own thread or task.
+Each component runs in its own thread or task.  
 They must communicate without stepping on each other.
 
 ```text
@@ -155,14 +155,14 @@ One mechanism that solves all four problems:
 
 ## Chapter 2 — How the solution grows
 
-Each section introduces one concept.
+Each section introduces one concept.  
 Each concept answers the question the previous one creates.
 
 ### Step 1 — Intrusive node
 
 **Why lists?**
 
-Concurrent components process items in order.
+Concurrent components process items in order.  
 The natural data structure is a queue — first in, first out:
 
 - Producer appends to the tail.
@@ -232,8 +232,8 @@ The question from Step 1:
 
 > I have a `*Node`. How do I know what type of item it belongs to?
 
-Different item types can live in the same list.
-The node itself carries no type information.
+Different item types can live in the same list.  
+The node itself carries no type information.  
 We need a runtime identity marker.
 
 **Solution: attach a tag.**
@@ -299,7 +299,7 @@ The question from Step 2:
 
 > I have a `*PolyNode`. Where is it right now?
 
-Passing raw pointers around leaves the item's place implicit.
+Passing raw pointers around leaves the item's place implicit.  
 Two components might both think they hold the same item.
 
 **Solution: a slot.**
@@ -430,7 +430,7 @@ A master coordinates multiple sources.
 - Select waits on multiple sources simultaneously.
 - When any source has an item, the component wakes up and processes it.
 
-This is the final piece.
+This is the final piece.  
 The component does not poll. It reacts.
 
 ### The full picture
@@ -444,19 +444,19 @@ The component does not poll. It reacts.
   Master / Select  = coordination  (wait for it)
 ```
 
-Each concept answers one question.
+Each concept answers one question.  
 Together they form a complete transfer system.
 
 ---
 
 ## Chapter 3 — Flows and patterns
 
-Each pattern uses only the concepts from Chapter 2.
+Each pattern uses only the concepts from Chapter 2.  
 Diagrams show item movement.
 
 ### Simple producer-consumer
 
-The simplest pattern.
+The simplest pattern.  
 One producer, one consumer, one mailbox:
 
 ```text
@@ -547,7 +547,7 @@ A component that reacts to multiple sources:
 
 ## Chapter 4 — Layer map
 
-Matryoshka is organized in four layers.
+Matryoshka is organized in four layers.  
 Each layer builds on the previous one.
 
 ```text
@@ -580,7 +580,7 @@ Built on Layer 1:
 - `mailbox` — thread-safe transport via queues.
 - `pool` — item recycling via get/put.
 
-Both operate on `ItemHandle` and `Slot`.
+Both operate on `ItemHandle` and `Slot`.  
 Both are independent — you can use either without the other.
 
 ### Layer 3 — master (coordination)

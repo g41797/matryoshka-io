@@ -1,8 +1,8 @@
 # Matryoshka Zig — Rules (024)
 
-Versioned doc. Replaces [rules-022.md](rules-022.md).
-All coding, doc, and process rules for the project.
-Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
+Versioned doc. Replaces [rules-022.md](rules-022.md).  
+All coding, doc, and process rules for the project.  
+Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.  
 Companion: [patterns-012.md](patterns-012.md) — reusable coding patterns.
 
 ---
@@ -59,7 +59,7 @@ Step function parameters.
 - A step function with 3+ parameters that are all coordinator-scope state signals: introduce a struct.
 - Simple extractions with 1-2 params: explicit parameters are fine.
 
-Applies to all code: `src/`, `helpers/`, `examples/`, `tests/`, `stories/`.
+Applies to all code: `src/`, `helpers/`, `examples/`, `tests/`, `stories/`.  
 Small functions with no distinct phases need no extraction.
 
 ---
@@ -90,21 +90,21 @@ Placement — `//!` file-level doc comment, not `//`.
 - `//!` is autodoc-extractable and renders on the file's own container page. Plain
   `//` is not extracted at all.
 - Not `///` on the entry point: every example file has exactly one public entry
-  point, so the file-level `//!` description is sufficient. Mixing `//!` (file)
-  and `///` (declaration) above the same function is a bug, not a style choice —
-  they are different token kinds to the autodoc parser, and the function's own
+  point, so the file-level `//!` description is sufficient. Mixing `//!` (file)  
+  and `///` (declaration) above the same function is a bug, not a style choice —  
+  they are different token kinds to the autodoc parser, and the function's own  
   doc silently truncates to whichever kind sits immediately above it.
 - If the example uses a Master, the Master's own `run` method is the real
-  coordinator, but it is private (`fn`, not `pub fn`) — no doc comment on it. Its
-  steps are still named, self-documenting per Observable by human; no separate
+  coordinator, but it is private (`fn`, not `pub fn`) — no doc comment on it. Its  
+  steps are still named, self-documenting per Observable by human; no separate  
   doc block needed.
 
 ASCII diagrams — fenced code block.
 - Any ASCII diagram inside a `//!` block (Ownership diagrams, flow diagrams) is
-  wrapped in a ` ``` ` fenced code block: ` ``` ` on its own `//!` line, the
+  wrapped in a ` ``` ` fenced code block: ` ``` ` on its own `//!` line, the  
   diagram lines, then ` ``` ` on its own `//!` line to close.
 - Reason: the autodoc viewer renders doc comments as CommonMark markdown, which
-  collapses single line breaks into one flat paragraph. A fenced (or 4-space
+  collapses single line breaks into one flat paragraph. A fenced (or 4-space  
   indented) code block is the only way box-drawing diagrams keep their shape.
 - Trailing prose after a diagram (a summary sentence, not the diagram itself)
   stays outside the fence, as a normal paragraph.
@@ -189,16 +189,16 @@ Scope and shape.
 - Entry point uses a descriptive name, not `run`.
 - Signature: `pub fn <snake_case>(allocator: std.mem.Allocator, io: std.Io) !void`.
 - `<snake_case>` is a plain identifier derived from the example's one-line staccato
-  description (lowercase, words joined with `_`) — never a quoted identifier
-  (`@"..."`). Zig's built-in `zig build docs` autodoc viewer cannot resolve
-  declaration links for quoted identifiers; using one breaks the generated
+  description (lowercase, words joined with `_`) — never a quoted identifier  
+  (`@"..."`). Zig's built-in `zig build docs` autodoc viewer cannot resolve  
+  declaration links for quoted identifiers; using one breaks the generated  
   `examplesdocs` page for that example.
 - The staccato description text itself is unchanged and still lives verbatim as
   the first line of the file's `//!` doc comment.
 - Master's own `run` method (private, inside the Master struct) is unaffected — this
   rule targets only the example's public entry point.
 - `//!` doc comment at the top of the file: staccato description + ASCII ownership
-  circuit diagram, diagram wrapped in a ` ``` ` fenced code block. No doc comment =
+  circuit diagram, diagram wrapped in a ` ``` ` fenced code block. No doc comment =  
   not done. See Description as code above.
 - The entry point (and Master `run` method, if any) placed at the top of the file, right
   after that doc comment.
@@ -321,12 +321,12 @@ Layer terminology.
 
 Handle naming (API 4).
 - `ItemHandle` is the canonical name for `*PolyNode` — supersedes `NodeHandle`,
-  which leaked the intrusive-list-node implementation detail into a name
+  which leaked the intrusive-list-node implementation detail into a name  
   meant to describe what the caller holds.
 - Short variable name: `ih` (was `nh` — never actually used in code before
   this rule, so nothing to migrate).
 - Bare `handle` is acceptable informal shorthand in prose/comments once the
-  type is clear from context — matches existing usage throughout the API
+  type is clear from context — matches existing usage throughout the API  
   reference.
 - `MailboxHandle` / `PoolHandle` are unaffected — they already name the role,
   not the implementation.
@@ -364,7 +364,7 @@ Banned words.
 - No prose paragraphs with comma-separated lists.
 - No dense multi-fact sentences.
 - Bullet nesting: when a bullet splits at a colon, "and", or into multiple
-  sub-items, demote each part to a nested bullet, one level deeper, one item
+  sub-items, demote each part to a nested bullet, one level deeper, one item  
   per line. Do not cram a comma-list or colon-plus-list onto one line.
 - LONG SENTENCES DISABLED. Use bullets.
   - Break a long sentence into several short sentences, one line each.
@@ -393,37 +393,37 @@ Banned words.
   - Readers of source or generated docs only see the `.zig` files.
   - Comments must be self-contained — explain the fact, don't point at a doc.
 - File-header (`//!`) staccato standard (added in rules-013): model on
-  `std.Io`'s own file header — short intro line, then a flat bullet list of
+  `std.Io`'s own file header — short intro line, then a flat bullet list of  
   concrete facts, one per bullet.
   - A header that reads as one run-on paragraph across several `//!` lines
-    is a violation even if each individual line is short — packing more
+    is a violation even if each individual line is short — packing more  
     than one distinct fact into unbulleted lines is still dense prose.
   - Applies to any doc comment (not just headers) naming more than one
     distinct fact.
 - Verification rule (added in rules-013): a sweep or scan (banned words,
-  terminology bans, `.md`-reference check, line-length/staccato check)
-  is only "done" when re-run live against current file contents at the
+  terminology bans, `.md`-reference check, line-length/staccato check)  
+  is only "done" when re-run live against current file contents at the  
   moment of the claim.
   - A prior pass's claim of completion is not sufficient — re-run the
     grep/check yourself before reporting a sweep as complete.
   - Reason: a DOC 16 pass claimed the ownership-terminology sweep was
-    complete across `src/*.zig`; a live re-check found 6 remaining hits
-    the earlier pass had missed in `polynode.zig`, `mailbox.zig`, and
+    complete across `src/*.zig`; a live re-check found 6 remaining hits  
+    the earlier pass had missed in `polynode.zig`, `mailbox.zig`, and  
     `pool.zig`.
 - First-declaration doc-stub rule (added in rules-017, supersedes the
-  rules-016 blank-line rule — that hypothesis was tested and disproved):
-  if a file's first declaration after the `//!` header carries a `///` doc
-  comment, Zig's autodoc container page splices that comment onto the
+  rules-016 blank-line rule — that hypothesis was tested and disproved):  
+  if a file's first declaration after the `//!` header carries a `///` doc  
+  comment, Zig's autodoc container page splices that comment onto the  
   module overview page with no separator, regardless of blank lines.
   - Fix: insert `const _doc_stub = void;` (no doc comment, non-`pub`) as
-    the first declaration after the `//!` header. It absorbs the splice;
-    being undocumented and private, it does not appear in the rendered
+    the first declaration after the `//!` header. It absorbs the splice;  
+    being undocumented and private, it does not appear in the rendered  
     docs at all.
   - Only needed when the first declaration would otherwise carry a `///`
-    comment. Files with no `///` comments at all (every `examples/`/
+    comment. Files with no `///` comments at all (every `examples/`/  
     `stories/` file — description lives entirely in `//!`) need no stub.
   - Verified empirically via headless-Chrome render of `zig build docs`
-    output, not assumed from source alone — a plain source-level fix here
+    output, not assumed from source alone — a plain source-level fix here  
     is unverifiable without checking the actual rendered page.
 
 ---
@@ -485,74 +485,74 @@ Banned words.
    * Always put a blank line between a lead-in paragraph/heading and the
      bullet or numbered list that follows it.
    * mkdocs's Python-Markdown renderer needs the blank line to recognize the
-     list. Without it, the list renders as flat inline text with literal
+     list. Without it, the list renders as flat inline text with literal  
      `-`/`1.` characters instead of an actual list.
    * GitHub markdown renders such a list correctly even without the blank
-     line — do not rely on that as a check. Verify with
-     `mkdocs build --strict` (or by eye in `mkdocs serve`), not by reading
+     line — do not rely on that as a check. Verify with  
+     `mkdocs build --strict` (or by eye in `mkdocs serve`), not by reading  
      the raw `.md` source.
    * Enforced by `kitchen/tools/fix_md_lists.sh` — auto-fixes every
-     `kitchen/docs/**/*.md` in place, part of `build_site.sh`/
-     `preview_site.sh`/CI (see `kitchen/notes.md`). Mechanical formatting
-     only; hand-written prose still needs a blank line for the fix to
+     `kitchen/docs/**/*.md` in place, part of `build_site.sh`/  
+     `preview_site.sh`/CI (see `kitchen/notes.md`). Mechanical formatting  
+     only; hand-written prose still needs a blank line for the fix to  
      recognize the list wasn't intentional inline text.
 
 * Examples-catalog nav sync — keep `kitchen/mkdocs.yml` matching `examples/`
   and `stories/`.
 
    * Any stage that adds, removes, or renames a file under `examples/` or
-     `stories/` must also update `kitchen/mkdocs.yml`'s Examples Catalog
-     `nav:` block and the matching hand-authored group page under
-     `kitchen/docs/examples/` (`index.md`, `polynode.md`, `mailbox.md`,
+     `stories/` must also update `kitchen/mkdocs.yml`'s Examples Catalog  
+     `nav:` block and the matching hand-authored group page under  
+     `kitchen/docs/examples/` (`index.md`, `polynode.md`, `mailbox.md`,  
      `pool.md`, `io.md`, `flow.md`, or whatever grouping is current).
    * `kitchen/tools/gen_examples_docs.sh` only mirrors `.zig` files into
-     generated `.md` pages — it does not touch `nav:` or the group pages.
-     A new example gets a generated page automatically, but stays orphaned
-     (reachable only if some page happens to link it, otherwise not
+     generated `.md` pages — it does not touch `nav:` or the group pages.  
+     A new example gets a generated page automatically, but stays orphaned  
+     (reachable only if some page happens to link it, otherwise not  
      reachable at all) until `nav:`/group pages are updated by hand.
    * Verify with `bash kitchen/tools/build_site.sh`: check for `INFO -
-     The following pages exist in the docs directory, but are not included
-     in the "nav" configuration` and confirm no `examples/*.md` path
-     appears in that list. Found and fixed once already (DOC 20
-     follow-up, 2026-07-08) — the mirrored pages built fine but were
+     The following pages exist in the docs directory, but are not included  
+     in the "nav" configuration` and confirm no `examples/*.md` path  
+     appears in that list. Found and fixed once already (DOC 20  
+     follow-up, 2026-07-08) — the mirrored pages built fine but were  
      silently missing from `nav:` until this check caught it.
 
 * Doc-generation module size — keep every `zig build docs` target small.
 
    * `build.zig`'s `docs` step must never root a doc target (`b.addObject` +
-     `getEmittedDocs()`) at a module whose transitive import graph spans a
-     large tree. A combined target like that makes the Zig autodoc client
-     (`main.wasm`) hang forever on "Loading..." in the browser, throwing
-     `Uncaught (in promise) RangeError: Maximum call stack size exceeded`.
-     The principle still applies to any future `zig build docs` target —
-     `apidocs` (rooted at `src/matryoshka.zig`) stays well under this size
+     `getEmittedDocs()`) at a module whose transitive import graph spans a  
+     large tree. A combined target like that makes the Zig autodoc client  
+     (`main.wasm`) hang forever on "Loading..." in the browser, throwing  
+     `Uncaught (in promise) RangeError: Maximum call stack size exceeded`.  
+     The principle still applies to any future `zig build docs` target —  
+     `apidocs` (rooted at `src/matryoshka.zig`) stays well under this size  
      and needs no special handling.
    * Historical detail (DOC 20 removed the affected targets): matryoshka-io
-     hit this after INTR 6 (2026-07-07) with a combined `examples/`
-     autodoc target (~70+ files); same symptom confirmed in the sibling
-     `tofu` repo (commit `1020ba27`, "Fix build of docs. Update GitHub
-     Pages"). The fix at the time split it into 8 small per-area targets
-     (`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,
-     `storiesdocs`), each staged into an isolated directory via
-     `b.addWriteFiles()` to avoid `getEmittedDocs()` also leaking sibling
-     files into the wrong target's source browser (found 2026-07-08).
-     DOC 20 removed all 8 targets — example docs are now a hand-organized
-     mkdocs catalog (`kitchen/docs/examples/`, generated by
-     `kitchen/tools/gen_examples_docs.sh`) instead of Zig autodoc output —
-     so the staging workaround no longer exists in `build.zig`. Kept here
+     hit this after INTR 6 (2026-07-07) with a combined `examples/`  
+     autodoc target (~70+ files); same symptom confirmed in the sibling  
+     `tofu` repo (commit `1020ba27`, "Fix build of docs. Update GitHub  
+     Pages"). The fix at the time split it into 8 small per-area targets  
+     (`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,  
+     `storiesdocs`), each staged into an isolated directory via  
+     `b.addWriteFiles()` to avoid `getEmittedDocs()` also leaking sibling  
+     files into the wrong target's source browser (found 2026-07-08).  
+     DOC 20 removed all 8 targets — example docs are now a hand-organized  
+     mkdocs catalog (`kitchen/docs/examples/`, generated by  
+     `kitchen/tools/gen_examples_docs.sh`) instead of Zig autodoc output —  
+     so the staging workaround no longer exists in `build.zig`. Kept here  
      only as precedent if a future doc target grows large again.
    * Verify a doc target actually renders (not just that `zig build docs`
-     exits 0) by loading the generated page in a real or headless browser
-     and checking the console for `RangeError`/`Uncaught` — a clean build
-     exit does not guarantee the client-side autodoc viewer can render the
+     exits 0) by loading the generated page in a real or headless browser  
+     and checking the console for `RangeError`/`Uncaught` — a clean build  
+     exit does not guarantee the client-side autodoc viewer can render the  
      result.
    * Required verification step, whenever `build.zig`'s `docs` step or
-     anything under `examples/`/`stories/`/`src/` changes: run
-     `kitchen/tools/preview_site.sh` and, for every doc target,
-     (1) open the page in a browser (or drive it headlessly) and check
-     the console for `RangeError`/`Uncaught`, and (2) check
-     `tar tf kitchen/docs/<target>/sources.tar` for files outside that
-     target's own area. `zig build docs` exiting 0 is necessary but not
+     anything under `examples/`/`stories/`/`src/` changes: run  
+     `kitchen/tools/preview_site.sh` and, for every doc target,  
+     (1) open the page in a browser (or drive it headlessly) and check  
+     the console for `RangeError`/`Uncaught`, and (2) check  
+     `tar tf kitchen/docs/<target>/sources.tar` for files outside that  
+     target's own area. `zig build docs` exiting 0 is necessary but not  
      sufficient — it catches neither bug class on its own.
 
 ---
@@ -567,11 +567,11 @@ Per-stage finish checklist.
 1. `kitchen/build_and_test_debug.sh` — quick build + Debug test.
 2. `kitchen/build_and_test_all.sh` — full build + all 4 optimization modes.
 3. `kitchen/build_cross_debug.sh` — cross-compile Debug for mac + windows.
-3a. If the stage touched `build.zig`'s `docs` step or anything under
-    `examples/`/`stories/`/`src/`: run `kitchen/tools/preview_site.sh` and
-    open every doc target page (or drive headlessly), checking the
-    browser console for `RangeError`/`Uncaught`. `zig build docs` exiting
-    0 does not catch the "stuck Loading" autodoc crash — see
+3a. If the stage touched `build.zig`'s `docs` step or anything under  
+    `examples/`/`stories/`/`src/`: run `kitchen/tools/preview_site.sh` and  
+    open every doc target page (or drive headlessly), checking the  
+    browser console for `RangeError`/`Uncaught`. `zig build docs` exiting  
+    0 does not catch the "stuck Loading" autodoc crash — see  
     "Doc-generation module size" under Documentation Rules.
 4. Post-stage cleanup: revise code for obsolete parts, wrong comments, repeated code that can be extracted.
 5. Re-run all three kitchen scripts after cleanup.
@@ -582,9 +582,9 @@ Per-stage finish checklist.
 8. Update `design/STATUS.md` Session Log. Include a "Post-stage cleanup" row. Absence of that row means the rule was skipped.
 9. Sync `README.md` and any touched per-module README.
 10. Rules audit: after any stage that changes `*.zig` or `*.md` files, audit all changed files
-    against every rule in this document. Report violations to owner before closing the stage.
-    Covers: Observable structural signals, Description as code, descriptive entry-point
-    names, Slot Rule, import order, banned words, example completeness, Master pattern
+    against every rule in this document. Report violations to owner before closing the stage.  
+    Covers: Observable structural signals, Description as code, descriptive entry-point  
+    names, Slot Rule, import order, banned words, example completeness, Master pattern  
     shape, comment rules, doc rules — all rules.
 
 Kitchen script order.

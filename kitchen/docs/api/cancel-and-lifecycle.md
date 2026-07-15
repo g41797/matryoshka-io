@@ -2,14 +2,14 @@
 
 ## Cancel model
 
-Only functions that wait on a condition can be canceled.
+Only functions that wait on a condition can be canceled.  
 Everything else runs to completion.
 
 - A waiting function blocks until a handle becomes available or a timeout expires.
 - While waiting, the runtime can cancel the operation. The function returns `error.Canceled`.
 - All other functions do their work and return. They cannot be canceled.
 
-A function is cancelable if and only if its return type includes `Cancelable` in the error union.
+A function is cancelable if and only if its return type includes `Cancelable` in the error union.  
 The signature is the single source of truth.
 
 ## Cancel contract summary

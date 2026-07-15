@@ -1,11 +1,11 @@
 # Matryoshka Manifesto
 
-Versioned doc. Replaces [matryoshka-manifesto-004.md](matryoshka-manifesto-004.md).
-Change from -004: New Mindset. Dropped the "hybrid car" analogy — it implied
-Matryoshka sometimes uses Io and sometimes doesn't. Replaced with: Io creates
-every task; Matryoshka is the small set of rules some of those tasks follow.
-Change from -003: New Mindset. Master connected to `io.concurrent()` — "Master
-is a role" replaced with "Master is an Io task that follows the Matryoshka
+Versioned doc. Replaces [matryoshka-manifesto-004.md](matryoshka-manifesto-004.md).  
+Change from -004: New Mindset. Dropped the "hybrid car" analogy — it implied  
+Matryoshka sometimes uses Io and sometimes doesn't. Replaced with: Io creates  
+every task; Matryoshka is the small set of rules some of those tasks follow.  
+Change from -003: New Mindset. Master connected to `io.concurrent()` — "Master  
+is a role" replaced with "Master is an Io task that follows the Matryoshka  
 rules." Task-world diagram replaces the old floating-role diagram.
 
 ## First rule of building great software systems
@@ -223,7 +223,7 @@ The bridge between them is one idea:
 
 > Everything that happens in the system becomes a message in a Master's mailbox.
 
-A timer expired. A socket became readable. A background job finished. Another
+A timer expired. A socket became readable. A background job finished. Another  
 Master sent a job.
 
 Inside the system, all of these are the same thing: a message in a mailbox.
@@ -250,7 +250,7 @@ Inside the system, all of these are the same thing: a message in a mailbox.
                Master
 ```
 
-The bridge is just another Master. It waits on Io events and turns them into
+The bridge is just another Master. It waits on Io events and turns them into  
 ordinary messages.
 
 So for application developers:

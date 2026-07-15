@@ -47,10 +47,10 @@ There is no required Master struct, and no required interface.
   lifecycle. A plain function is enough.
 
 - **Coordinator** — multiple phases with shared state between them, a distinct
-  startup / work / shutdown lifecycle. Worth its own struct once a flat function
+  startup / work / shutdown lifecycle. Worth its own struct once a flat function  
   would get hard to follow.
 
-Both are Masters. The difference is how much structure the job needs, not a
+Both are Masters. The difference is how much structure the job needs, not a  
 different concept.
 
 ## Cancel and close are different signals
@@ -74,18 +74,18 @@ There is no `Master` type to import.
 - Reuse comes from Pool.
 - Identity comes from PolyNode.
 - Everything else — startup order, shutdown order, cancellation policy, how many
-  workers, what they coordinate — is the application's own design, expressed by
+  workers, what they coordinate — is the application's own design, expressed by  
   composing the three building blocks.
 
-That's the whole point: a Master is whatever shape your problem needs, built from
+That's the whole point: a Master is whatever shape your problem needs, built from  
 three small, fixed pieces.
 
 ---
 
-Next: [API Reference](../api/polynode.md) — the actual Zig types and functions behind
+Next: [API Reference](../api/polynode.md) — the actual Zig types and functions behind  
 PolyNode, Mailbox, and Pool.
 
-<!-- Temporarily hidden — Story section commented out of mkdocs.yml nav.
-See also: [Story — Print Server](../story/print-server/discussion.md) for these four
+<!-- Temporarily hidden — Story section commented out of mkdocs.yml nav.  
+See also: [Story — Print Server](../story/print-server/discussion.md) for these four  
 concepts working together in a real system. -->
 

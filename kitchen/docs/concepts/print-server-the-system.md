@@ -27,7 +27,7 @@ No implementation detail yet. Just what the system must do.
 
 ## The reasoning behind it
 
-Submission and result are separate. A client submits, moves on, and waits for a
+Submission and result are separate. A client submits, moves on, and waits for a  
 result on its own channel — an application should never block on a slow printer.
 
 Ownership moves in a straight line:
@@ -44,7 +44,7 @@ Ownership moves in a straight line:
 - The spooler needs no status tracking — if the job is in its queue, it's
   responsible. If not, the driver has it.
 
-Readiness is implicit. When the driver finishes a job, it is ready for the next one —
+Readiness is implicit. When the driver finishes a job, it is ready for the next one —  
 no explicit signal required.
 
 Cancellation is the hard part.

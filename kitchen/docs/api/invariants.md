@@ -47,7 +47,7 @@ These hold at all times, for every node in the system:
 
 ## Contract violations
 
-Programming errors.
+Programming errors.  
 Checked via `std.debug.assert`:
 
 - Active in Debug and ReleaseSafe.
@@ -99,10 +99,10 @@ Valid combinations:
 
 ## Change log
 
-See `design/matryoshka-api-reference-020.md` "Change log" for the full version history —
+See `design/matryoshka-api-reference-020.md` "Change log" for the full version history —  
 not duplicated here to avoid drift between the site and the design source.
 
 ---
 
-Back to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on
+Back to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on  
 these contracts.

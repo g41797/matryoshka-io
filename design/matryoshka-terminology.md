@@ -606,7 +606,7 @@ It is an Io task that:
 * owns Items
 * communicates with other Masters
 
-Architectural role:
+Architectural role:  
 **execution and ownership**.
 
 ---
@@ -631,7 +631,7 @@ An Item:
 * can be reused
 * participates in Matryoshka
 
-Architectural role:
+Architectural role:  
 **state**.
 
 ---
@@ -644,7 +644,7 @@ It does not know Item types.
 
 It simply delivers Items.
 
-Architectural role:
+Architectural role:  
 **communication**.
 
 ---
@@ -653,10 +653,10 @@ Architectural role:
 
 A **Pool** stores reusable Items.
 
-Instead of destroying an Item,
+Instead of destroying an Item,  
 it returns it for later reuse.
 
-Architectural role:
+Architectural role:  
 **resource reuse**.
 
 ---
@@ -901,8 +901,8 @@ Bryan C. Mills - Rethinking Classical Concurrency Patterns:
 
 https://drive.google.com/file/d/1nPdvhB0PutEJzdCq5ms6UI58dp50fcAN/view
 
-Share resources by communicating the resources themselves.
-Resource limits are resources too
+Share resources by communicating the resources themselves.  
+Resource limits are resources too  
 Share a thing by communicating the thing.
 
 

@@ -1,6 +1,6 @@
 # The Same System, Built With Matryoshka
 
-Read [the system](print-server-the-system.md) first. Every requirement below maps to
+Read [the system](print-server-the-system.md) first. Every requirement below maps to  
 one of the four Matryoshka concepts: `PolyNode`, `Mailbox`, `Pool`, `Master`.
 
 ---
@@ -51,7 +51,7 @@ one of the four Matryoshka concepts: `PolyNode`, `Mailbox`, `Pool`, `Master`.
 - Job in the Printer Master's slot — the Printer Master owns it.
 - Result in `reply_mbh` — the client owns the outcome.
 
-No shared status table. No polling. No ownership ambiguity.
+No shared status table. No polling. No ownership ambiguity.  
 Responsibility follows location.
 
 ## Flow

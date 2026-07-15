@@ -1,6 +1,6 @@
 # Observable by Human
 
-Every function with distinct phases is written in two levels: a coordinator
+Every function with distinct phases is written in two levels: a coordinator  
 that sequences named steps, and the steps themselves.
 
 ## The rule
@@ -92,7 +92,7 @@ fn init(allocator: std.mem.Allocator, io: std.Io) !*Master {
 }
 ```
 
-Allocate first, guard with `errdefer allocator.destroy`. Acquire each
+Allocate first, guard with `errdefer allocator.destroy`. Acquire each  
 resource, guard it with its own `errdefer`. Return `self` last.
 
 ## Development order
@@ -109,5 +109,5 @@ resource, guard it with its own `errdefer`. Return `self` last.
 
 ## Next
 
-More Building Blocks topics — Select event loops, spawn/await coordination,
+More Building Blocks topics — Select event loops, spawn/await coordination,  
 Master composition, pool patterns — are planned for later stages.

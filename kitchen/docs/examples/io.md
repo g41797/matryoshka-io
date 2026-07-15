@@ -1,6 +1,6 @@
 # How to... Io — Select, Group, Future
 
-Event loops over multiple sources, cancellation, and awaiting futures
+Event loops over multiple sources, cancellation, and awaiting futures  
 directly instead of through a mailbox.
 
 - [Two mailboxes + timer in Select](layer4/025-select_two_mailboxes.md)

@@ -45,7 +45,7 @@ mailbox.receive(mbh, &slot, null)   Receiver holds ItemHandle
 pub const MailboxHandle = ItemHandle;
 ```
 
-MailboxHandle is itself a *PolyNode.
+MailboxHandle is itself a *PolyNode.  
 A mailbox can be:
 
 - sent through another mailbox
@@ -215,7 +215,7 @@ pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.F
 
 ### When to use
 
-**`select.concurrent` pattern** (primary):
+**`select.concurrent` pattern** (primary):  
 ```zig
 try select.concurrent(.inbox, mailbox.receiveResult, .{mbh, null});
 const event = try select.await();
@@ -225,7 +225,7 @@ switch (event) {
 }
 ```
 
-**`receive_future` pattern** (direct await or Group):
+**`receive_future` pattern** (direct await or Group):  
 ```zig
 const fut = try mailbox.receive_future(mbh, null);
 const result = try fut.await(io);

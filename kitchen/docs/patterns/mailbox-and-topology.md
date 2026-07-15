@@ -1,6 +1,6 @@
 # Patterns — Mailbox and Topology Patterns
 
-Concepts: [Building Blocks — Mailbox](../building-blocks/mailbox.md).
+Concepts: [Building Blocks — Mailbox](../building-blocks/mailbox.md).  
 API: [API Reference — Mailbox](../api/mailbox.md).
 
 ## Mailbox patterns
@@ -11,7 +11,7 @@ When to use.
 
 - Non-blocking work loop.
 
-Code shape.
+Code shape.  
 ```zig
 if (try mailbox.try_receive(mbh, &slot)) {
     ...
@@ -24,7 +24,7 @@ When to use.
 
 - Empty an entire mailbox in one call.
 
-Code shape.
+Code shape.  
 ```zig
 var list = try mailbox.receive_batch(mbh);
 
@@ -45,7 +45,7 @@ When to use.
 - Shutdown.
 - Urgent control messages.
 
-Code shape.
+Code shape.  
 ```zig
 try mailbox.send_oob(mbh, &slot);
 ```
@@ -61,7 +61,7 @@ When to use.
 
 - Shutdown. Recover every queued object.
 
-Code shape.
+Code shape.  
 ```zig
 var list = mailbox.close(mbh);
 
@@ -83,7 +83,7 @@ When to use.
 - Re-check external state (a flag flipped outside the mailbox) without sending a real item.
 - Poke a Master blocked in `receive()` so it re-evaluates its loop condition.
 
-Code shape.
+Code shape.  
 ```zig
 shutdown.store(true, .release);
 try mailbox.wakeUpAll(mbh);
@@ -112,7 +112,7 @@ Example: `examples/layer2/097-wake_up_all.zig`.
 
 ## Topology patterns
 
-Recurring shapes for wiring mailboxes and workers together. Each is a composition of the
+Recurring shapes for wiring mailboxes and workers together. Each is a composition of the  
 Mailbox patterns above, not a new mechanism.
 
 ### Request-Response
@@ -121,7 +121,7 @@ When to use.
 
 - One side asks, the other answers, on two dedicated mailboxes.
 
-Pattern.
+Pattern.  
 ```
 main ──Event(request)──► req_mbh ──► worker
                                         │ process
@@ -142,7 +142,7 @@ When to use.
 
 - A chain of stages, each transforming and forwarding.
 
-Pattern.
+Pattern.  
 ```
 producer ──Event──► stage1 ──► transformer ──Event──► stage2 ──► consumer
 ```
@@ -160,7 +160,7 @@ When to use.
 
 - Several concurrent senders, one shared mailbox, one receiver.
 
-Pattern.
+Pattern.  
 ```
 sender A ──►
 sender B ──► mailbox ──receive_batch──► one receiver, dispatch by tag
@@ -180,7 +180,7 @@ When to use.
 
 - Several worker threads compete for items on one shared mailbox.
 
-Pattern.
+Pattern.  
 ```
 main ──items──► mailbox ──► worker A
                        ├──► worker B   (compete; each item goes to exactly one)

@@ -155,7 +155,7 @@ Matryoshka depends on two Io primitives:
 
 ## What this changes in the documentation
 
-These pages describe Master as a role, independent of `io.concurrent()`.
+These pages describe Master as a role, independent of `io.concurrent()`.  
 Each needs a second look:
 
 - README

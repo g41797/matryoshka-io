@@ -1,6 +1,6 @@
 # How to... PolyNode
 
-The base building block: one struct field gives a type tag identity and
+The base building block: one struct field gives a type tag identity and  
 lets you recover the typed pointer later.
 
 - [Define a PolyNode type](layer1/021-define_type.md)

@@ -1,6 +1,6 @@
 # Docs-site cleanup candidates (Stage H, deferred)
 
-These files are superseded by the docs restructuring and already dropped from
+These files are superseded by the docs restructuring and already dropped from  
 `mkdocs.yml` nav. Left in place on disk for owner review — not deleted.
 
 Stub/scratch content, superseded by the new site structure:
@@ -25,5 +25,5 @@ Not yet accounted for by any page (see plan's open flags):
 - `docs/matryoshka-io-slot-handle-A.png`, `docs/matryoshka-io-slot-handle-B.png` — owner
   decision was to leave alone for now; revisit if a page needs a rendered diagram.
 
-When ready to delete: `mkdocs build --strict` should stay clean (no "not included in nav"
+When ready to delete: `mkdocs build --strict` should stay clean (no "not included in nav"  
 warnings for these paths) after removal.

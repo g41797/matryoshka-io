@@ -1,7 +1,7 @@
 # Matryoshka Thinking Model (003)
 
-The mental model behind every Matryoshka design decision.
-Companion: [rules-003.md](rules-003.md) — the coding and process rules.
+The mental model behind every Matryoshka design decision.  
+Companion: [rules-003.md](rules-003.md) — the coding and process rules.  
 Companion: [patterns-002.md](patterns-002.md) — reusable coding patterns.
 
 ---

@@ -10,7 +10,7 @@ When to use.
 
 - Only one asynchronous operation. No Select loop needed.
 
-Code shape.
+Code shape.  
 ```zig
 const future =
     try mailbox.receive_future(mbh, null);
@@ -25,7 +25,7 @@ When to use.
 
 - Abort one asynchronous operation.
 
-Code shape.
+Code shape.  
 ```zig
 try future.cancel(io);
 ```
@@ -45,7 +45,7 @@ When to use.
 
 - Wait on several sources at once: mailbox, pool, timer, external push.
 
-Code shape.
+Code shape.  
 ```zig
 var buf: [8]MasterEvent = undefined;
 var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
@@ -74,7 +74,7 @@ Why.
 - Each registration produces exactly one completion.
 - Re-register the source after each item.
 
-The rhythm.
+The rhythm.  
 ```
 register
     ↓
@@ -93,7 +93,7 @@ When to use.
 
 - Event-driven Master.
 
-Code shape.
+Code shape.  
 ```zig
 try select.concurrent(
     .mailbox,
@@ -108,7 +108,7 @@ When to use.
 
 - Wait for reusable items.
 
-Code shape.
+Code shape.  
 ```zig
 try select.concurrent(
     .pool,
@@ -123,7 +123,7 @@ When to use.
 
 - One loop coordinates everything.
 
-Pattern.
+Pattern.  
 ```
 Mailbox
 Pool
@@ -144,7 +144,7 @@ When to use.
 - A producer must slow down when no buffers are free.
 - Pool availability becomes an event source in the same loop as data.
 
-Code shape.
+Code shape.  
 ```zig
 try sel.concurrent(.buf_ev, pool.getWaitResult, .{ buf_ph, VideoBufferPolyHelper.TAG, null });
 // ...
@@ -171,7 +171,7 @@ When to use.
 
 - A result is already available, or an external thread or callback must inject one without spawning.
 
-Code shape.
+Code shape.  
 ```zig
 select.queue.putOneUncancelable(select.io, .{ .field = value }) catch {};
 ```
@@ -184,7 +184,7 @@ When to use.
 
 - Shutting down a Select loop. Spawned sources may still hold items. None must leak.
 
-Code shape.
+Code shape.  
 ```zig
 while (sel.cancel()) |event| {
     switch (event) {
@@ -215,7 +215,7 @@ When to use.
 
 - The remaining spawned sources carry no owned item (e.g. a timer). Discard them.
 
-Code shape.
+Code shape.  
 ```zig
 sel.cancelDiscard();
 ```
@@ -233,7 +233,7 @@ When to use.
 - Run several workers. Wait for all to finish.
 - Spawn now, await later — the spawn does not block.
 
-Code shape.
+Code shape.  
 ```zig
 var group: Io.Group = .init;
 try group.concurrent(io, workerFn, .{&ctx0});
@@ -251,7 +251,7 @@ When to use.
 
 - Multiple execution rounds.
 
-Pattern.
+Pattern.  
 ```
 spawn
 await
@@ -270,7 +270,7 @@ When to use.
 
 - Stop a Group of workers that block on `mailbox.receive`.
 
-Code shape.
+Code shape.  
 ```zig
 // workers exit when receive returns error.Closed
 var rem: std.DoublyLinkedList = mailbox.close(ready_queue);
@@ -288,7 +288,7 @@ When to use.
 
 - Stop a Group of workers that block on `pool.get_wait`, with no mailbox to close.
 
-Code shape.
+Code shape.  
 ```zig
 group.cancel(io);   // injects error.Canceled into all blocked workers, then waits
 ```
@@ -326,7 +326,7 @@ When to use.
 
 - Recovering after cancellation.
 
-Pattern.
+Pattern.  
 ```
 Canceled
     ↓
@@ -337,7 +337,7 @@ resource still owned by mailbox/pool
 
 ### Close versus Cancel
 
-Pattern.
+Pattern.  
 ```
 Close
     ↓
@@ -356,7 +356,7 @@ When to use.
 
 - A worker blocks on `mailbox.receive` or `pool.get_wait` and must react to each outcome.
 
-Code shape.
+Code shape.  
 ```zig
 mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
     error.Canceled => return error.Canceled,   // report up — Master decides

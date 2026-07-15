@@ -67,7 +67,7 @@ refcount = 3
   Reference cycle  ?
 ```
 
-A count of 3 is consistent with any of those. The number alone answers nothing about
+A count of 3 is consistent with any of those. The number alone answers nothing about  
 who is actually responsible.
 
 ## Why Matryoshka uses Slots
@@ -111,6 +111,6 @@ Slot answers:
     "Who has it?"
 ```
 
-Matryoshka's model is closer to passing a parcel from hand to hand than to a shared
-object graph everyone can see at once. At every step, the current holder is a fact you
+Matryoshka's model is closer to passing a parcel from hand to hand than to a shared  
+object graph everyone can see at once. At every step, the current holder is a fact you  
 can point to — not a number you have to interpret.

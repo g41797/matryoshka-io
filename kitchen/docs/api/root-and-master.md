@@ -12,12 +12,12 @@ pub const pool = @import("pool.zig");
 
 ## Master (Layer 4) — intentionally not part of the API
 
-No `master` module.
-No `Master` struct.
+No `master` module.  
+No `Master` struct.  
 By design.
 
-Io creates tasks through `io.concurrent()`.
-Master is an Io task that follows the Matryoshka rules — the coordination boundary.
+Io creates tasks through `io.concurrent()`.  
+Master is an Io task that follows the Matryoshka rules — the coordination boundary.  
 It holds and composes the lower layers.
 
 See [Building Blocks — Master](../building-blocks/master.md) for the conceptual framing.
@@ -45,7 +45,7 @@ PolyNode + Mailbox + Pool            transport + lifecycle
 PolyNode + Mailbox + Pool + Io.Select   full stack
 ```
 
-A Master may be:
+A Master may be:  
 ```zig
 const Server = struct { inbox: mailbox.MailboxHandle, pool: pool.PoolHandle, ... };
 const Scheduler = struct { pool: pool.PoolHandle, ... };  // no mailbox
@@ -53,7 +53,7 @@ const Pipeline = struct { stages: [3]mailbox.MailboxHandle, ... };
 fn main(init: std.process.Init) !void { ... }
 ```
 
-Matryoshka provides the building blocks.
+Matryoshka provides the building blocks.  
 The application assembles them.
 
 ### Io backend for Layer 4 tests and examples

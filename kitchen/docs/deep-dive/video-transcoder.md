@@ -1,7 +1,7 @@
 # Deep Dive — Video Transcoder
 
-This is the harder companion to [Story — Print Server](../story/print-server/discussion.md)
-— read that first if you haven't. This page has a real implementation:
+This is the harder companion to [Story — Print Server](../story/print-server/discussion.md)  
+— read that first if you haven't. This page has a real implementation:  
 `stories/video_transcoder/video_transcoder.zig`.
 
 ---
@@ -221,7 +221,7 @@ Where the architecture lives.
   pool.close ──► on_close ──► release remaining buffers
 ```
 
-Scale used in the real run: 3 cameras, 2 frames each, 2 video buffers (forces
+Scale used in the real run: 3 cameras, 2 frames each, 2 video buffers (forces  
 backpressure), 2 encoding workers.
 
 ---
@@ -242,7 +242,7 @@ fn seedBufferPool(buf_ph: PoolHandle, alloc: std.mem.Allocator) !void {
 }
 ```
 
-`N_BUFFERS` is deliberately smaller than `N_WORKERS` in the real run — the pool runs dry
+`N_BUFFERS` is deliberately smaller than `N_WORKERS` in the real run — the pool runs dry  
 on purpose, so the Network Master's backpressure path actually executes.
 
 ### Network Master — pool availability as a Select event source
@@ -268,7 +268,7 @@ fn produce(self: *NetworkMaster) !void {
 }
 ```
 
-No sleep, no poll. `pool.getWaitResult` is the only event source — when a worker returns a
+No sleep, no poll. `pool.getWaitResult` is the only event source — when a worker returns a  
 buffer, the Select loop wakes on its own.
 
 ### Worker — exclusive ownership, then hand back the buffer
@@ -296,7 +296,7 @@ fn workerFn(ctx: *WorkerCtx) error{Canceled}!void {
 }
 ```
 
-The `pool.put` here is the other half of the backpressure loop — it's what makes the
+The `pool.put` here is the other half of the backpressure loop — it's what makes the  
 Network Master's `getWaitResult` wake up.
 
 ### Shutdown — the mandatory order, applied
@@ -318,11 +318,11 @@ storage_fut.await(io) catch {};
 mailbox.destroy(storage_mbh, allocator);
 ```
 
-Same 9-step sequence as
-[Patterns — Graceful shutdown sequence](../patterns/master-and-shutdown.md), applied to
+Same 9-step sequence as  
+[Patterns — Graceful shutdown sequence](../patterns/master-and-shutdown.md), applied to  
 three coordination boundaries instead of one: Network Master, worker group, storage task.
 
 ---
 
-See also: [Patterns — Master composition](../patterns/master-and-shutdown.md) for the
+See also: [Patterns — Master composition](../patterns/master-and-shutdown.md) for the  
 general shape this story follows.

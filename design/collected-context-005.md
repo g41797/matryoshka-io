@@ -1,7 +1,7 @@
 # Collected Context for Matryoshka Zig Implementation (v005)
 
-v005 holds project state only: stages, test counts, slot rule, idiom patterns, Io primitives, bug fixes, open items, key decisions. Supersedes v004.
-Change from v004: API 4 renamed `NodeHandle` → `ItemHandle` — the old name
+v005 holds project state only: stages, test counts, slot rule, idiom patterns, Io primitives, bug fixes, open items, key decisions. Supersedes v004.  
+Change from v004: API 4 renamed `NodeHandle` → `ItemHandle` — the old name  
 leaked the intrusive-node implementation detail. No other content changed.
 
 Model and rules moved to permanent docs:

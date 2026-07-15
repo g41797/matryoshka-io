@@ -1,7 +1,7 @@
 # Matryoshka in Zig 0.16 — Implementation Guide
 
-**Scope**: Feasibility, design decisions, and risks for porting Matryoshka (Odin) to Zig 0.16.0
-**Sources**: Odin source files, `kitchen/docs`, `examples/block1-4`, Zig 0.16 stdlib
+**Scope**: Feasibility, design decisions, and risks for porting Matryoshka (Odin) to Zig 0.16.0  
+**Sources**: Odin source files, `kitchen/docs`, `examples/block1-4`, Zig 0.16 stdlib  
 **Date**: 2026-06-22
 
 Reading path:
@@ -1184,64 +1184,64 @@ Add mailbox when independent senders need to deliver ownership-carrying items:
 ### What to avoid
 
 1. **Do NOT conflate OOB signals with cancel.**
-   OOB signals are application events: PolyNodes with tags, handled by the dispatch loop.
-   Cancel is a scheduler signal: terminal for the current task.
+   OOB signals are application events: PolyNodes with tags, handled by the dispatch loop.  
+   Cancel is a scheduler signal: terminal for the current task.  
    OOB items are data. Cancel is not.
 
 2. **Do NOT conflate scheduler wakeup with application events.**
-   A return from `Io.Condition.wait` is just a resume.
-   Always re-check `len` and `closed` after every wakeup.
+   A return from `Io.Condition.wait` is just a resume.  
+   Always re-check `len` and `closed` after every wakeup.  
    Never treat the wakeup itself as the signal.
 
 3. **Do NOT remap `error.Canceled` to `error.Closed`.**
-   `error.Canceled`: task canceled while mailbox or pool was open.
-   `error.Closed`: mailbox or pool was explicitly closed.
+   `error.Canceled`: task canceled while mailbox or pool was open.  
+   `error.Closed`: mailbox or pool was explicitly closed.  
    Different causes. Propagate `error.Canceled` directly.
 
 4. **Do NOT redesign Mailbox as a stream or Pool as an Io primitive.**
-   Mailbox is ownership transfer.
-   Pool is lifecycle management.
+   Mailbox is ownership transfer.  
+   Pool is lifecycle management.  
    `std.Io` is the scheduling carrier, not their abstraction.
 
 5. **Do NOT pool infrastructure** (Mailbox or Pool instances).
-   They contain the synchronization primitives that make pooling safe.
+   They contain the synchronization primitives that make pooling safe.  
    Pooling them is self-defeating.
 
 6. **Do NOT make Pool interpret CANCEL or OOB.**
-   Pool is a lifecycle layer only.
+   Pool is a lifecycle layer only.  
    Shutdown sequencing and cancel propagation are Master's responsibility.
 
 7. **Do NOT use `anytype` for polymorphism** where tag dispatch covers the use case.
    `anytype` removes the runtime type identity that `tag: *const anyopaque` provides.
 
 8. **Do NOT skip nil-out after transfer.**
-   `m = null` after send or put is the ownership invariant.
+   `m = null` after send or put is the ownership invariant.  
    Skipping it means the caller still believes they own the node.
 
 9. **Do NOT add vtables** unless implementing dynamic plugins.
    Comptime switch dispatch is preferred for all known-type scenarios.
 
 10. **Do NOT pool items containing `Io.Mutex`, `Io.Condition`, OS handles, or any stateful resource.**
-    Synchronization primitives carry state that survives the request and cause silent deadlocks under load.
+    Synchronization primitives carry state that survives the request and cause silent deadlocks under load.  
     `std.Thread.Mutex` and `std.Thread.Condition` do not exist in 0.16.0.
 
 11. **Do NOT create infrastructure ownership cycles.**
-    A Mailbox may be transported through another Mailbox. A Pool may hold a Mailbox as an item.
-    Forbidden is implicit retention: a data item holding a reference back to the Mailbox or Pool that delivered it.
+    A Mailbox may be transported through another Mailbox. A Pool may hold a Mailbox as an item.  
+    Forbidden is implicit retention: a data item holding a reference back to the Mailbox or Pool that delivered it.  
     Infrastructure may be transported. It must never be implicitly retained by the items it carries.
 
 12. **Do NOT use a cancelable lock in close/put operations.**
-    `mailbox_close`, `pool_close`, `pool_put`, and `pool_put_all` must complete regardless of cancel state.
-    Use `mutex.lockUncancelable(io)`.
+    `mailbox_close`, `pool_close`, `pool_put`, and `pool_put_all` must complete regardless of cancel state.  
+    Use `mutex.lockUncancelable(io)`.  
     The cancelable variant means a canceled task fails to close/put and leaks items.
 
 13. **Do NOT call pool APIs on the same pool from inside hooks.**
-    Hooks run outside the mutex. Calling back is not a deadlock — it is a contract violation.
+    Hooks run outside the mutex. Calling back is not a deadlock — it is a contract violation.  
     Hooks are policy; pool is infrastructure. Mixing them collapses the separation.
 
 14. **Do NOT expose `error.Canceled` from `pool_put` or `pool_put_all`.**
-    These are cleanup paths — a worker returning its item after `error.Canceled` from `mailbox_receive`.
-    If `pool_put` could fail with `error.Canceled`, the item would be lost with no owner.
+    These are cleanup paths — a worker returning its item after `error.Canceled` from `mailbox_receive`.  
+    If `pool_put` could fail with `error.Canceled`, the item would be lost with no owner.  
     Both use `mutex.lockUncancelable(io)` and return `void`.
 
 ---

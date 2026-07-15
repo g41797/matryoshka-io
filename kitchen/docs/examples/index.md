@@ -3,15 +3,15 @@
 
 ## Shared building blocks
 
-Most examples reuse three small helper areas instead of repeating setup
+Most examples reuse three small helper areas instead of repeating setup  
 code:
 
 - **[Items](items/items.md)** — fake item types (`Event`, `Sensor`,
-  `ShutdownCommand`, `Timer`) for the examples to send and pool. Not
+  `ShutdownCommand`, `Timer`) for the examples to send and pool. Not  
   production code.
 
 - **[Hooks](hooks/AlwaysCreateHooks.md)** — sample `PoolHooks`
-  implementations ([AlwaysCreateHooks](hooks/AlwaysCreateHooks.md),
+  implementations ([AlwaysCreateHooks](hooks/AlwaysCreateHooks.md),  
   [CappedPoolHooks](hooks/CappedPoolHooks.md)) used by the pool examples.
 
 - **[Helpers](helpers/helpers.md)** — generic test glue (`expect`,

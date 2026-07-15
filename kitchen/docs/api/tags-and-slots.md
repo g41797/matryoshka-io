@@ -2,10 +2,10 @@
 
 ## Tag identity — class, not instance
 
-`PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.
+`PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.  
 `TAG` is a pointer to that static — the same address for every instance of `T`.
 
-Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is this a T?"**
+Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is this a T?"**  
 It does not answer: "which T?" or "what role does this T play?"
 
 For user-defined types (Event, Sensor, etc.):
@@ -27,7 +27,7 @@ For infra handles (MailboxHandle, PoolHandle):
 
 **Worker-finish-signal pattern**
 
-Master creates `worker_mbh`, spawns a worker via `io.concurrent` and passes `worker_mbh` as parameter.
+Master creates `worker_mbh`, spawns a worker via `io.concurrent` and passes `worker_mbh` as parameter.  
 Worker processes items until a shutdown signal, then:
 
 - Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
@@ -54,7 +54,7 @@ const WorkerInbox = struct {
 pub const WorkerInboxPolyHelper = polynode.PolyHelper(WorkerInbox);
 ```
 
-`WorkerInboxPolyHelper.TAG` is distinct from `MailboxPolyHelper.TAG`.
+`WorkerInboxPolyHelper.TAG` is distinct from `MailboxPolyHelper.TAG`.  
 The receiver dispatches on `WorkerInboxPolyHelper.TAG` and finds the embedded handle.
 
 ---
@@ -71,9 +71,9 @@ The slot rule:
 - Transfer clears the slot: sender sets `slot.* = null`. After transfer, slot is null.
 - Applies universally: pool get/put, mailbox receive, heap allocation — every combination.
 
-**Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`
-parameter. They move the handle via the returned union value (`ReceiveResult.item`,
-`PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union
+**Exception — event-source helpers**: `receiveResult` and `getWaitResult` do not take a `*Slot`  
+parameter. They move the handle via the returned union value (`ReceiveResult.item`,  
+`PoolResult.item`) rather than a slot pointer. The caller extracts the handle from the union  
 and holds it from that point. This is an intentional exception to the slot-pointer pattern.
 
 ### Why acquisition APIs assert null
@@ -84,7 +84,7 @@ Every acquisition API has this check:
 std.debug.assert(slot.* == null);
 ```
 
-Overwriting a non-null slot would lose the previous item with no error signal.
+Overwriting a non-null slot would lose the previous item with no error signal.  
 The assert catches this immediately.
 
 ### Why cleanup operations accept null

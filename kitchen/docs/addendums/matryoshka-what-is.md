@@ -1,6 +1,23 @@
-## What is Matryoshka?
+![](kitchen/_logo/matryoshka-io-logo.png)
 
-Matryoshka is:
+---
+
+# Matryoshka-Io — a practical way to build great software systems
+
+---  
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
+[![Linux](https://github.com/g41797/matryoshka-io/actions/workflows/linux.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/linux.yml)  
+[![Windows](https://github.com/g41797/matryoshka-io/actions/workflows/windows.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/windows.yml)  
+[![macOS](https://github.com/g41797/matryoshka-io/actions/workflows/mac.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/mac.yml)  
+[![Deploy Documentation](https://github.com/g41797/matryoshka-io/actions/workflows/docs.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/docs.yml)
+
+
+---
+
+
+## What is Matryoshka-Io?
+
+Matryoshka-Io (or shortly Matryoshka) is:
 
 - a practical way
 - to build software systems
@@ -12,24 +29,24 @@ It is not:
 - a runtime
 - another event loop
 
-It is a small frame:
+It is a small '**_frame_**':
 
 - visible code
-- simple rules
+- several rules
 - restricted Io usage
 - common way of thinking
 
 The idea is simple:
 
-- tasks become Masters
-- application objects become Items
-- Items come from Pools
-- Items move through Mailboxes
-- unused Items return to Pools
+- _tasks_ become **Masters**
+- _application objects_ become **Items**
+- _Items_ come from **Pools**
+- _Items_ move through **Mailboxes**
+- unused _Items_ return to _Pools_
 
-The goal is not an easy system.
+The goal is not an easy system.    
 
-It never was.
+It never was.    
 
 The goal is a system with:
 
@@ -45,13 +62,13 @@ That makes the system:
 - easier to change
 - easier to maintain
 
-Matryoshka does not think for you.
+Matryoshka does not think for you.  
 
-You still design the system.
+You still design the system.  
 
-You still solve the hard problems.
+You still solve the hard problems.  
 
-It simply brings a little more order to your thinking.
+It simply brings a _little more order_ to your thinking.
 
 ---
 
@@ -60,7 +77,7 @@ It simply brings a little more order to your thinking.
 Today, Matryoshka is best suited for:
 
 - CPU-bound systems
-- built on Zig Threaded Io
+- built on Zig **Threaded** Io
 
 Typical examples:
 
@@ -80,7 +97,12 @@ Anywhere application Items are:
 
 ## How to start
 
-Start from a whiteboard.
+Start from a 'whiteboard'.  
+
+If you are
+
+- _old-fashion_(my case) it will be real whiteboard or paper
+- otherwise - sky is the limit
 
 Not from code.
 
@@ -115,5 +137,13 @@ If you cannot explain the new flow on a whiteboard:
 Then update the drawing.
 
 Only then update the code.
+
+## Where are code snippets and diagrams?
+
+You don't need them , just follow the rule below.  
+
+## First rule of building great software systems
+
+> If you want to build a great software system, start by building a software system.
 
 

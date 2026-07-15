@@ -4,8 +4,8 @@ A complete system design — from domain problem to Matryoshka implementation.
 
 Three developers design a print server for a shared office network.
 
-**C** owns the client library — the code that submits jobs on behalf of applications.
-**S** owns the spooler — the server that queues and manages jobs.
+**C** owns the client library — the code that submits jobs on behalf of applications.  
+**S** owns the spooler — the server that queues and manages jobs.  
 **D** owns the driver — the component that talks to the physical printer.
 
 ---

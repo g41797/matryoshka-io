@@ -2,14 +2,14 @@
 
 Extracted from `task2-scenarios-001.md`. Scenario numbers preserved.
 
-Examples show real usage patterns, stress-test API in realistic composed ways.
+Examples show real usage patterns, stress-test API in realistic composed ways.  
 Each example has a test wrapper.
 
-All scenarios comply with the example completeness rule in [rules-002.md](rules-002.md):
+All scenarios comply with the example completeness rule in [rules-002.md](rules-002.md):  
 each example shows origin of work input, what the worker does, and where results go.
 
-Pool items are empty containers on acquisition. Work input comes from outside the pool item:
-a mailbox, a timer, a network source, spawn-time arguments, or the worker's own accumulated state.
+Pool items are empty containers on acquisition. Work input comes from outside the pool item:  
+a mailbox, a timer, a network source, spawn-time arguments, or the worker's own accumulated state.  
 See "Pool items are empty containers" in [matryoshka-model-002.md](matryoshka-model-002.md).
 
 All Layer 4 examples use real `Io.Threaded.init(gpa, .{})` — concurrency, cancellation, real I/O.

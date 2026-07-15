@@ -1,6 +1,6 @@
 # Patterns — Slot and PolyNode Idioms
 
-Concepts: [Building Blocks — PolyNode](../building-blocks/polynode.md).
+Concepts: [Building Blocks — PolyNode](../building-blocks/polynode.md).  
 API: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md).
 
 The slot rule in full: [API Reference — Tag Identity and Slot Programming](../api/tags-and-slots.md).
@@ -13,7 +13,7 @@ When to use.
 
 - Every ownership acquisition.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 ```
@@ -29,7 +29,7 @@ When to use.
 
 - Before every receive/get/create operation.
 
-Code shape.
+Code shape.  
 ```zig
 std.debug.assert(slot.* == null);
 ```
@@ -46,7 +46,7 @@ When to use.
 
 - Every ownership transfer.
 
-Code shape.
+Code shape.  
 ```zig
 try mailbox.send(mbh, &slot);
 // slot == null
@@ -71,7 +71,7 @@ When to use.
 
 - Every deferred cleanup.
 
-Code shape.
+Code shape.  
 ```zig
 defer pool.put(ph, &slot);
 ```
@@ -93,7 +93,7 @@ When to use.
 
 - Acquiring a pool item. The defer goes before the get.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer pool.put(ph, &slot);              // no-op if slot == null
@@ -116,7 +116,7 @@ When to use.
 
 - Creating a heap item. The defer goes before the create.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer EventPolyHelper.destroy(allocator, &slot);   // no-op if slot == null
@@ -134,7 +134,7 @@ When to use.
 
 - Receiving into a slot. Cleanup must cover both the error path and the normal path.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer if (slot) |poly| helpers.freeItem(poly, allocator);
@@ -151,7 +151,7 @@ When to use.
 
 - Pool may already be closed when the item comes back.
 
-Code shape.
+Code shape.  
 ```zig
 defer EventPolyHelper.destroy(allocator, &slot);   // fallback: frees if pool.put left slot non-null
 defer pool.put(ph, &slot);                          // primary: recycles to pool (clears slot on success)
@@ -172,7 +172,7 @@ When to use.
 
 - Every PolyNode-based user type (Event, Sensor, Timer, ShutdownCommand).
 
-Code shape.
+Code shape.  
 ```zig
 // WRONG — raw allocator on PolyNode-based type
 const ev = try alloc.create(Event);
@@ -188,7 +188,7 @@ Why.
 - `PolyHelper.create` sets the tag and initializes the node.
 - Raw `allocator.create` skips both. The object is unusable for dispatch.
 
-Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.
+Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.  
 Full list: [API Reference — Cooperative Cleanup](../api/cleanup.md).
 
 ---
@@ -201,7 +201,7 @@ When to use.
 
 - Every PolyNode-based user type, from first definition.
 
-Code shape.
+Code shape.  
 ```zig
 pub const Message = struct {
     poly: polynode.PolyNode = .{},
@@ -225,7 +225,7 @@ When to use.
 
 - Every PolyNode type.
 
-Code shape.
+Code shape.  
 ```zig
 pub const EventPolyHelper =
     polynode.PolyHelper(Event);
@@ -243,7 +243,7 @@ When to use.
 
 - Recovering a concrete type from a `*PolyNode` handle (e.g. an `ItemHandle` received from a mailbox or returned by a pool event source).
 
-Code shape.
+Code shape.  
 ```zig
 if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
     ...
@@ -261,7 +261,7 @@ When to use.
 
 - After `create` or `get`, to access fields of the item in a Slot before sending or returning it.
 
-Code shape (assert non-null, known type).
+Code shape (assert non-null, known type).  
 ```zig
 var slot: Slot = null;
 defer EventPolyHelper.destroy(allocator, &slot);
@@ -270,7 +270,7 @@ EventPolyHelper.mustIdentifySlotAs(&slot).code = 42;
 try mailbox.send(mbh, &slot);
 ```
 
-Code shape (optional — type may vary).
+Code shape (optional — type may vary).  
 ```zig
 if (EventPolyHelper.identifySlotAs(&slot)) |ev| {
     ev.code = 42;
@@ -289,7 +289,7 @@ When to use.
 
 - One mailbox or one list carries more than one item type. The receiver recovers the concrete type.
 
-Code shape.
+Code shape.  
 ```zig
 if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
     // handle Event
@@ -310,7 +310,7 @@ When to use.
 
 - Runtime dispatch.
 
-Pattern.
+Pattern.  
 ```
 tag
     ↓
@@ -338,7 +338,7 @@ When to use.
 
 - Mailbox or Pool must participate in polymorphic dispatch by tag.
 
-Code shape.
+Code shape.  
 ```zig
 const WorkerInbox = struct {
     poly: PolyNode,
@@ -358,7 +358,7 @@ When to use.
 
 - Returning ownership of communication endpoints.
 
-Pattern.
+Pattern.  
 ```
 Worker
     │
@@ -400,7 +400,7 @@ When to use.
 
 - Sharing lifecycle managers.
 
-Pattern.
+Pattern.  
 ```
 PoolHandle
     ↓

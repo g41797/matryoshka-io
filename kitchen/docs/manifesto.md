@@ -153,8 +153,8 @@ Master
 
 Master is an Io task. The other three are code.
 
-The one-line summary below is all this page gives you — see
-[Building Blocks](building-blocks/index.md) for a full page per concept, still no Zig
+The one-line summary below is all this page gives you — see  
+[Building Blocks](building-blocks/index.md) for a full page per concept, still no Zig  
 syntax, and [API Reference](api/polynode.md) once you're ready to write code.
 
 ### PolyNode
@@ -219,7 +219,7 @@ The bridge between them is one idea:
 
 > Everything that happens in the system becomes a message in a Master's mailbox.
 
-A timer expired. A socket became readable. A background job finished. Another
+A timer expired. A socket became readable. A background job finished. Another  
 Master sent a job.
 
 Inside the system, all of these are the same thing: a message in a mailbox.
@@ -246,7 +246,7 @@ Inside the system, all of these are the same thing: a message in a mailbox.
                Master
 ```
 
-The bridge is just another Master. It waits on Io events and turns them into
+The bridge is just another Master. It waits on Io events and turns them into  
 ordinary messages.
 
 So for application developers:
@@ -270,7 +270,7 @@ Start building today.
 
 If Zig Io changes tomorrow—and it will—Matryoshka's rules stay the same.
 
-See [Addendums — Io 101](addendums/io-101.md) for a deeper primer on Io concepts
+See [Addendums — Io 101](addendums/io-101.md) for a deeper primer on Io concepts  
 (Future, Select, Group, cancellation) once you're building for real.
 
 ---
@@ -291,7 +291,7 @@ Keep reading:
 <!-- Temporarily hidden — Story section commented out of mkdocs.yml nav.
 
 * [Story — Print Server](story/print-server/discussion.md) — the constraint solving a
-  real problem, no Zig required.
+  real problem, no Zig required.  
 -->
 
 * [Building Blocks](building-blocks/index.md) — PolyNode, Mailbox, Pool, Master, named

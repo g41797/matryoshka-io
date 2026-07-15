@@ -32,21 +32,23 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-040.md (slim, state-only)
-- Rules: rules-024.md
+- Plan: matryoshka-io-implementation-plan-041.md (slim, state-only)
+- Rules: rules-025.md
 - New Mindset reference: matryoshka-new-mindset-001.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-015.md
 - Docs plan: matryoshka-io-docs-plan-015.md
 - Manifesto: matryoshka-manifesto-005.md
 - Latest context: collected-context-005.md
+- CANDIDATES (composed docs, pending owner review before promotion): design/candidates/readme-004.md, design/candidates/landing-short-002.md, design/candidates/landing-long-003.md
+- Markdown hard-break tooling: kitchen/tools/fix_md_hardbreaks.sh, rule documented in rules-025.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
 - Claude: implementation, tests
 
 ## Project
-Ownership-transfer and lifecycle toolkit for Zig 0.16.
+Ownership-transfer and lifecycle toolkit for Zig 0.16.  
 Three layers: polynode, mailbox, pool. Both mailbox and pool optional.
 
 ## Folder Structure
@@ -91,168 +93,762 @@ matryoshka-io/
 - 13 rare ReleaseSmall race in pool_fan_in (053) — see Session Log 2026-07-03 for full trace. Suspected upstream Zig 0.16 `Io.Threaded` bug, not app code. Not reproducible outside stress loop.
 
 ## Stages
-Stage 0 — Infrastructure. DONE.
-Stage 0.5 — Re-partition scenarios. DONE.
-Stage 1.a — PolyNode (impl + tests). DONE.
-Stage 1.b — PolyNode examples. DONE.
-Stage 2.a — Mailbox (impl + tests). DONE.
-Stage 2.b — Mailbox examples. DONE.
-Stage 2.5 — Pre-Stage-3 fixes. DONE.
-Stage 3 — Pool (impl + tests + examples). DONE.
-Stage 4 — DONE (97/97 tests).
-Stage 5.a — DONE (99/99 tests).
-Stage 5.b — DONE (107/107 tests).
-INTR 1 — DONE (107/107 tests). Plan version 011 created.
-Stage 6 — DONE (121/121 tests). Plan version 013 created.
-INTR 2 — DONE (121/121 tests). Plan version 014 created.
-Stage 7.a — DONE (121/121 tests). receiveResult/receive_future/getWaitResult/get_wait_future added to src/.
-INTR 3 — DONE (121/121 tests). ASCII ownership diagrams added to all 29 existing examples. Plan version 015 created.
-Stage 7.b — DONE (143/143 tests). 22 new example files + test wrappers. Plan version 016 created.
-INTR 4 — DONE (145/145 tests). Bug fixes + doc corrections. api-reference-015 created.
-Stage 8 — DONE (160/160 tests). 15 new examples: cross-layer (32–41) + mailbox-less (57–61). layer4_cross.zig created.
-INTR 5 — DONE (161/161 tests). Stories infrastructure + doc quality overhaul complete. video_transcoder.zig refactored per Master composition rule. Plan version 018 created.
-STORY 2 — Print Server narrative. DONE.
-STORY 1 — Video Transcoder narrative rewrite. DONE.
-Story Rhythm — Both stories SRS+Translation+Insight rewritten. DONE.
-EXMPL 1 — Example completeness audit + rule addition. DONE. Plan version 022 created.
-EXMPL 2 — Master pattern: pilot (scenario 18) + doc update. DONE. Plan version 023 created.
-EXMPL 3a — 7 semantic rewrites (scenarios 46,47,53,56,57,58,59). DONE. Plan version 024 created.
-EXMPL 3b — Rename NNN- prefix + Master pattern (6 files). DONE. Plan version 025 created.
-EXMPL 3c — Observable by human rule + 3 Master fixes. DONE. Plan version 026 created.
-EXMPL 3d — Observable: extract steps in 31 flat examples. DONE. Plan version 027 created.
-EXMPL 3e — Observable: structural extraction signals + fix 24 violating examples. DONE. Plan version 028 created.
-API 2 — PolyHelper Slot-aware identification API. DONE. 161/161 tests.
-EXMPL 4 — Description as code: staccato descriptions moved into source `///` comments, layer1-3 NNN- renaming, catalog docs as index. DONE. Plan version 030 created.
-EXMPL 4b — Descriptive entry-point names: `pub fn run` renamed to `pub fn @"<description>"` in all 66 example files; test-wrapper call sites updated. DONE. Plan version 031 created.
-EXMPL 4c — Eliminated all remaining live `drain` occurrences (8 files: prose word-swaps + `batchDrainToPool`/`MasterBatchDrainFailed`/barrel-alias identifier renames). DONE.
-Stage 9 — Docs + README + autodocs. PLANNED.
-DOC 1 — tofu audit + docs plan skeleton. DONE. Plan version matryoshka-io-docs-plan-002.md created.
-DOC 2 — confirm tofu + Odin mix decision. DONE (audit only, no implementation).
-DOC 3 — kitchen/ doc folder layout proposal + DOCS-folder claim check. DONE (analysis only).
-DOC 4 — build kitchen/ doc infra (build.zig docs step, mkdocs.yml, tools/, docs.yml fix), verify locally. DONE.
-DOC 5 — top-down entry point (matryoshka-based-systems.md) + nav skeleton (Concepts/Building Blocks/Cookbook stubs). DONE.
-DOC 6 — populate Concepts with a story, top-down: print-server system page + Matryoshka-mapping page. DONE.
-DOC 7 — populate Building Blocks with one topic: Observable by human (rule + pattern). DONE.
-DOC 8 — populate Building Blocks with the four core concepts: PolyNode/Mailbox/Pool/Master. DONE.
-API 3 — mailbox.wakeUpAll(). DONE (167/167 tests). Plan version 032 created.
-DOC 9 — re-partition and logically reorder the API reference (api-reference-017 →
--018); std.Io-generic material moved to Addendums/Io 101; Change-manifest repetition
-dropped. DONE (doc-only, 167/167 tests unchanged). Plan version 033 created.
-DOC 10 — dependency-order the API reference (api-reference-018 → -019): send/receive
-diagrams into mailbox, Tag identity after pool, Slot-based programming + Cooperative
-cleanup patterns after pool — nothing used before it is introduced. DONE (doc-only,
-167/167 tests unchanged). Plan version 034 created.
-DOC 11 — write matryoshka-manifesto-002.md: consolidated README + matryoshka-io-model +
-matryoshka-master + master-Io mindset into one persuasion-first manifesto (one
-constraint, Master is a role, four fundamental concepts, Io as hidden transport behind
-Mailboxes, start small). DONE (doc-only, 167/167 tests unchanged). Plan version 035
-created.
-DOC 12 — de-smart the manifesto (manifesto-002 → -003): abstract architect-speak
-("application model", "execution model", "autonomous", "reason about locally")
-rewritten into plain human language; structure, diagrams, tables unchanged. DONE
-(doc-only, 167/167 tests unchanged). Plan version 036 created.
-DOC 13 — unified pattern/idiom catalog (patterns-009 → patterns-010): both halves
-merged, api-reference pattern material (cooperative cleanup, infra-handle transport,
-no-raw-allocator) absorbed, no repetition, logical order. DONE (doc-only, 167/167
-tests unchanged). Plan version 037 created.
-DOC 14 — audited Odin `matryoshka/kitchen/docs` for patterns/idioms missing from
-patterns-010; added 7 new catalog entries (Request-Response, Pipeline, Fan-In,
-Fan-Out, Shutdown via Exit message, Thread-is-container, Intrusive node embedding)
-to patterns-011.md, all pointing at existing Zig examples; 3 advanced/niche
-patterns with no example (self-send, function-pointer-as-tag,
-descriptor-struct-as-tag) explicitly skipped, owner confirmed. DONE (doc-only,
-167/167 tests unchanged). Plan version 038 created.
-DOC 15 — added `///`/`//!` doc comments to `src/polynode.zig`, `src/mailbox.zig`,
-`src/pool.zig`, `src/matryoshka.zig` (file headers + every `pub` declaration),
-sourced from matryoshka-api-reference-019.md; excluded `src/internal/cond_timeout.zig`
-(temporary workaround). Lifted the src/ `///` ban: rules-010.md → rules-011.md.
-DONE (167/167 tests unchanged, `zig build docs` clean). Plan version 039 pending.
-DOC 16 — polish pass on `src/*.zig` doc comments: fixed banned word "ensure"
-in `pool.zig`; dropped "ownership" language for send/place + one-place/one-state
-phrasing; split long comment lines into staccato bullets; new rule
-`rules-011.md` → `rules-012.md` (no ownership language, no `.md` refs in
-`src/` comments). DONE (167/167 tests unchanged, `zig build docs` clean).
-DOC 16b — gap-fix: 6 missed ownership hits reworded, `mailbox.zig`/`pool.zig`/
-`polynode.zig` file headers restructured to std.Io-style intro+bullets, stray
-line removed; new rule `rules-012.md` → `rules-013.md` (sweep-verification
-rule + header staccato standard). DONE (167/167 tests unchanged, `zig build
-docs` clean).
-DOC 17 — snake_case entry points, fix autodoc "Declaration not found" bug.
-DONE (167/167 tests unchanged). rules-013.md → rules-014.md.
-DOC 17b/17c — example doc comments moved to file-level `//!`; ASCII
-Ownership diagrams wrapped in fenced code blocks; fixed 056-pipeline's
-un-renamed `Pipeline` entry point. DONE (167/167 tests unchanged).
-rules-014.md → rules-015.md.
-DOC 18 — humanized the API reference (api-reference-019 → -020): dropped
-"ownership" framing throughout, staccato pass on remaining prose; re-synced
-src/mailbox.zig and src/pool.zig doc comments to match (src/polynode.zig and
-src/matryoshka.zig already matched). DONE (167/167 tests unchanged).
-DOC 18b — new rule: `//!` file-level block must end with a bare `//!` +
-blank line. rules-015.md → rules-016.md. SUPERSEDED by DOC 18c — the
-blank-line hypothesis was tested against real rendered docs and disproved.
-DOC 18c — root-caused via headless-Chrome render: Zig autodoc splices the
-first declaration's `///` comment onto the container page unconditionally.
-Fix: `const _doc_stub = void;` as first declaration in mailbox.zig/pool.zig/
-polynode.zig. rules-016.md → rules-017.md. DONE (167/167 tests unchanged).
-API 4 — Renamed `NodeHandle` → `ItemHandle` (src, examples, stories, design docs);
-documented `ih` short-form and `handle` shorthand convention. DONE (167/167
-tests unchanged). Plan version pending.
-API 4b — Propagated the rename to `kitchen/docs/` site pages and regenerated
-autodocs. DONE.
-DOC 19 — moved GitHub Pages generated site from `kitchen/output/` to
-root-level `docs/` (standard Pages folder name). DONE.
-INTR 6 — DONE (167/167 tests). Split standalone `helpers/` build module into
-`examples/items/` (4 item types + `items.zig` lifecycle helpers),
-`examples/hooks/` (`AlwaysCreateHooks.zig`, `CappedPoolHooks.zig`,
-`hooks.zig`), `examples/helpers/` (generic `expect`/`clearList` only).
-Updated `build.zig` to drop the standalone helpers module and wire `smod`
-to `examples`. ~68 call-site files updated. Old `helpers/` folder deleted.
-Plan version 039 created.
-DOC 20 — DONE (167/167 tests). Removed the 8 example-autodoc `zig build docs`
-targets (`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,
-`storiesdocs`) and their `build.zig` support code; `apidocs` untouched. New
-permanent `kitchen/tools/gen_examples_docs.sh` mirrors `examples/`+`stories/`
-into `kitchen/docs/examples/` as generated `.md` pages (description + diagram
-verbatim, embedded source, GitHub-blob link); 6 hand-authored catalog/group
-pages replace `examples_reference.md`. rules-019 → -020, docs-plan-014 → -015,
-plan-039 → -040.
-DOC 20 follow-up — DONE. Owner found the 76 mirrored example pages were
-link-only orphans (built by mkdocs but absent from `nav:`). Added every
-example to `kitchen/mkdocs.yml`'s Examples Catalog `nav:` under its group;
-new rule (rules-020 → -021): examples-catalog nav sync — any `examples/`/
-`stories/` file add/remove/rename must update `nav:` + group pages.
-Current: 167/167 tests. DOC 20 + follow-up DONE.
-DOC 21 — "The Shape of a Real System" page (kitchen/docs/the-shape.md): two
-Graphviz diagrams (real-system.dot / matryoshka-solution.dot) mapping three
-ownership/reuse/coupling pains onto PolyNode/Mailbox/Pool, wired into
-mkdocs nav after manifesto.md. New permanent kitchen/diagrams/src/ +
-kitchen/tools/gen_diagrams.sh (manual-run, committed output, not CI-wired).
-README insertion deferred by owner. DONE (doc-only, 167/167 tests
-unchanged). Plan version pending.
-INTR 7 — DONE (167/167 tests). Pool `on_put` reset convention added to every
-example/test hook; "Pool is not storage" correction in
-matryoshka-architecture-foundation-4-003.md; `put`'s four hook-driven
-outcomes + no-fixed-sequence-guarantee caveat documented in
-matryoshka-api-reference-023.md + kitchen/docs pool pages; audit of all
-32 pool-touching files found and fixed 5 wrong-assumption bugs the reset
-surfaced. Diagram-notation fixes (053's `mbh[0..2]`/`×3`, repo-wide sweep)
-and a mailbox-focused equivalent stage deferred, owner's call.
-Staccato sweep — DONE (167/167 tests). Repo-wide audit found 9 files with
-prose-paragraph violations of the staccato rule; fixed 8 (video-transcoder.md
-and a lower-confidence bucket left untouched, owner's call). Followed by a
-"thread" audit — DONE (167/167 tests): worker-finish-signal pattern's stale
-"spawns a worker thread"/"joins the thread" language corrected to
-`io.concurrent`/future-await across `matryoshka-api-reference-025.md`,
-`patterns-015.md`, and two `kitchen/docs` mirrors; 5 stale
+Stage 0 — Infrastructure. DONE.  
+Stage 0.5 — Re-partition scenarios. DONE.  
+Stage 1.a — PolyNode (impl + tests). DONE.  
+Stage 1.b — PolyNode examples. DONE.  
+Stage 2.a — Mailbox (impl + tests). DONE.  
+Stage 2.b — Mailbox examples. DONE.  
+Stage 2.5 — Pre-Stage-3 fixes. DONE.  
+Stage 3 — Pool (impl + tests + examples). DONE.  
+Stage 4 — DONE (97/97 tests).  
+Stage 5.a — DONE (99/99 tests).  
+Stage 5.b — DONE (107/107 tests).  
+INTR 1 — DONE (107/107 tests). Plan version 011 created.  
+Stage 6 — DONE (121/121 tests). Plan version 013 created.  
+INTR 2 — DONE (121/121 tests). Plan version 014 created.  
+Stage 7.a — DONE (121/121 tests). receiveResult/receive_future/getWaitResult/get_wait_future added to src/.  
+INTR 3 — DONE (121/121 tests). ASCII ownership diagrams added to all 29 existing examples. Plan version 015 created.  
+Stage 7.b — DONE (143/143 tests). 22 new example files + test wrappers. Plan version 016 created.  
+INTR 4 — DONE (145/145 tests). Bug fixes + doc corrections. api-reference-015 created.  
+Stage 8 — DONE (160/160 tests). 15 new examples: cross-layer (32–41) + mailbox-less (57–61). layer4_cross.zig created.  
+INTR 5 — DONE (161/161 tests). Stories infrastructure + doc quality overhaul complete. video_transcoder.zig refactored per Master composition rule. Plan version 018 created.  
+STORY 2 — Print Server narrative. DONE.  
+STORY 1 — Video Transcoder narrative rewrite. DONE.  
+Story Rhythm — Both stories SRS+Translation+Insight rewritten. DONE.  
+EXMPL 1 — Example completeness audit + rule addition. DONE. Plan version 022 created.  
+EXMPL 2 — Master pattern: pilot (scenario 18) + doc update. DONE. Plan version 023 created.  
+EXMPL 3a — 7 semantic rewrites (scenarios 46,47,53,56,57,58,59). DONE. Plan version 024 created.  
+EXMPL 3b — Rename NNN- prefix + Master pattern (6 files). DONE. Plan version 025 created.  
+EXMPL 3c — Observable by human rule + 3 Master fixes. DONE. Plan version 026 created.  
+EXMPL 3d — Observable: extract steps in 31 flat examples. DONE. Plan version 027 created.  
+EXMPL 3e — Observable: structural extraction signals + fix 24 violating examples. DONE. Plan version 028 created.  
+API 2 — PolyHelper Slot-aware identification API. DONE. 161/161 tests.  
+EXMPL 4 — Description as code: staccato descriptions moved into source `///` comments, layer1-3 NNN- renaming, catalog docs as index. DONE. Plan version 030 created.  
+EXMPL 4b — Descriptive entry-point names: `pub fn run` renamed to `pub fn @"<description>"` in all 66 example files; test-wrapper call sites updated. DONE. Plan version 031 created.  
+EXMPL 4c — Eliminated all remaining live `drain` occurrences (8 files: prose word-swaps + `batchDrainToPool`/`MasterBatchDrainFailed`/barrel-alias identifier renames). DONE.  
+Stage 9 — Docs + README + autodocs. PLANNED.  
+DOC 1 — tofu audit + docs plan skeleton. DONE. Plan version matryoshka-io-docs-plan-002.md created.  
+DOC 2 — confirm tofu + Odin mix decision. DONE (audit only, no implementation).  
+DOC 3 — kitchen/ doc folder layout proposal + DOCS-folder claim check. DONE (analysis only).  
+DOC 4 — build kitchen/ doc infra (build.zig docs step, mkdocs.yml, tools/, docs.yml fix), verify locally. DONE.  
+DOC 5 — top-down entry point (matryoshka-based-systems.md) + nav skeleton (Concepts/Building Blocks/Cookbook stubs). DONE.  
+DOC 6 — populate Concepts with a story, top-down: print-server system page + Matryoshka-mapping page. DONE.  
+DOC 7 — populate Building Blocks with one topic: Observable by human (rule + pattern). DONE.  
+DOC 8 — populate Building Blocks with the four core concepts: PolyNode/Mailbox/Pool/Master. DONE.  
+API 3 — mailbox.wakeUpAll(). DONE (167/167 tests). Plan version 032 created.  
+DOC 9 — re-partition and logically reorder the API reference (api-reference-017 →  
+-018); std.Io-generic material moved to Addendums/Io 101; Change-manifest repetition  
+dropped. DONE (doc-only, 167/167 tests unchanged). Plan version 033 created.  
+DOC 10 — dependency-order the API reference (api-reference-018 → -019): send/receive  
+diagrams into mailbox, Tag identity after pool, Slot-based programming + Cooperative  
+cleanup patterns after pool — nothing used before it is introduced. DONE (doc-only,  
+167/167 tests unchanged). Plan version 034 created.  
+DOC 11 — write matryoshka-manifesto-002.md: consolidated README + matryoshka-io-model +  
+matryoshka-master + master-Io mindset into one persuasion-first manifesto (one  
+constraint, Master is a role, four fundamental concepts, Io as hidden transport behind  
+Mailboxes, start small). DONE (doc-only, 167/167 tests unchanged). Plan version 035  
+created.  
+DOC 12 — de-smart the manifesto (manifesto-002 → -003): abstract architect-speak  
+("application model", "execution model", "autonomous", "reason about locally")  
+rewritten into plain human language; structure, diagrams, tables unchanged. DONE  
+(doc-only, 167/167 tests unchanged). Plan version 036 created.  
+DOC 13 — unified pattern/idiom catalog (patterns-009 → patterns-010): both halves  
+merged, api-reference pattern material (cooperative cleanup, infra-handle transport,  
+no-raw-allocator) absorbed, no repetition, logical order. DONE (doc-only, 167/167  
+tests unchanged). Plan version 037 created.  
+DOC 14 — audited Odin `matryoshka/kitchen/docs` for patterns/idioms missing from  
+patterns-010; added 7 new catalog entries (Request-Response, Pipeline, Fan-In,  
+Fan-Out, Shutdown via Exit message, Thread-is-container, Intrusive node embedding)  
+to patterns-011.md, all pointing at existing Zig examples; 3 advanced/niche  
+patterns with no example (self-send, function-pointer-as-tag,  
+descriptor-struct-as-tag) explicitly skipped, owner confirmed. DONE (doc-only,  
+167/167 tests unchanged). Plan version 038 created.  
+DOC 15 — added `///`/`//!` doc comments to `src/polynode.zig`, `src/mailbox.zig`,  
+`src/pool.zig`, `src/matryoshka.zig` (file headers + every `pub` declaration),  
+sourced from matryoshka-api-reference-019.md; excluded `src/internal/cond_timeout.zig`  
+(temporary workaround). Lifted the src/ `///` ban: rules-010.md → rules-011.md.  
+DONE (167/167 tests unchanged, `zig build docs` clean). Plan version 039 pending.  
+DOC 16 — polish pass on `src/*.zig` doc comments: fixed banned word "ensure"  
+in `pool.zig`; dropped "ownership" language for send/place + one-place/one-state  
+phrasing; split long comment lines into staccato bullets; new rule  
+`rules-011.md` → `rules-012.md` (no ownership language, no `.md` refs in  
+`src/` comments). DONE (167/167 tests unchanged, `zig build docs` clean).  
+DOC 16b — gap-fix: 6 missed ownership hits reworded, `mailbox.zig`/`pool.zig`/  
+`polynode.zig` file headers restructured to std.Io-style intro+bullets, stray  
+line removed; new rule `rules-012.md` → `rules-013.md` (sweep-verification  
+rule + header staccato standard). DONE (167/167 tests unchanged, `zig build  
+docs` clean).  
+DOC 17 — snake_case entry points, fix autodoc "Declaration not found" bug.  
+DONE (167/167 tests unchanged). rules-013.md → rules-014.md.  
+DOC 17b/17c — example doc comments moved to file-level `//!`; ASCII  
+Ownership diagrams wrapped in fenced code blocks; fixed 056-pipeline's  
+un-renamed `Pipeline` entry point. DONE (167/167 tests unchanged).  
+rules-014.md → rules-015.md.  
+DOC 18 — humanized the API reference (api-reference-019 → -020): dropped  
+"ownership" framing throughout, staccato pass on remaining prose; re-synced  
+src/mailbox.zig and src/pool.zig doc comments to match (src/polynode.zig and  
+src/matryoshka.zig already matched). DONE (167/167 tests unchanged).  
+DOC 18b — new rule: `//!` file-level block must end with a bare `//!` +  
+blank line. rules-015.md → rules-016.md. SUPERSEDED by DOC 18c — the  
+blank-line hypothesis was tested against real rendered docs and disproved.  
+DOC 18c — root-caused via headless-Chrome render: Zig autodoc splices the  
+first declaration's `///` comment onto the container page unconditionally.  
+Fix: `const _doc_stub = void;` as first declaration in mailbox.zig/pool.zig/  
+polynode.zig. rules-016.md → rules-017.md. DONE (167/167 tests unchanged).  
+API 4 — Renamed `NodeHandle` → `ItemHandle` (src, examples, stories, design docs);  
+documented `ih` short-form and `handle` shorthand convention. DONE (167/167  
+tests unchanged). Plan version pending.  
+API 4b — Propagated the rename to `kitchen/docs/` site pages and regenerated  
+autodocs. DONE.  
+DOC 19 — moved GitHub Pages generated site from `kitchen/output/` to  
+root-level `docs/` (standard Pages folder name). DONE.  
+INTR 6 — DONE (167/167 tests). Split standalone `helpers/` build module into  
+`examples/items/` (4 item types + `items.zig` lifecycle helpers),  
+`examples/hooks/` (`AlwaysCreateHooks.zig`, `CappedPoolHooks.zig`,  
+`hooks.zig`), `examples/helpers/` (generic `expect`/`clearList` only).  
+Updated `build.zig` to drop the standalone helpers module and wire `smod`  
+to `examples`. ~68 call-site files updated. Old `helpers/` folder deleted.  
+Plan version 039 created.  
+DOC 20 — DONE (167/167 tests). Removed the 8 example-autodoc `zig build docs`  
+targets (`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,  
+`storiesdocs`) and their `build.zig` support code; `apidocs` untouched. New  
+permanent `kitchen/tools/gen_examples_docs.sh` mirrors `examples/`+`stories/`  
+into `kitchen/docs/examples/` as generated `.md` pages (description + diagram  
+verbatim, embedded source, GitHub-blob link); 6 hand-authored catalog/group  
+pages replace `examples_reference.md`. rules-019 → -020, docs-plan-014 → -015,  
+plan-039 → -040.  
+DOC 20 follow-up — DONE. Owner found the 76 mirrored example pages were  
+link-only orphans (built by mkdocs but absent from `nav:`). Added every  
+example to `kitchen/mkdocs.yml`'s Examples Catalog `nav:` under its group;  
+new rule (rules-020 → -021): examples-catalog nav sync — any `examples/`/  
+`stories/` file add/remove/rename must update `nav:` + group pages.  
+Current: 167/167 tests. DOC 20 + follow-up DONE.  
+DOC 21 — "The Shape of a Real System" page (kitchen/docs/the-shape.md): two  
+Graphviz diagrams (real-system.dot / matryoshka-solution.dot) mapping three  
+ownership/reuse/coupling pains onto PolyNode/Mailbox/Pool, wired into  
+mkdocs nav after manifesto.md. New permanent kitchen/diagrams/src/ +  
+kitchen/tools/gen_diagrams.sh (manual-run, committed output, not CI-wired).  
+README insertion deferred by owner. DONE (doc-only, 167/167 tests  
+unchanged). Plan version pending.  
+INTR 7 — DONE (167/167 tests). Pool `on_put` reset convention added to every  
+example/test hook; "Pool is not storage" correction in  
+matryoshka-architecture-foundation-4-003.md; `put`'s four hook-driven  
+outcomes + no-fixed-sequence-guarantee caveat documented in  
+matryoshka-api-reference-023.md + kitchen/docs pool pages; audit of all  
+32 pool-touching files found and fixed 5 wrong-assumption bugs the reset  
+surfaced. Diagram-notation fixes (053's `mbh[0..2]`/`×3`, repo-wide sweep)  
+and a mailbox-focused equivalent stage deferred, owner's call.  
+Staccato sweep — DONE (167/167 tests). Repo-wide audit found 9 files with  
+prose-paragraph violations of the staccato rule; fixed 8 (video-transcoder.md  
+and a lower-confidence bucket left untouched, owner's call). Followed by a  
+"thread" audit — DONE (167/167 tests): worker-finish-signal pattern's stale  
+"spawns a worker thread"/"joins the thread" language corrected to  
+`io.concurrent`/future-await across `matryoshka-api-reference-025.md`,  
+`patterns-015.md`, and two `kitchen/docs` mirrors; 5 stale  
 `matryoshka-api-reference-022.md` cross-references in patterns-015.md fixed.
 
-**Next stage**: diagram-notation sweep (053's `mbh[0..2]`/`×3` already fixed
-incidentally; no repo-wide sweep done yet) and/or the mailbox-focused
-equivalent of the pool `on_put`/"not storage" audit (reset-on-X hook review,
-"mailbox is not X" framing check, sequence-assumption sweep) — owner's call
-on order.
+**Next stage**: CANDIDATES (composed README + landing docs from a repo-wide  
+`.md` audit, `design/candidates/`) — requirements-gathering done, execution  
+not started, blocked on owner confirming Pass 1 subagent-sweep approach. Then  
+MDFIX (markdown hard-break rule + `fix_md_hardbreaks.sh` tooling). Deferred:  
+diagram-notation sweep, mailbox-focused pool-audit equivalent, showcase-post  
+variants (Ziggit/Discord/Reddit) — all owner's call on order.
 
 ## Session Log
+
+### 2026-07-15 — MDFIX: `fix_md_hardbreaks.sh` script created and wired in
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Created `kitchen/tools/fix_md_hardbreaks.sh`, modeled directly on  
+`fix_md_lists.sh`: awk-based, fence-aware, in-place, idempotent. Fixes the  
+CommonMark soft-break issue (two lines separated by a single newline  
+collapse into one rendered line) by appending two trailing spaces to any  
+plain-text line immediately followed by another non-blank plain-text line.  
+Skips fenced code blocks, list items, headings, blockquotes, and table  
+rows. Runs on every `.md` file in the whole repo (not scoped to  
+`kitchen/docs/`), per owner's correction.
+
+The script is build-time tooling only — it does not run standalone. Wired  
+into `kitchen/tools/build_site.sh` and `kitchen/tools/preview_site.sh`  
+immediately after the existing `fix_md_lists.sh` call, same pattern. It  
+only executes when those scripts run.
+
+Verified against a scratch copy of `design/` + `kitchen/`: first run fixed  
+~19 files, second run reported 0 changes (idempotent), fenced code block  
+content confirmed untouched (diagram in `matryoshka-architecture-003.md`  
+spot-checked byte-for-byte).
+
+Documented the rule in `design/rules-025.md` (new version, replaces  
+rules-024.md) under a new "Markdown hard-break rule — MUST" section.  
+Updated `design/context.md` Rules/Plan pointers and `design/STATUS.md`  
+Sources of Truth to point at rules-025.md and the new script.
+
+### 2026-07-15 — CANDIDATES + MDFIX: requirements gathering (plan-only)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner wants central-understanding docs composed from the large, scattered  
+`.md` corpus (old-mindset and new-mindset material mixed): `README.md`,  
+doc-site landing pages (short + long). Showcase/post variants (Ziggit,  
+Discord, Reddit) deferred to a later stage — different audience/tone/timing  
+concerns, premature to scope now. Existing untracked drafts in  
+`kitchen/docs/misc/` (`README-15-07-2026.md`, `readme-landing.md`,  
+`how-matryoshka-system-works.md`, `matryoshka-io-ads.md`,  
+`what-is-matryoshka-io.md`) confirmed as audit input, not finished  
+deliverables.
+
+Scoped a three-pass approach: (1) audit — recursive repo-wide `.md` search,  
+old/new-mindset tagging, extractable-ideas-per-target-doc list, fast  
+early-discard triage for irrelevant/superseded files, plus a separate durable  
+`design/candidates/corpus-index-001.md` (per-file paragraph+bullets content  
+description, outlives this stage); (2) per-document requirements; (3)  
+composition in `design/candidates/`, versioned. Model choice: Sonnet for  
+Pass 1 (mechanical), Opus subagent for Pass 3 composition (same precedent as  
+DOC 21's diagram+prose drafting) — either way, output must still pass all  
+existing doc rules (staccato, banned words, no-overwrite versioning).
+
+Separately, owner flagged a real CommonMark rendering bug: two staccato  
+sentences separated by a single newline collapse into one rendered line  
+unless the first line ends with two trailing spaces (hard break) or a blank  
+line separates them. Same category as the earlier blank-line-before-list fix  
+(`fix_md_lists.sh`, rules-023). Scoped as a follow-on stage (MDFIX): a rule  
+addition to `rules-024.md` → next version, plus a new fence-aware  
+`kitchen/tools/fix_md_hardbreaks.sh`, wired into `build_site.sh`/  
+`preview_site.sh`/CI like the list-fix script. Needs its own audit pass  
+first to size the blast radius.
+
+**Changes**:
+- `design/matryoshka-io-implementation-plan-040.md` →
+  `design/matryoshka-io-implementation-plan-041.md` (new version) — "Next"  
+  section replaced with CANDIDATES + MDFIX stage scoping (requirements only,  
+  no execution yet).
+- `design/context.md` — Plan pointer updated to `-041.md`.
+- `design/STATUS.md` — Sources of Truth Plan pointer updated to `-041.md`;
+  "Next stage" note updated; this session log entry.
+
+**Not done this pass**: no `.md` audit executed, no `design/candidates/`  
+content files created yet, no `rules-024.md` → next version rule addition  
+yet (both CANDIDATES' early-discard rule and MDFIX's hard-break rule are  
+still just scoped, not written into the rules doc). Both stages are  
+plan-only.
+
+**Next**: owner confirmed Pass 1 (CANDIDATES audit) runs as a background  
+subagent sweep. Pass 1 executed this session — see next log entry.
+
+---
+
+### 2026-07-15 — CANDIDATES Pass 1: repo-wide `.md` audit + corpus index
+
+**Participants**: human (owner), Claude (agent), 2 parallel general-purpose  
+subagents (design/ corpus, kitchen/docs+README corpus).
+
+**Summary**
+
+Ran Pass 1 of the CANDIDATES stage as two parallel background subagent  
+sweeps, per owner's confirmation: one covering `design/*.md` + `design/stories/`  
+(24 files), one covering `kitchen/docs/**` (excluding the auto-generated  
+`kitchen/docs/examples/**` mirror tree, bulk-discarded as one entry) +  
+`README.md` + `kitchen/notes.md` + `kitchen/CLEANUP_CANDIDATES.md` +  
+`kitchen/_logo/logo-description.md` (56 files). Each subagent applied the  
+early-discard rule (fast skim, DISCARDED + one-line reason for old-mindset-  
+only/superseded/zero-value files, no deep read) before doing full  
+idea-extraction + corpus-index writeup on kept files. Outputs merged into two  
+unified files.
+
+**Results**: 49 files kept (17 design/, 32 kitchen/docs+README), 31  
+discarded/bulk-discarded (7 design/, 24 kitchen/docs — including the  
+~80-file `kitchen/docs/examples/**` tree as one bulk entry).
+
+**Key findings surfaced**:
+- "Start from a whiteboard, not code, not a prompt" appears independently in
+  three separate files — strong signal for the composition stage.
+- "At any moment, whoever holds the job owns the problem" (print-server
+  story, 3 occurrences) flagged as the corpus's strongest single insight  
+  line.
+- Vocabulary conflict: several `kitchen/docs/misc/` drafts use "Item" as a
+  named concept where the live corpus (README, manifesto, building-blocks)  
+  uses "PolyNode" — composition stage must resolve, not silently pick one.
+- Some currently-nav'd building-blocks pages (`mailbox.md`, `polynode.md`)
+  still carry literal "ownership"/"owner" language despite being otherwise  
+  New-Mindset — flagged mixed, not clean sources, needs care in Pass 3.
+- Richest sources for reuse: `matryoshka-manifesto-005.md`,
+  `matryoshka-new-mindset-001.md`, `matryoshka-terminology.md`,  
+  `matryoshka-architecture-foundation-4-004.md`.
+
+**Changes**:
+- `design/candidates/audit-001.md` (new) — merged two-part audit: mindset
+  tag + extractable ideas + target-doc(s) per kept file, DISCARDED section  
+  with one-line reasons.
+- `design/candidates/corpus-index-001.md` (new) — merged two-part durable
+  per-file content index (paragraph + bullets), kept files only.
+- `design/STATUS.md` — this session log entry.
+
+**Not done this pass**: Pass 2 (per-document requirements: audience, length  
+budget, tone, must-include points for README/landing-short/landing-long) and  
+Pass 3 (composition) not started. The vocabulary conflict (Item vs PolyNode)  
+and the mixed-language building-blocks pages are flagged, not resolved.
+
+**Next**: owner's call — proceed to Pass 2 (per-document requirements), or  
+review the audit/corpus-index files first.
+
+**Owner decision (vocabulary conflict resolved)**: "Item"/"ItemHandle" is  
+the concept-level term for README + landing docs. "PolyNode" stays an  
+implementation-detail term, not surfaced at that altitude. README/landing  
+docs concentrate on the mindset and the problem being solved, not  
+implementation mechanics — this shapes Pass 2's must-include/must-exclude  
+points.
+
+**Owner note (voice preservation)**: several source files carry human  
+voice — jokes, rules-of-thumb, distinctive phrasing (e.g.  
+`boring-manifesto.md`, the print-server story/analysis, `matryoshka-io-readme.md`'s  
+closer "Be Master of your systems"). Pass 2/3 must preserve this texture,  
+not flatten it into generic propositional summaries — flagged as an  
+explicit Pass 2 requirement, not just nice-to-have.
+
+**Primary vs. supporting sources (this session)**: `design/matryoshka-io-readme.md`  
+(new-mindset, no rewrite needed) is the likely README skeleton — Item/  
+ItemHandle framing already matches the resolved vocabulary decision,  
+concrete file-handle analogy, incremental-adoption narrative, "what this is  
+not" list, strong closer. `kitchen/docs/misc/what-is-matryoshka-io.md` and  
+`kitchen/docs/misc/how-matryoshka-system-works.md` are supporting sources —  
+strong problem-framing and pull-quote material, but old-mindset ("ownership"  
+as the named central rule) and need a word-swap pass before reuse.
+
+**Owner decision (stories excluded)**: story material —  
+`design/stories/print-server-002.md`, `design/stories/print-server-analysis-001.md`,  
+`design/stories/video-transcoder-003.md`, `kitchen/docs/story/print-server/*.md`  
+(4 files) — is out of scope for this CANDIDATES stage, reserved for a  
+different, later stage. All were "kept" by the Pass 1 audit; that verdict  
+stands for whenever the story-focused stage happens, but Pass 2/3 of  
+CANDIDATES must not pull from them.
+
+---
+
+### 2026-07-15 — CANDIDATES Pass 2: per-document requirements
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Wrote per-document requirements for the 3 CANDIDATES-stage target docs  
+(README.md, landing-short, landing-long), applying the decisions recorded  
+above (Item/ItemHandle vocabulary, mindset-not-mechanics altitude, voice  
+preservation, stories excluded). For each doc: audience, length budget,  
+tone, primary/supporting sources, must-include, must-exclude.
+
+Key calls: `design/matryoshka-io-readme.md` is the README's structural  
+skeleton (new-mindset, no rewrite needed); `kitchen/docs/misc/what-is-matryoshka-io.md`  
+and `kitchen/docs/misc/how-matryoshka-system-works.md` are supporting  
+sources needing a word-swap pass. landing-short leads with pull-quotes  
+(insight-density over exposition); landing-long builds a full argument,  
+comparable in scope to the manifesto/new-mindset docs, not the  
+architecture-foundation doc. Flagged an unresolved overlap for Pass 3:  
+`matryoshka-io-readme.md` vs. two other `misc/` README-shaped drafts  
+(`readme-landing.md`, `README-15-07-2026.md`) — primary treats  
+`matryoshka-io-readme.md` as the anchor, mines the other two for anything  
+missing.
+
+**Changes**:
+- `design/candidates/requirements-001.md` (new) — Pass 2 output.
+- `design/STATUS.md` — this session log entry.
+
+**Not done this pass**: Pass 3 (composition) not started. Suggested Pass 3  
+filenames (`readme-001.md`, `landing-short-001.md`, `landing-long-001.md`)  
+proposed but not confirmed by owner.
+
+**Next**: owner's call — review requirements-001.md, or proceed to Pass 3  
+composition (Opus subagent per prior model-choice decision).
+
+---
+
+### 2026-07-15 — CANDIDATES Pass 3: composed drafts (README + landing-short + landing-long)
+
+**Participants**: human (owner), Claude (agent), 1 Opus subagent (drafting).
+
+**Summary**
+
+Ran Pass 3 as an Opus subagent, per prior model-choice decision. Skeleton:  
+`design/matryoshka-io-readme.md` for the README draft; `matryoshka-manifesto-005.md`,  
+`matryoshka-new-mindset-001.md`, `matryoshka-terminology.md`,  
+`matryoshka-io-readme.md` for landing-long; pull-quote-driven for  
+landing-short. All three pass the Item/ItemHandle vocabulary decision,  
+mindset-not-mechanics altitude, and no-story-material constraint.
+
+**Changes**:
+- `design/candidates/readme-001.md` (new) — README draft.
+- `design/candidates/landing-short-001.md` (new) — quote-driven, shortest.
+- `design/candidates/landing-long-001.md` (new) — full argument, manifesto-scope.
+- `design/STATUS.md` — this session log entry.
+
+**Judgment calls flagged by the subagent, owner review needed**:
+- PolyNode: zero mentions in landing-short/landing-long; README keeps
+  exactly one light mention (composition-not-inheritance point in "what  
+  this is not") — a one-line delete if owner wants zero everywhere.
+- Word-swaps applied to reused old-mindset quotes: "who owns which state" →
+  "which part holds which state"; boring-manifesto's "one owner, one place,  
+  one decision" reused without "owner"; print-server's "whoever holds the  
+  job owns the problem" → "...holds the problem".
+- landing-long's print-server illustration (3 bullets) is deliberately
+  paraphrased from non-story `concepts/` pages, not lifted from the  
+  reserved `design/stories/*`/`kitchen/docs/story/*` files.
+- Dropped at this altitude (correct per landing-long's stated ceiling, but
+  flagged as the strongest cut lines if more technical texture is wanted  
+  later): LOC count (audit flagged as possibly stale), DATA/INTERRUPT/  
+  CANCEL channel model, Interrupt≠Cancel, four Hold states, MayItem.
+- Repo URL `github.com/g41797/matryoshka-io` inferred from working path —
+  needs owner confirmation before any publish.
+- Standardized the four-concept naming as Master/Item/Mailbox/Pool (the
+  `misc/` drafts' framing), not the manifesto's PolyNode/Mailbox/Pool/  
+  Master framing — consistent with the Item-first vocabulary decision.
+
+**Not done this pass**: no repo-facing files touched (`README.md` itself,  
+`kitchen/mkdocs.yml` nav) — these are review drafts only. No consistency  
+sweep across the 3 drafts run yet (e.g. confirming identical phrasing for  
+shared lines across all three).
+
+**Next**: owner review of the 3 drafts + the judgment calls above. Once  
+approved: promote a readme draft to replace repo `README.md`, wire  
+landing-short/landing-long into `kitchen/mkdocs.yml` nav, run  
+`build_and_test_debug.sh` + `build_site.sh` + banned-word sweep on the  
+promoted files.
+
+---
+
+### 2026-07-15 — CANDIDATES: readme-002.md revision pass (external review feedback)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner had `readme-001.md` externally reviewed (`~/Downloads/readme-001-advice.md`,  
+rated 9.5/10, mostly polish). Applied 4 accepted changes as a new version,  
+`readme-001.md` left untouched (no-overwrite rule).
+
+**Changes** (`design/candidates/readme-002.md`, new):
+- Removed "Some Masters coordinate other Masters." (unearned at that point
+  in the read).
+- "Nobody knows what runs in parallel." → "Nobody clearly knows what runs
+  in parallel." (accurate — they did know at first).
+- "...and it costs no extra code to get." → "Backpressure appears
+  naturally." (tighter, less vague).
+- New "The library" section added (after "What this is not", before "Start
+  without fear") — bridges architecture/concepts to "what's actually in  
+  this repo" (Item/Mailbox/Pool as independent building blocks, usable  
+  alone or together).
+
+**Rejected** (reviewer suggestion, not applied): "It transfers the Item" →  
+"It transfers ownership of the Item" — reviewer called this "more  
+precise," but it is exactly the ownership framing banned by  
+`design/rules-024.md`/New Mindset. Current wording is correct per project  
+rules, kept as-is.
+
+**Left unchanged, owner's call**: "The object moves from one Master to  
+another." — reviewer suggested "eventually moves" (technically accurate,  
+Mailbox holds it in transit) but judged clunkier; not applied by default.
+
+**Not done this pass**: no consistency sweep against landing-short-001.md/  
+landing-long-001.md for the changed lines (e.g. "Backpressure appears  
+naturally" phrasing, if it should propagate). `readme-002.md` not yet  
+promoted to replace repo `README.md`.
+
+**Next**: owner review of `readme-002.md`. If approved, promotion to repo  
+`README.md` + landing-page nav wiring + kitchen script verification, per  
+the prior entry's "Next".
+
+---
+
+### 2026-07-15 — CANDIDATES: landing-short-002.md revision pass (external review feedback)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner had `landing-short-001.md` externally reviewed  
+(`~/Downloads/landing-short-advice.md`, rated 9.5/10, mostly polish). Same  
+pattern as the README revision: applied accepted changes as a new version,  
+`landing-short-001.md` left untouched.
+
+**Changes** (`design/candidates/landing-short-002.md`, new):
+- Reordered the bullet list: invariant first ("An Item is in exactly one
+  place at any moment."), then "Communication is the default...", then  
+  "Do not share Items. Pass Items. Reuse Items." (strongest line leads).
+- "The whole thing is a handful of rules and four concepts..." → "The
+  whole architecture fits into four concepts: **Master, Item, Mailbox,  
+  Pool.**" (drops vague "handful of rules").
+- "Can you describe your application..." → "Can you model your
+  application..." (more architectural).
+- Added one explicit Master-defining sentence ("A Master holds state, does
+  work, and talks through Mailboxes.") — Master was previously used before  
+  ever being defined on this page.
+- "Instead of sharing an application object, pass the object itself." →
+  "Instead of sharing application objects, move them." — reviewer's  
+  original suggestion ("transfer ownership") rejected as banned framing;  
+  used the reviewer's own alternate wording instead, which avoids  
+  "ownership" and fixes the same "pass sounds like parameter-passing"  
+  concern.
+
+**Flagged, not applied** (bigger than a polish pass): reviewer's "one  
+question per section" full narrative restructure (Io/Problem/Answer/  
+Mechanism/Result) — structural rewrite, left for owner's call as a  
+possible future version.
+
+**Not done this pass**: no promotion, no nav wiring, no consistency check  
+against `readme-002.md`/`landing-long-001.md` for the changed lines (e.g.  
+whether the new Master-definition sentence should also appear in the  
+other two docs).
+
+**Next**: owner review of `readme-002.md` and `landing-short-002.md`  
+together. If approved, promotion + nav wiring + kitchen script  
+verification.
+
+---
+
+### 2026-07-15 — CANDIDATES: staccato consistency sweep (3 drafts)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner asked for a consistency check after the new Master-defining sentence  
+was added to `landing-short-002.md`, specifically flagging it as a long  
+comma-list sentence — not staccato. Swept all 3 composed drafts  
+(`readme-002.md`, `landing-short-002.md`, `landing-long-001.md`) for the  
+same pattern: single sentences packing a comma-separated list of  
+substantive clauses, which violates the repo's explicit "no prose  
+paragraphs with comma-separated lists" rule.
+
+Distinguished this from short punchy same-line fragments ("Not slow. Not  
+old. Just predictable...", "Keep Io powerful. Keep it hidden. Keep  
+Matryoshka clean.") — that rhythmic style is intentional and was explicitly  
+praised by the owner's external `readme-001.md` review (9.5/10). Only the  
+run-on multi-clause-comma-list pattern was treated as a violation.
+
+**Changes**:
+- `landing-short-002.md` — "A Master holds state, does work, and talks
+  through Mailboxes." → 3 separate short sentences.
+- `readme-002.md` — "A Master typically performs one responsibility, holds
+  its own state, and works with Items." → 3 separate short sentences.
+- `landing-long-001.md` (3 fixes) — Master section's "It is a task that
+  holds its own state, works with Items, and talks through Mailboxes." → 4  
+  separate short sentences; page-intro comma-list sentence → converted to  
+  a bullet list; Item lifecycle line (3 sentences crammed on one line,  
+  last one a comma-list) → split into separate sentences.
+
+All edits made in place on the already-unreviewed `-002`/`-001` drafts  
+(not yet promoted to the repo), no new version needed.
+
+**Not done this pass**: no re-verification that the remaining punchy  
+same-line fragments are all correctly non-violating — spot-checked by  
+pattern-matching against the owner-approved style, not exhaustively  
+re-reviewed line by line.
+
+**Next**: owner review of all 3 drafts together (`readme-002.md`,  
+`landing-short-002.md`, `landing-long-001.md`). If approved: promotion to  
+repo `README.md` + landing-page nav wiring + kitchen script verification  
+(`build_and_test_debug.sh`, `build_site.sh`, banned-word sweep).
+
+---
+
+### 2026-07-15 — CANDIDATES: "easy vs. easier" mindset refinement
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner supplied a richer version of the existing "It does not think for  
+you..." passage in the "What this is not" sections — adds an "easy vs.  
+easier" framing before it (goal is not an easy system, it never was; the  
+goal is a common frame/rules/way of thinking, which makes the system  
+easier to explain/discuss/whiteboard/change/maintain). Owner's supplied  
+text already used correct two-trailing-space hard breaks and blank-line  
+list separation.
+
+**Changes**:
+- `design/candidates/readme-003.md` (new) — `readme-002.md`'s "What this
+  is not" section expanded with the new passage, placed after the  
+  "does not introduce" list, before the PolyNode mention. `readme-002.md`  
+  left untouched (no-overwrite).
+- `design/candidates/landing-long-001.md` (in-place edit, still an
+  unreviewed working draft per the precedent set by the staccato sweep) —  
+  same expansion added after the "deliberately not" bullet list. Trimmed  
+  the now-redundant "it only brings a little more order to your thinking"  
+  fragment from the "a framework" bullet, since the full passage covers it  
+  properly right after.
+- `landing-short-002.md` — checked, no equivalent line to expand; the full
+  block doesn't fit its length budget. Left untouched.
+
+**Not done this pass**: no banned-word rescan of the whole file beyond the  
+new passage (spot-checked the new content only: "frame", "rules",  
+"thinking" — none banned). Noted but out of scope: `readme-002.md`/`-003.md`  
+and `landing-long-001.md` both have a "## The programming model" /  
+"## Design foundation" heading area using "programming model" as a section  
+name — "programming model" is on the New Mindset banned-word list  
+(rules-024.md). Pre-existing from Pass 3 composition, not introduced this  
+pass — flagged for owner's call, not fixed here (out of this task's scope).
+
+**Next**: owner review of `readme-003.md` + updated `landing-long-001.md`.  
+Also owner to decide on the flagged "programming model" heading — rename  
+before promotion.
+
+**Consistency check (same pass)**: checked `landing-short-001.md`/  
+`landing-long-001.md` for the same phrasing this revision touched.  
+`landing-short-001.md` had no overlap. `landing-long-001.md`'s "Some  
+Masters coordinate other Masters" is earned there — one item in a 3-way  
+worker/coordinator/resource-holder breakdown under a diagram, unlike the  
+README's unearned standalone aside — left unchanged. One real echo fixed:  
+"and you get it for free" (same vague/cliché issue as the README's old  
+"costs no extra code to get") → "It appears naturally," edited in place  
+(not versioned separately, same-session consistency fix on an unreviewed  
+draft).
+
+---
+
+### 2026-07-15 — CANDIDATES: "programming model" heading fix + banned-word/long-sentence sweep
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner asked to fix the flagged "## The programming model" heading (banned  
+word, New Mindset list) and re-check for long sentences across the working  
+drafts.
+
+**Changes**:
+- `design/candidates/readme-002.md` — `## The programming model` → `## One
+  style` (`readme-001.md` correctly left untouched, no-overwrite).
+- `design/candidates/readme-003.md` — same heading rename.
+- `design/candidates/landing-long-001.md` — checked, does NOT have this
+  heading (earlier flag was imprecise); no change needed here.
+
+**Sweeps (all 4 working drafts: `readme-002.md`, `readme-003.md`,  
+`landing-short-002.md`, `landing-long-001.md`)**:
+- Full banned-word regex sweep (exact rules-024.md list). One genuine hit
+  fixed: "Keep Io powerful. Keep it hidden. Keep Matryoshka clean." → "Keep  
+  Io capable. Keep it hidden. Keep Matryoshka clean." in  
+  `landing-long-001.md`. "interfaces" hits are a known false positive  
+  (substring match on "faces"), not a real hit.
+- Long-sentence sweep (lines >140 chars): no further staccato violations
+  found; remaining long lines are reviewer-praised analogy paragraphs or  
+  already-approved punchy fragment style.
+
+**Next**: owner review of `readme-003.md`, `landing-short-002.md`,  
+`landing-long-001.md` together before promotion.
+
+---
+
+### 2026-07-15 — CANDIDATES: landing-long-002.md revision pass (external review feedback)
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner had `landing-long-001.md` externally reviewed  
+(`~/Downloads/landing-long.md`, rated 9.2/10). Same pattern as the  
+`readme-002.md` and `landing-short-002.md` revision passes: targeted edits,  
+new version, original untouched. First time `landing-long` gets promoted to  
+a numbered version — all edits before this were made in place on the  
+unreviewed draft.
+
+**Accepted and applied** (→ `design/candidates/landing-long-002.md`, new file):
+- Isolated "Io does not prevent any of that. It just runs it faster." onto
+  its own line/paragraph, "just" → "simply".
+- "One constraint" section: removed "Two constraints." transition line;
+  "Pools add a second." → "Pools extend the same idea."
+- Simplified the Master ASCII diagram — old version showed Master branching
+  into three subtypes (Single-job/Coordinator/Resource-holding), which read  
+  like a type hierarchy and undercut the adjacent "A Master is not a type,  
+  an interface, or a runtime" text. Replaced with a linear  
+  `io.concurrent() → Io task → follows Matryoshka rules → Master` flow;  
+  kept the "some Masters do X" bullets as prose below the diagram.
+- Shortened the Mailbox "not really a queue" sentence into two sentences,
+  same content.
+- Bolded "Waiting on an empty Pool is backpressure."
+- Ending: dropped "Don't be afraid. Go ahead." (only motivational-tone line
+  on an otherwise calm/architectural page); closes directly with the  
+  whiteboard/question lines, then "Be Master of your systems."
+- Added "The concepts matter more than the implementation." near the end of
+  "What this is not" — reuses phrasing already established in  
+  `readme-002.md`/`readme-003.md`'s "The library" section, for cross-doc  
+  consistency, instead of inventing new wording.
+
+**Rejected** (ownership framing, same rule as the two prior revision passes):
+- Reviewer's suggested Mailbox rewrite: "It transfers ownership of an
+  existing Item from one holder to the next." — banned. Applied the  
+  shortening without this wording.
+- Reviewer's analysis commentary ("ownership through movement", "Mailboxes
+  as ownership transfer", "that is your entire ownership model in one  
+  sentence") — not proposed doc text, not applicable regardless; noted so  
+  it isn't echoed back into the doc later.
+
+**Flagged, not applied** (judgment calls, owner's call):
+- Moving the ItemHandle paragraph out of the Item section into a sidenote —
+  changes what the page teaches, not just how it reads. Left inline.
+- Trimming the print-server example by "~30%" — no concrete cut identified
+  by the reviewer. Left as-is.
+- Reworked intro using "architectural model" language — adjacent to the
+  banned "programming model"/"object model" pattern; current intro left  
+  as-is.
+
+**Next**: owner review of `landing-long-002.md` alongside `readme-003.md`  
+and `landing-short-002.md`.
+
+---
+
+### 2026-07-15 — CANDIDATES: rules sweep (ai-sh, long sentences, bullets) → readme-004.md, landing-long-003.md
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner asked to check `readme-003.md`, `landing-short-002.md`,  
+`landing-long-002.md` against the doc rules (banned/AI-sh words, long  
+sentences, missing bullets, prose run-ons), then fix. Banned-word sweep was  
+clean on all three. Found two genuine staccato violations (comma-list  
+clauses packed into one sentence) and fixed them — but the fix was first  
+applied in place on `readme-003.md` and `landing-long-002.md`, which  
+violates the no-overwrite rule now that both files are numbered/promoted  
+versions (the in-place-edit exception only applied to `landing-long-001.md`  
+while it was still an unreviewed pre-promotion draft). Owner then asked to  
+repeat the check and version any changes — caught and corrected: reverted  
+both files to their pre-sweep state, created new versions instead.
+
+**Changes**:
+- `design/candidates/readme-003.md` — reverted to pre-sweep state (no
+  content change from the previous session's entry).
+- `design/candidates/landing-long-002.md` — reverted to pre-sweep state
+  (no content change from the previous session's entry).
+- `design/candidates/readme-004.md` (new) — `readme-003.md` plus two
+  staccato fixes: the PolyNode aside's "which"-clause split into its own  
+  sentence; the closing question/answer pair split onto separate lines.
+- `design/candidates/landing-long-003.md` (new) — `landing-long-002.md`
+  plus one staccato fix: "Picture a print server: a client submits a job,  
+  a spooler orders the jobs, a printer driver prints them." (three-clause  
+  comma list) → shortened to "Picture a print server: a client, a spooler,  
+  a printer driver." (noun list, same pattern already accepted elsewhere,  
+  e.g. the Item examples list) — avoided converting to a bullet list here  
+  since the very next three bullets already elaborate on client/spooler/  
+  driver in detail; a second bullet list would have been redundant.
+- `landing-short-002.md` — checked, no changes needed (already clean, no
+  long lines, no banned words).
+
+**Verification**: re-ran the full banned-word regex sweep and a >140-char  
+long-line sweep against the current versioned set (`readme-004.md`,  
+`landing-short-002.md`, `landing-long-003.md`). Zero banned-word hits.  
+Remaining long lines are the already-reviewed merged-short-sentence and  
+noun-list-apposition patterns (e.g. "Request, Response, Connection..."),  
+not comma-separated clause run-ons — left as-is, consistent with the prior  
+consistency-sweep verdict.
+
+**Next**: owner review of `readme-004.md`, `landing-short-002.md`,  
+`landing-long-003.md` together.
+
+---
 
 ### 2026-07-09 — "thread" audit: worker-finish-signal pattern terminology fix
 
@@ -260,32 +856,32 @@ on order.
 
 **Summary**
 
-Owner asked for a repo-wide audit of the word "thread". Found no live
-`Thread.spawn` calls in `src/`/`examples/`/`tests/` (prior New Mindset
-migration holds), and most "thread" hits are legitimate (`std.Io.Threaded`
-backend, thread-safety contract language, `std.Thread.yield()` busy-wait
-polling in `tests/layer4_cancel.zig`). One real drift found: the
-Worker-finish-signal pattern, in 6 places, described the worker as "a worker
-thread" joined via "joins the thread" — but the actual implementation
-(`examples/layer4/095-mailbox_as_item.zig`) spawns via `io.concurrent()`
-and synchronizes via `std.Io.Future(void).await`, not a raw OS thread join.
-Also found 5 stale cross-references in `patterns-014.md` still pointing to
+Owner asked for a repo-wide audit of the word "thread". Found no live  
+`Thread.spawn` calls in `src/`/`examples/`/`tests/` (prior New Mindset  
+migration holds), and most "thread" hits are legitimate (`std.Io.Threaded`  
+backend, thread-safety contract language, `std.Thread.yield()` busy-wait  
+polling in `tests/layer4_cancel.zig`). One real drift found: the  
+Worker-finish-signal pattern, in 6 places, described the worker as "a worker  
+thread" joined via "joins the thread" — but the actual implementation  
+(`examples/layer4/095-mailbox_as_item.zig`) spawns via `io.concurrent()`  
+and synchronizes via `std.Io.Future(void).await`, not a raw OS thread join.  
+Also found 5 stale cross-references in `patterns-014.md` still pointing to  
 the long-superseded `matryoshka-api-reference-022.md`.
 
 **Changes**:
 - `examples/layer4/095-mailbox_as_item.zig` — doc comment: "spawns a worker
-  thread" → "spawns a worker via `io.concurrent`"; "joins the thread" →
-  "awaits the worker's future"; diagram label "worker thread" → "worker
-  task". Regenerates `kitchen/docs/examples/layer4/095-mailbox_as_item.md`
+  thread" → "spawns a worker via `io.concurrent`"; "joins the thread" →  
+  "awaits the worker's future"; diagram label "worker thread" → "worker  
+  task". Regenerates `kitchen/docs/examples/layer4/095-mailbox_as_item.md`  
   automatically (verified via `build_site.sh`).
 - `design/matryoshka-api-reference-024.md` → `design/matryoshka-api-reference-025.md`
-  (new version) — same terminology fix in the Worker-finish-signal pattern
+  (new version) — same terminology fix in the Worker-finish-signal pattern  
   section.
 - `design/patterns-014.md` → `design/patterns-015.md` (new version) — same
-  terminology fix; all 5 stale `matryoshka-api-reference-022.md`
+  terminology fix; all 5 stale `matryoshka-api-reference-022.md`  
   cross-references updated to `-025.md`.
 - `kitchen/docs/patterns/slot-and-polynode.md`,
-  `kitchen/docs/api/tags-and-slots.md` — same terminology fix, edited in
+  `kitchen/docs/api/tags-and-slots.md` — same terminology fix, edited in  
   place (mirror pages, existing convention).
 - `design/context.md`, `design/STATUS.md` Sources of Truth — pointers
   updated for both new-versioned docs.
@@ -300,10 +896,10 @@ the long-superseded `matryoshka-api-reference-022.md`.
 | `grep -rl "matryoshka-api-reference-024.md\|patterns-014.md"` (repo-wide) | zero live pointers remain outside historical Session Log entries and the new docs' own "Replaces [...]" supersede links |
 | Regenerated `kitchen/docs/examples/layer4/095-mailbox_as_item.md` | confirmed "worker task"/`io.concurrent` wording present |
 
-**Not done this pass**: repo-wide diagram-notation sweep; mailbox-focused
+**Not done this pass**: repo-wide diagram-notation sweep; mailbox-focused  
 equivalent audit. Both deferred from the prior INTR 7 stage, still open.
 
-**Next**: diagram-notation sweep, or the mailbox-focused audit — owner's
+**Next**: diagram-notation sweep, or the mailbox-focused audit — owner's  
 call on order (see updated Rules/Constraints summary above).
 
 ---
@@ -314,82 +910,82 @@ call on order (see updated Rules/Constraints summary above).
 
 **Summary**
 
-While reviewing `src/pool.zig` and `examples/layer4/053-pool_fan_in.zig`'s
-diagram, two diagram bugs surfaced (`mbh[0..2]` off-by-one, `pool.get ×3`
-mislabeling a drain-until-`NotAvailable` loop). Owner deferred diagram-
-notation fixes (053's and a full repo-wide sweep) to a later stage and
-redirected this stage to a deeper issue: no example pool hook reset an
-item's data on `put`, so stale data could silently survive recycling —
-and several docs (mainly `matryoshka-architecture-foundation-4-002.md`,
-`STATUS.md`'s own DOC 21 log) framed Pool as "storage"/a "warehouse," which
-owner corrected: Pool is not storage — `put`'s effect on a returned item is
-entirely hook-policy-driven (delete, keep-as-is, keep-after-reset, or
-delete-and-replace), and matryoshka imposes no reset requirement. A mailbox-
-focused equivalent audit was flagged as a next-stage candidate, not part of
+While reviewing `src/pool.zig` and `examples/layer4/053-pool_fan_in.zig`'s  
+diagram, two diagram bugs surfaced (`mbh[0..2]` off-by-one, `pool.get ×3`  
+mislabeling a drain-until-`NotAvailable` loop). Owner deferred diagram-  
+notation fixes (053's and a full repo-wide sweep) to a later stage and  
+redirected this stage to a deeper issue: no example pool hook reset an  
+item's data on `put`, so stale data could silently survive recycling —  
+and several docs (mainly `matryoshka-architecture-foundation-4-002.md`,  
+`STATUS.md`'s own DOC 21 log) framed Pool as "storage"/a "warehouse," which  
+owner corrected: Pool is not storage — `put`'s effect on a returned item is  
+entirely hook-policy-driven (delete, keep-as-is, keep-after-reset, or  
+delete-and-replace), and matryoshka imposes no reset requirement. A mailbox-  
+focused equivalent audit was flagged as a next-stage candidate, not part of  
 this stage.
 
 **Changes**:
 
 Step A (code — reset helper, first):
 - `examples/items/items.zig` — new `pub fn resetOnPut(slot: *polynode.Slot) void`,
-  by-tag dispatch zeroing `Event.code`/`Sensor.value` (default-value reset —
+  by-tag dispatch zeroing `Event.code`/`Sensor.value` (default-value reset —  
   our examples' own convention, not a matryoshka rule).
 - `examples/hooks/AlwaysCreateHooks.zig`, `examples/hooks/CappedPoolHooks.zig`
   — `on_put` now calls `items.resetOnPut(slot)` when keeping an item.
 - `tests/layer3_pool.zig` — new local `resetOnPut` helper (same field-zero
-  logic), called from `onPutAdaptive`. The pre-existing reset in
-  `onGetAlways` was **kept**, not removed — it is what scenario 66
-  ("on_get reinitializes recycled item") specifically tests, a deliberate,
+  logic), called from `onPutAdaptive`. The pre-existing reset in  
+  `onGetAlways` was **kept**, not removed — it is what scenario 66  
+  ("on_get reinitializes recycled item") specifically tests, a deliberate,  
   different hook-policy choice, not a duplicate to clean up.
 - `tests/layer4_infra.zig` (`PoolTransportCtx`), `examples/layer4/096-pool_as_item.zig`
-  (`CarrierCtx`) — trivial no-op `resetOnPut` (pool-of-pools items carry no
+  (`CarrierCtx`) — trivial no-op `resetOnPut` (pool-of-pools items carry no  
   scalar data), called for `on_put`-shape consistency with the other hooks.
 - `tests/layer4_cancel.zig` (`Ctx10.onPut`) — this one holds real scalar
-  items (`items.createByTag`), not `PoolHandle`s; wired to `items.resetOnPut`
+  items (`items.createByTag`), not `PoolHandle`s; wired to `items.resetOnPut`  
   like the example hooks, not exempted.
 - The reset immediately surfaced 5 pre-existing wrong-assumption bugs
   (exactly the goal) — fixed as part of this step, not deferred:
   - `examples/layer3/089-basic_recycler.zig` — taught "recycled item kept
     its data"; now teaches the opposite (`code == 0` after recycle).
   - `examples/layer4/050-get_wait_future_direct.zig` — seeded value (`code = 7`)
-    was always lost at the seeding `put`, before the future path even ran;
+    was always lost at the seeding `put`, before the future path even ran;  
     assertion and doc comment corrected to expect the reset default.
   - `examples/layer4/055-producer_consumer_recycle.zig` — same pattern,
     `verifyRecycle` now expects `code == 0`, not the producer's value.
   - `examples/layer4/035-cross_layer_pool_hooks_mailbox_flow.zig` — same
     pattern for `CappedPoolHooks`' "kept" path.
   - `examples/layer4/053-pool_fan_in.zig` — a real architecture flaw, not
-    just an assertion fix: the worker wrote its result into the pool item,
-    then `put` (now correctly) wiped it before the master could collect it
-    via `pool.get`. Redesigned: workers write results into a dedicated
-    `results: [N]i32` array (workers are sequentially `fut[i].await`-ed by
-    the master, so no race) before returning the container to the pool;
-    `collectResults` sums the array instead of draining the pool. Diagram
-    and doc comment rewritten to match — incidentally also fixes the
-    `mbh[0..2]`/`×3` diagram bugs as an unavoidable side effect of the
+    just an assertion fix: the worker wrote its result into the pool item,  
+    then `put` (now correctly) wiped it before the master could collect it  
+    via `pool.get`. Redesigned: workers write results into a dedicated  
+    `results: [N]i32` array (workers are sequentially `fut[i].await`-ed by  
+    the master, so no race) before returning the container to the pool;  
+    `collectResults` sums the array instead of draining the pool. Diagram  
+    and doc comment rewritten to match — incidentally also fixes the  
+    `mbh[0..2]`/`×3` diagram bugs as an unavoidable side effect of the  
     logic rewrite (not a deliberate diagram-sweep fix).
 
 Step B (docs — "pool is not storage" + put semantics):
 - `design/matryoshka-architecture-foundation-4-002.md` →
-  `design/matryoshka-architecture-foundation-4-003.md` (new version) — every
-  "storage"/"warehouse" hit rewritten to "Pool is not storage — it is a
-  backpressure signal for reuse" (framing borrowed from
-  `design/stories/print-server-analysis-001.md`, which already had it
-  right); "Pool Storage vs Policy" heading → "Pool Reuse vs Policy". No
-  structural/technical change. `-001.md` (superseded) left untouched.
-  `design/STATUS.md`'s DOC 21 log line left as historical record, per
+  `design/matryoshka-architecture-foundation-4-003.md` (new version) — every  
+  "storage"/"warehouse" hit rewritten to "Pool is not storage — it is a  
+  backpressure signal for reuse" (framing borrowed from  
+  `design/stories/print-server-analysis-001.md`, which already had it  
+  right); "Pool Storage vs Policy" heading → "Pool Reuse vs Policy". No  
+  structural/technical change. `-001.md` (superseded) left untouched.  
+  `design/STATUS.md`'s DOC 21 log line left as historical record, per  
   existing precedent for session-log entries.
 - `design/matryoshka-api-reference-022.md` → `-023.md` (new version) — `pool`
-  section opens with "Pool is not storage"; `put`'s four outcomes (deleted/
-  no-return, returned as-is, returned after reset, deleted-and-replaced)
-  documented as policy-neutral (matryoshka mandates none of them, hook
-  author's choice); added the no-fixed-sequence-guarantee caveat (put/get
+  section opens with "Pool is not storage"; `put`'s four outcomes (deleted/  
+  no-return, returned as-is, returned after reset, deleted-and-replaced)  
+  documented as policy-neutral (matryoshka mandates none of them, hook  
+  author's choice); added the no-fixed-sequence-guarantee caveat (put/get  
   call patterns carry no count/identity/ordering guarantee).
 - `kitchen/docs/api/pool.md` — same put-outcomes + caveat content, edited in
   place (mirrored/generated-adjacent page, existing convention).
 - `kitchen/docs/building-blocks/pool.md` — "Whatever the previous owner
-  wrote has already been consumed or reset by the time you get an item
-  back" overstated a guarantee matryoshka doesn't make; rewritten
+  wrote has already been consumed or reset by the time you get an item  
+  back" overstated a guarantee matryoshka doesn't make; rewritten  
   policy-neutral, pointing at the four `put` outcomes.
 - `design/patterns-013.md` — checked, no storage-framing hits (its "storage"
   mentions are the video-transcoder's downstream storage task, unrelated).
@@ -423,22 +1019,22 @@ Step C (audit — 32 pool-touching files + items/hooks + patterns-013.md):
 | Banned-word sweep (all files touched this pass) | clean; only hits are historical changelog rows describing past work (exempt, existing precedent) |
 | `grep -rn "storage\|warehouse"` across touched design/kitchen docs | zero hits outside intentional "Pool is not storage" phrasing and the unrelated video-transcoder "storage task" |
 
-**Post-stage cleanup**: reviewed all files touched this pass for obsolete
-comments, wrong doc claims, and repeated logic. No extractable duplication
-found — `resetOnPut` is already the single shared helper for scalar-item
-hooks (`examples/items/items.zig`), and the 3 pool-of-pools no-op
-`resetOnPut`s are intentionally separate per-file (no shared state to
-extract, kept local for clarity). All 3 kitchen scripts re-run clean after
+**Post-stage cleanup**: reviewed all files touched this pass for obsolete  
+comments, wrong doc claims, and repeated logic. No extractable duplication  
+found — `resetOnPut` is already the single shared helper for scalar-item  
+hooks (`examples/items/items.zig`), and the 3 pool-of-pools no-op  
+`resetOnPut`s are intentionally separate per-file (no shared state to  
+extract, kept local for clarity). All 3 kitchen scripts re-run clean after  
 cleanup review (see Verification table above — no further fixes needed).
 
-**Not done this pass** (deferred, owner's call): diagram-notation fixes
-(053's `mbh[0..2]`/`×3` — already incidentally correct after the Step A
-rewrite, but no repo-wide diagram sweep was done); mailbox-focused
-equivalent audit (reset-on-put-style hook review, "mailbox is not X"
+**Not done this pass** (deferred, owner's call): diagram-notation fixes  
+(053's `mbh[0..2]`/`×3` — already incidentally correct after the Step A  
+rewrite, but no repo-wide diagram sweep was done); mailbox-focused  
+equivalent audit (reset-on-put-style hook review, "mailbox is not X"  
 framing check, sequence-assumption sweep).
 
-**Next**: owner's call — repo-wide diagram-notation sweep, or the deferred
-mailbox audit (candidate stage). Stage 9 (docs + README + autodocs)
+**Next**: owner's call — repo-wide diagram-notation sweep, or the deferred  
+mailbox audit (candidate stage). Stage 9 (docs + README + autodocs)  
 otherwise continues.
 
 ---
@@ -447,38 +1043,38 @@ otherwise continues.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Last item from the New Mindset punch list: the two architecture docs
-(`matryoshka-architecture-002.md`, `matryoshka-architecture-foundation-4-001.md`)
-carried "ownership" as core vocabulary — ~20 and ~120 hits respectively,
-including section/layer titles, not just prose. Confirmed both docs are
-active (`design/STATUS.md` Sources of Truth, `design/context.md`) before
-touching them. Owner directed: for "ownership transfer," describe what
-happens (per the existing `src/` comment rule — say what happens, don't
-say "ownership"); for "ownership model," pick plain replacement wording
+**Summary**  
+Last item from the New Mindset punch list: the two architecture docs  
+(`matryoshka-architecture-002.md`, `matryoshka-architecture-foundation-4-001.md`)  
+carried "ownership" as core vocabulary — ~20 and ~120 hits respectively,  
+including section/layer titles, not just prose. Confirmed both docs are  
+active (`design/STATUS.md` Sources of Truth, `design/context.md`) before  
+touching them. Owner directed: for "ownership transfer," describe what  
+happens (per the existing `src/` comment rule — say what happens, don't  
+say "ownership"); for "ownership model," pick plain replacement wording  
 (flagged as AI-sh-style), left to the agent's judgment.
 
 **Changes**:
 - `design/matryoshka-architecture-002.md` → `design/matryoshka-architecture-003.md`
-  (new version) — "ownership"/"owner" replaced with "place"/"hold" (matches
-  the Slot-based "you hold it / you don't hold it" framing already in the
+  (new version) — "ownership"/"owner" replaced with "place"/"hold" (matches  
+  the Slot-based "you hold it / you don't hold it" framing already in the  
   doc); "execution context(s)" → "task(s)".
 - `design/matryoshka-architecture-foundation-4-001.md` →
-  `design/matryoshka-architecture-foundation-4-002.md` (new version) —
-  "ownership"/"owner"/"owns"/"owned" replaced with "hold"/"holder"/"holds"/
-  "held" throughout, including renaming the "Ownership" layer/section name
-  to "Hold" (this reads better than "place" here and matches the doc's
-  pre-existing `HELD` state name); "execution context(s)"/"execution
-  model(s)" replaced with "task(s)". No structural or technical content
+  `design/matryoshka-architecture-foundation-4-002.md` (new version) —  
+  "ownership"/"owner"/"owns"/"owned" replaced with "hold"/"holder"/"holds"/  
+  "held" throughout, including renaming the "Ownership" layer/section name  
+  to "Hold" (this reads better than "place" here and matches the doc's  
+  pre-existing `HELD` state name); "execution context(s)"/"execution  
+  model(s)" replaced with "task(s)". No structural or technical content  
   changed — same four layers, same states, same decisions.
 - `design/context.md` — Architecture pointer → `-003.md`; added a new
-  "Architecture foundation" pointer line for `-002.md` (previously the
-  foundation doc had a `STATUS.md` Sources-of-Truth entry but no
+  "Architecture foundation" pointer line for `-002.md` (previously the  
+  foundation doc had a `STATUS.md` Sources-of-Truth entry but no  
   `context.md` entry).
 - `design/STATUS.md` — Sources of Truth "Architecture"/"Architecture
   introduction" pointers updated to the new versions.
 - `design/matryoshka-io-0.16-implementation-guide-001.md` — 3 cross-references
-  to the old foundation-doc filename updated to `-002.md` (doc-link rule,
+  to the old foundation-doc filename updated to `-002.md` (doc-link rule,  
   no exception).
 
 **Verification**:
@@ -490,15 +1086,15 @@ say "ownership"); for "ownership model," pick plain replacement wording
 | `build_and_test_debug.sh` | PASS (167/167) — doc-only change, `src/` untouched |
 | `build_site.sh` | clean, zero warnings (both docs are `design/` internal references, not in mkdocs nav) |
 
-**Not fixed this pass (pre-existing, unrelated to ownership)**: 5 pre-existing
-banned-word hits found in `matryoshka-architecture-foundation-4-002.md`
-during the sweep — "deliver"/"delivers"/"delivery" (×4) and "fires" (×1),
-all present before this pass, not introduced by it. Reported per rules-024
+**Not fixed this pass (pre-existing, unrelated to ownership)**: 5 pre-existing  
+banned-word hits found in `matryoshka-architecture-foundation-4-002.md`  
+during the sweep — "deliver"/"delivers"/"delivery" (×4) and "fires" (×1),  
+all present before this pass, not introduced by it. Reported per rules-024  
 ("report hits, don't fix without approval"), not auto-fixed — owner's call.
 
-**Next**: New Mindset punch list is now fully closed (code migration +
-doc audit + doc rewrite + this ownership pass). Owner's call on next
-priority; the 5 pre-existing banned-word hits above are the only known
+**Next**: New Mindset punch list is now fully closed (code migration +  
+doc audit + doc rewrite + this ownership pass). Owner's call on next  
+priority; the 5 pre-existing banned-word hits above are the only known  
 open item from this effort.
 
 ---
@@ -507,25 +1103,25 @@ open item from this effort.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Follow-up code migration flagged in the prior Phase B audit entry: 33
-`std.Thread.spawn` call sites (16 in 9 `examples/` files, 17 in 2 `tests/`
-files) moved to `io.concurrent()`. Migrating the example files to
-`io.concurrent()` first surfaced a blocker: the driver files
-(`tests/layer2_examples.zig`, `tests/layer3_examples.zig`,
-`tests/layer4_examples.zig`) supplied a single-threaded
-`std.Io.Threaded.global_single_threaded.*.io()`, on which `io.concurrent()`
-structurally returns `error.ConcurrencyUnavailable` — regression: 157/167
-tests passed (8 failed, 2 crashed). Owner directed the fix: change the 3
+**Summary**  
+Follow-up code migration flagged in the prior Phase B audit entry: 33  
+`std.Thread.spawn` call sites (16 in 9 `examples/` files, 17 in 2 `tests/`  
+files) moved to `io.concurrent()`. Migrating the example files to  
+`io.concurrent()` first surfaced a blocker: the driver files  
+(`tests/layer2_examples.zig`, `tests/layer3_examples.zig`,  
+`tests/layer4_examples.zig`) supplied a single-threaded  
+`std.Io.Threaded.global_single_threaded.*.io()`, on which `io.concurrent()`  
+structurally returns `error.ConcurrencyUnavailable` — regression: 157/167  
+tests passed (8 failed, 2 crashed). Owner directed the fix: change the 3  
 driver files to use real threaded `Io`, not revert the migrated examples.
 
 **Changes**:
 - 9 `examples/` files (16 call sites) — `std.Thread.spawn` replaced with
   `io.concurrent()` / `Future.await`.
 - `tests/layer2_examples.zig`, `tests/layer3_examples.zig` — rewritten:
-  each test now builds its own local `std.Io.Threaded.init(testing.allocator,
-  .{})` instance (`defer .deinit()`, `.io()`) instead of a module-level
-  single-threaded `io`, matching the pattern already used by
+  each test now builds its own local `std.Io.Threaded.init(testing.allocator,  
+  .{})` instance (`defer .deinit()`, `.io()`) instead of a module-level  
+  single-threaded `io`, matching the pattern already used by  
   `tests/layer4_examples.zig` tests 17–24.
 - `tests/layer4_examples.zig` — its 2 remaining `Thread.spawn` tests ("95",
   "96") given the same per-test local threaded `Io` pattern.
@@ -543,7 +1139,7 @@ driver files to use real threaded `Io`, not revert the migrated examples.
 | `gen_examples_docs.sh` + `build_site.sh` (mirrored pages regenerated) | clean, zero warnings |
 | `grep -rl "Thread.spawn" kitchen/docs/examples/` | zero hits |
 
-**Not done this pass**: the architecture-docs `ownership` pass
+**Not done this pass**: the architecture-docs `ownership` pass  
 (`matryoshka-architecture-foundation-4-001.md`, `matryoshka-architecture-002.md`).
 
 **Next**: architecture-docs ownership-language pass.
@@ -554,16 +1150,16 @@ driver files to use real threaded `Io`, not revert the migrated examples.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: Owner flagged that README.md's "The role of Zig Io" / "Why
-Matryoshka-Io?" sections still carried old-mindset language ("Matryoshka-Io
-uses Zig Io in two situations", "hybrid car" analogy) despite the prior
-Phase C pass. Fixed those sections and found the same pattern repeated in
+**Summary**: Owner flagged that README.md's "The role of Zig Io" / "Why  
+Matryoshka-Io?" sections still carried old-mindset language ("Matryoshka-Io  
+uses Zig Io in two situations", "hybrid car" analogy) despite the prior  
+Phase C pass. Fixed those sections and found the same pattern repeated in  
 `matryoshka-manifesto-004.md` and its mirrors.
 
 **Changes**:
 - `README.md` — "The role of Zig Io" and "Why Matryoshka-Io?" rewritten:
-  dropped "two situations" framing and the conventional/electric/hybrid car
-  analogy. Replaced with Io-creates-tasks / Matryoshka-answers-cooperation
+  dropped "two situations" framing and the conventional/electric/hybrid car  
+  analogy. Replaced with Io-creates-tasks / Matryoshka-answers-cooperation  
   framing, consistent with `matryoshka-new-mindset-001.md`.
 - `design/matryoshka-manifesto-004.md` → `design/matryoshka-manifesto-005.md`
   (new version, no-overwrite rule). Same "hybrid car" section replaced.
@@ -574,24 +1170,24 @@ Phase C pass. Fixed those sections and found the same pattern repeated in
 - `design/STATUS.md` — Sources of Truth Manifesto pointer updated to
   `-005.md`.
 - `kitchen/docs/api/root-and-master.md` — "Master is an architectural role"
-  replaced with the `io.concurrent()` task connection (found by full-repo
+  replaced with the `io.concurrent()` task connection (found by full-repo  
   audit below).
 - `README.md`, `kitchen/docs/manifesto.md`, `design/matryoshka-manifesto-005.md`,
-  `kitchen/docs/matryoshka-based-systems.md` — "transfers ownership together
-  with the object" / "ownership transfer" fixed to "transfers the object, not
-  a reference to it" / "object transfer" (found during banned-word sweep;
-  leftover from an earlier partial ownership→object pass, missed in the
+  `kitchen/docs/matryoshka-based-systems.md` — "transfers ownership together  
+  with the object" / "ownership transfer" fixed to "transfers the object, not  
+  a reference to it" / "object transfer" (found during banned-word sweep;  
+  leftover from an earlier partial ownership→object pass, missed in the  
   Mailbox description sections).
 
-**Audit**: ran a full-repo sweep (Opus-model subagent) against
-`matryoshka-new-mindset-001.md` for old-mindset language beyond this
-session's known-fixed set. Found and fixed the one active, nav-linked file
-above. Two more hits are in unversioned, unlinked (not in `context.md`, not
-in `kitchen/mkdocs.yml` nav) files — `design/migration-io.md` and
-`kitchen/docs/matryoshka-io-chat-prolog.md` — left untouched as orphaned/
-historical, flagged here for owner's call rather than guessed at. Remaining
-hits are in already-superseded versioned docs (manifesto-003/-004,
-patterns-012, api-reference-021, rules-023) — no action needed, they're
+**Audit**: ran a full-repo sweep (Opus-model subagent) against  
+`matryoshka-new-mindset-001.md` for old-mindset language beyond this  
+session's known-fixed set. Found and fixed the one active, nav-linked file  
+above. Two more hits are in unversioned, unlinked (not in `context.md`, not  
+in `kitchen/mkdocs.yml` nav) files — `design/migration-io.md` and  
+`kitchen/docs/matryoshka-io-chat-prolog.md` — left untouched as orphaned/  
+historical, flagged here for owner's call rather than guessed at. Remaining  
+hits are in already-superseded versioned docs (manifesto-003/-004,  
+patterns-012, api-reference-021, rules-023) — no action needed, they're  
 dead per the no-overwrite rule.
 
 **Verification**:
@@ -608,63 +1204,63 @@ dead per the no-overwrite rule.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Phase A reference doc (`matryoshka-new-mindset-001.md`) finished, iterated
-against owner feedback: prose converted to nested bullets, diagram fixed
-(task-world tree, not a floating role box), "gained" banned, long sentences
+**Summary**  
+Phase A reference doc (`matryoshka-new-mindset-001.md`) finished, iterated  
+against owner feedback: prose converted to nested bullets, diagram fixed  
+(task-world tree, not a floating role box), "gained" banned, long sentences  
 split throughout.
 
-Phase B audit ran (background Explore agent), live-re-grepped rather than
-trusting the earlier ~10/2 estimate. Found: `std.Thread.spawn` at 33 call
-sites (0 in `src/`, 16 in `examples/` across 9 files, 17 in `tests/` across
-2 files, 0 in `stories/`), plus 16 more in mirrored `kitchen/docs/examples/`
-pages. Found old "Master is a role" language in `README.md`,
-`kitchen/docs/manifesto.md`, `design/matryoshka-manifesto-003.md`,
-`design/matryoshka-api-reference-021.md`, and three
-`kitchen/docs/building-blocks/*.md` pages (`master.md` worst — no
-`io.concurrent`/task mention at all). Found `Thread.spawn` presented as a
-co-equal option to `io.concurrent()` in `design/patterns-012.md` and
+Phase B audit ran (background Explore agent), live-re-grepped rather than  
+trusting the earlier ~10/2 estimate. Found: `std.Thread.spawn` at 33 call  
+sites (0 in `src/`, 16 in `examples/` across 9 files, 17 in `tests/` across  
+2 files, 0 in `stories/`), plus 16 more in mirrored `kitchen/docs/examples/`  
+pages. Found old "Master is a role" language in `README.md`,  
+`kitchen/docs/manifesto.md`, `design/matryoshka-manifesto-003.md`,  
+`design/matryoshka-api-reference-021.md`, and three  
+`kitchen/docs/building-blocks/*.md` pages (`master.md` worst — no  
+`io.concurrent`/task mention at all). Found `Thread.spawn` presented as a  
+co-equal option to `io.concurrent()` in `design/patterns-012.md` and  
 `kitchen/docs/building-blocks/observable-by-human.md`.
 
-Owner confirmed continuing in auto mode. Phase C doc-level rewrite done this
-pass: every flagged file corrected to state "a Master is an Io task that
-follows the Matryoshka rules," created by `io.concurrent()`. Diagrams
-replaced with the task-tree shape. `Thread.spawn` removed as an accepted
+Owner confirmed continuing in auto mode. Phase C doc-level rewrite done this  
+pass: every flagged file corrected to state "a Master is an Io task that  
+follows the Matryoshka rules," created by `io.concurrent()`. Diagrams  
+replaced with the task-tree shape. `Thread.spawn` removed as an accepted  
 alternative.
 
 **Changes**:
 - `README.md` — Main concept section: Master connected to `io.concurrent()`.
 - `kitchen/docs/building-blocks/master.md` — task connection added, diagram
-  replaced, "Why Master is not in the API" section gets the `io.concurrent()`
+  replaced, "Why Master is not in the API" section gets the `io.concurrent()`  
   line.
 - `kitchen/docs/building-blocks/core-concepts.md`,
-  `kitchen/docs/building-blocks/index.md` — "Master — coordination, not a
+  `kitchen/docs/building-blocks/index.md` — "Master — coordination, not a  
   type" reworded to "an Io task, not a struct you must define."
 - `kitchen/docs/building-blocks/observable-by-human.md` — `Thread.spawn`
   dropped from the concurrent-call list.
 - `design/patterns-012.md` → `design/patterns-013.md` (new version) —
   `Thread.spawn` dropped from two pattern entries.
 - `design/matryoshka-api-reference-021.md` → `-022.md` (new version) —
-  "Master is an architectural role" → "Master is an Io task that follows
-  the Matryoshka rules," `io.concurrent()` stated up front; change-log row
+  "Master is an architectural role" → "Master is an Io task that follows  
+  the Matryoshka rules," `io.concurrent()` stated up front; change-log row  
   added.
 - `design/matryoshka-manifesto-003.md` → `-004.md` (new version) — "Master
   is a role" section and diagram replaced; header note added.
 - `kitchen/docs/manifesto.md` — same fix applied to the mirrored page.
 - `design/context.md` — pointers updated: API reference → `-022.md`,
-  manifesto → `-004.md`, patterns → `-013.md`; new pointer added for
+  manifesto → `-004.md`, patterns → `-013.md`; new pointer added for  
   `matryoshka-new-mindset-001.md`.
 
 **Not done this pass** (follow-up, tracked in the plan file):
 - `design/matryoshka-architecture-foundation-4-001.md` and
-  `-architecture-002.md` — heavy "ownership" language flagged by the audit,
-  not yet addressed; central to those docs' existing vocabulary, needs its
+  `-architecture-002.md` — heavy "ownership" language flagged by the audit,  
+  not yet addressed; central to those docs' existing vocabulary, needs its  
   own pass.
 - `design/rules-024.md` — 8 non-list-line uses of "ownership," all
-  self-referential (describing the rule), flagged as worth a look but not
+  self-referential (describing the rule), flagged as worth a look but not  
   yet changed.
 - Code-level migration: 16 `std.Thread.spawn` call sites in 9 `examples/`
-  files, 17 in 2 `tests/` files, plus regenerating 16 mirrored
+  files, 17 in 2 `tests/` files, plus regenerating 16 mirrored  
   `kitchen/docs/examples/*.md` pages via `gen_examples_docs.sh`.
 
 **Verification**:
@@ -679,7 +1275,7 @@ alternative.
 | Banned-word sweep (all files touched this pass) | 2 hits found and fixed: "Io is powerful" → "Io does a lot" (`matryoshka-new-mindset-001.md`), "execution contexts" → "tasks" (`matryoshka-api-reference-022.md`); remaining matches are pre-existing substring false positives (`interfaces`/"faces", `unlock()` API calls) |
 | `Thread.spawn` co-equal-option check | clean — no remaining doc presents it as an alternative to `io.concurrent()` |
 
-**Next**: either the architecture-docs `ownership` pass or the `Thread.spawn`
+**Next**: either the architecture-docs `ownership` pass or the `Thread.spawn`  
 code migration, owner's call.
 
 ---
@@ -688,26 +1284,26 @@ code migration, owner's call.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner is changing how Matryoshka is understood: triggered by Zig's
-`io.concurrent()`, Matryoshka is no longer positioned as infrastructure
-beside Io — it lives inside the Io task world. A Master is not a
-free-floating role; a Master is an Io task that adopts the Matryoshka
-rules. Owner directed a two-phase plan (see plan file
-`read-design-status-md-related-md-transient-lark.md`): Phase A, write a
-new authoritative reference doc capturing the new understanding; Phase B
-(not started), audit README/manifesto/patterns/rules/API-reference/
-building-blocks pages against it and report old-model language, banned-word
+**Summary**  
+Owner is changing how Matryoshka is understood: triggered by Zig's  
+`io.concurrent()`, Matryoshka is no longer positioned as infrastructure  
+beside Io — it lives inside the Io task world. A Master is not a  
+free-floating role; a Master is an Io task that adopts the Matryoshka  
+rules. Owner directed a two-phase plan (see plan file  
+`read-design-status-md-related-md-transient-lark.md`): Phase A, write a  
+new authoritative reference doc capturing the new understanding; Phase B  
+(not started), audit README/manifesto/patterns/rules/API-reference/  
+building-blocks pages against it and report old-model language, banned-word  
 hits, and `std.Thread.spawn` usages, before any downstream rewrite.
 
-Confirmed in conversation: `std.Thread.spawn` is banned throughout this
-codebase going forward (already absent from `src/`; still present in ~10
-`examples/` files and 2 `tests/` files — migration to `io.concurrent()` is
-follow-up work, not yet started). Six terms added to the banned-word list,
-usable in owner/agent conversation but banned from documentation and code
-comments: `object model`, `execution context`, `execution model`,
-`programming model`, `paradigm`, `mindset`. A seventh, `ownership`, was
-added separately — broadens the prior src/-only ownership-language rule
+Confirmed in conversation: `std.Thread.spawn` is banned throughout this  
+codebase going forward (already absent from `src/`; still present in ~10  
+`examples/` files and 2 `tests/` files — migration to `io.concurrent()` is  
+follow-up work, not yet started). Six terms added to the banned-word list,  
+usable in owner/agent conversation but banned from documentation and code  
+comments: `object model`, `execution context`, `execution model`,  
+`programming model`, `paradigm`, `mindset`. A seventh, `ownership`, was  
+added separately — broadens the prior src/-only ownership-language rule  
 (rules-012/013) to all docs and comments.
 
 **Changes**:
@@ -716,13 +1312,13 @@ added separately — broadens the prior src/-only ownership-language rule
 - `design/context.md` — Rules pointer → `rules-024.md`, with a note on the
   new banned words.
 - `design/matryoshka-new-mindset-001.md` (new) — Phase A reference doc: old
-  vs. new understanding diagrams, "a Master is a task" definition,
-  `std.Thread.spawn` ban statement, minimal-dependency claim
-  (`Io.Mutex`/`Io.Condition` unchanged), not-a-framework statement, and a
-  list of what downstream docs need to reconsider. Zero banned-word hits
+  vs. new understanding diagrams, "a Master is a task" definition,  
+  `std.Thread.spawn` ban statement, minimal-dependency claim  
+  (`Io.Mutex`/`Io.Condition` unchanged), not-a-framework statement, and a  
+  list of what downstream docs need to reconsider. Zero banned-word hits  
   (self-checked via grep for `ownership`).
 - `design/STATUS.md` — Sources of Truth "Rules" pointer corrected
-  `rules-022.md` → `rules-024.md` (was already stale before this change);
+  `rules-022.md` → `rules-024.md` (was already stale before this change);  
   added the new-mindset reference pointer; this session log entry.
 
 **Verification**:
@@ -732,74 +1328,74 @@ added separately — broadens the prior src/-only ownership-language rule
 | `grep -n "ownership" design/matryoshka-new-mindset-001.md` | zero hits |
 | Full banned-word sweep of the new doc against all 7 new terms | not yet run — do before Phase B |
 
-**Next**: owner review/approval of `matryoshka-new-mindset-001.md` wording.
-Once approved, Phase B audit (no rewrites yet) against README, manifesto,
-architecture docs, patterns, rules, API reference, and
-`kitchen/docs/building-blocks/*.md`. `std.Thread.spawn` → `io.concurrent()`
-migration in examples/tests is separate follow-up work, scoped after the
+**Next**: owner review/approval of `matryoshka-new-mindset-001.md` wording.  
+Once approved, Phase B audit (no rewrites yet) against README, manifesto,  
+architecture docs, patterns, rules, API reference, and  
+`kitchen/docs/building-blocks/*.md`. `std.Thread.spawn` → `io.concurrent()`  
+migration in examples/tests is separate follow-up work, scoped after the  
 audit.
 
 ---
 
 ### 2026-07-08 — DOC 21: "The Shape of a Real System" page + diagram tooling
 
-**Participants**: human (owner), Claude (agent), Opus subagent (diagram +
+**Participants**: human (owner), Claude (agent), Opus subagent (diagram +  
 prose drafting).
 
-**Summary**
-Owner needed a way to "sell" Matryoshka-Io to readers across GitHub,
-GitHub Pages, and forums without reading like marketing copy — a prior
-ChatGPT attempt didn't land. Explored and rejected: a dedicated landing
-page (too ad-like), story-telling format, Mermaid diagrams (not supported
-on Discord/forums). Settled on a new docs page — not a landing page —
-placed after the manifesto: short staccato prose plus two Graphviz-rendered
-diagrams (problem, then problem-with-Matryoshka), following the same
-before/after layout so a reader recognizes their own system in five
+**Summary**  
+Owner needed a way to "sell" Matryoshka-Io to readers across GitHub,  
+GitHub Pages, and forums without reading like marketing copy — a prior  
+ChatGPT attempt didn't land. Explored and rejected: a dedicated landing  
+page (too ad-like), story-telling format, Mermaid diagrams (not supported  
+on Discord/forums). Settled on a new docs page — not a landing page —  
+placed after the manifesto: short staccato prose plus two Graphviz-rendered  
+diagrams (problem, then problem-with-Matryoshka), following the same  
+before/after layout so a reader recognizes their own system in five  
 seconds.
 
-Iterated with the owner and an Opus subagent through several diagram
+Iterated with the owner and an Opus subagent through several diagram  
 revisions:
 - Initial design (TCP request service with Acceptor/Session/Journal/
-  Background flusher/Timers) was cut down — flusher and timers removed as
-  distracting from the three teaching points, straight `splines=ortho`
-  routing replacing curved default edges for an ASCII-diagram-like direct
+  Background flusher/Timers) was cut down — flusher and timers removed as  
+  distracting from the three teaching points, straight `splines=ortho`  
+  routing replacing curved default edges for an ASCII-diagram-like direct  
   read.
 - Fixed a real Graphviz limitation: ortho-routed edges silently drop
   `label=`; switched all edge text to `xlabel=`.
 - Corrected diagram vocabulary through several rounds: Mailbox is not
-  storage (not a cylinder, not a queue) — it is a transfer/handoff point,
-  drawn as a small flat device object flow *through*, not live in. Pool is
-  genuinely storage (a warehouse of reusable items) — cylinder shape.
-  PolyNode is a small tag attached to the object, not a separate floating
-  component (`shape=tab`). Process/role nodes (client, std.Io, Acceptor,
+  storage (not a cylinder, not a queue) — it is a transfer/handoff point,  
+  drawn as a small flat device object flow *through*, not live in. Pool is  
+  genuinely storage (a warehouse of reusable items) — cylinder shape.  
+  PolyNode is a small tag attached to the object, not a separate floating  
+  component (`shape=tab`). Process/role nodes (client, std.Io, Acceptor,  
   Session, Journal) are ellipses, not rounded boxes.
 - Added the Pool leases/returns cycle (was one-directional at first, owner
-  caught the missing return-to-Pool edge) and a "Your hooks — create /
+  caught the missing return-to-Pool edge) and a "Your hooks — create /  
   reset / destroy" node showing Pool's type-agnostic extension point.
 
 **Changes**:
 - `kitchen/diagrams/src/real-system.dot` (new) — the problem diagram:
-  TCP client → std.Io → Acceptor → Session → Journal, three terse
+  TCP client → std.Io → Acceptor → Session → Journal, three terse  
   callout questions (ownership, allocation, coupling).
 - `kitchen/diagrams/src/matryoshka-solution.dot` (new) — same layout,
-  same `std.Io` box unchanged, with Mailbox (transfer device) inline on
-  both handoffs, Pool (cylinder) leasing/returning at Acceptor, "Your
+  same `std.Io` box unchanged, with Mailbox (transfer device) inline on  
+  both handoffs, Pool (cylinder) leasing/returning at Acceptor, "Your  
   hooks" feeding Pool, PolyNode (tag) on the Request.
 - `kitchen/tools/gen_diagrams.sh` (new, permanent) — thin `dot -Tsvg`/
-  `-Tpng` wrapper over `kitchen/diagrams/src/*.dot`, output to
-  `kitchen/docs/assets/diagrams/`. Manual-run only, not wired into
-  `build_site.sh`/`preview_site.sh`/CI — rendered output is committed
-  and may be hand-tweaked without an automated rebuild silently
+  `-Tpng` wrapper over `kitchen/diagrams/src/*.dot`, output to  
+  `kitchen/docs/assets/diagrams/`. Manual-run only, not wired into  
+  `build_site.sh`/`preview_site.sh`/CI — rendered output is committed  
+  and may be hand-tweaked without an automated rebuild silently  
   overwriting it.
 - `kitchen/docs/the-shape.md` (new) — "The Shape of a Real System" page,
-  staccato/bulleted throughout (no prose paragraphs), both diagrams
-  embedded, three building-block bullets linking to
+  staccato/bulleted throughout (no prose paragraphs), both diagrams  
+  embedded, three building-block bullets linking to  
   `building-blocks/polynode.md`/`mailbox.md`/`pool.md`.
 - `kitchen/mkdocs.yml` — added "The Shape of a Real System" to `nav:`,
   directly after "The Manifesto".
 - `kitchen/notes.md` — new section documenting `kitchen/diagrams/` +
-  `kitchen/docs/assets/diagrams/` as committed source/output (the one
-  exception to "generated = gitignored" on this page) and
+  `kitchen/docs/assets/diagrams/` as committed source/output (the one  
+  exception to "generated = gitignored" on this page) and  
   `gen_diagrams.sh`'s manual-run-only status.
 - README insertion explicitly deferred — owner asked to wire nav only for
   now.
@@ -813,10 +1409,10 @@ revisions:
 | `bash kitchen/tools/gen_diagrams.sh` | renders both diagrams to `kitchen/docs/assets/diagrams/*.svg`/`*.png` |
 | `git status --short` on new paths | untracked (not gitignored) — confirmed intentional, owner runs `git add` |
 
-**Next**: owner to run `kitchen/tools/build_site.sh` and
-`kitchen/build_and_test_debug.sh` locally to confirm the site builds
-clean and tests are unaffected (docs-only change, no `src/` touched).
-README insertion is a follow-up, owner's call on timing. Stage 9
+**Next**: owner to run `kitchen/tools/build_site.sh` and  
+`kitchen/build_and_test_debug.sh` locally to confirm the site builds  
+clean and tests are unaffected (docs-only change, no `src/` touched).  
+README insertion is a follow-up, owner's call on timing. Stage 9  
 continues. DOC 22+ TBD.
 
 ---
@@ -827,19 +1423,19 @@ continues. DOC 22+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner spotted a rendering bug in a pasted `pool.md` snippet: bullets
-collapsed into one run-on sentence. Root cause: CommonMark/Python-Markdown
-treats a list directly following plain text with no blank line as a lazy
-paragraph continuation, not a list — the existing rules-018/022
-"blank line before every list" rule was never swept for compliance.
-Fixed as a permanent, auto-fixing script wired into the doc build sequence
+**Summary**  
+Owner spotted a rendering bug in a pasted `pool.md` snippet: bullets  
+collapsed into one run-on sentence. Root cause: CommonMark/Python-Markdown  
+treats a list directly following plain text with no blank line as a lazy  
+paragraph continuation, not a list — the existing rules-018/022  
+"blank line before every list" rule was never swept for compliance.  
+Fixed as a permanent, auto-fixing script wired into the doc build sequence  
 rather than a one-off manual pass.
 
 **Changes**:
 - `kitchen/tools/fix_md_lists.sh` (new) — scans every `kitchen/docs/**/*.md`,
-  fence-aware (skips ``` / ~~~ blocks), inserts a blank line before any list
-  that directly follows non-blank, non-list-item text. Auto-fixes in place;
+  fence-aware (skips ``` / ~~~ blocks), inserts a blank line before any list  
+  that directly follows non-blank, non-list-item text. Auto-fixes in place;  
   mechanical formatting only, no wording changes.
 - `kitchen/tools/build_site.sh`, `kitchen/tools/preview_site.sh` — call it
   after `gen_examples_docs.sh`, before `mkdocs build`/`serve`.
@@ -852,7 +1448,7 @@ rather than a one-off manual pass.
 - `design/context.md` — Rules pointer → rules-023.md; Status pointer text
   updated.
 - Ran the script once against the whole `kitchen/docs/` tree — 18 files
-  fixed (`api/pool.md`, `api/mailbox.md`, `building-blocks/master.md`,
+  fixed (`api/pool.md`, `api/mailbox.md`, `building-blocks/master.md`,  
   `manifesto.md`, and 14 others).
 
 **Verification**:
@@ -863,7 +1459,7 @@ rather than a one-off manual pass.
 | `bash kitchen/tools/build_site.sh` | clean, zero warnings |
 | `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
 
-**Next**: owner decision on the 4 confirmed-duplicate page groups from the
+**Next**: owner decision on the 4 confirmed-duplicate page groups from the  
 prior audit still pending. Stage 9 continues. DOC 21+ TBD.
 
 ---
@@ -872,14 +1468,14 @@ prior audit still pending. Stage 9 continues. DOC 21+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner pointed at `design/boring-manifesto.md` (a short "boring enterprise
-programmer mindset" piece — business events over infra plumbing, one owner
-per state, architecture-over-microbenchmarks) and asked to add it as an
-addendum. Agreed: file name, nav label, and page H1 all read "Why Boring" /
-`why-boring.md`, content copied verbatim (already clean of banned words),
-and placed **first** in the Addendums nav — it's the motivating mindset
-behind "boring," which the other three addendums (design-rationale
+**Summary**  
+Owner pointed at `design/boring-manifesto.md` (a short "boring enterprise  
+programmer mindset" piece — business events over infra plumbing, one owner  
+per state, architecture-over-microbenchmarks) and asked to add it as an  
+addendum. Agreed: file name, nav label, and page H1 all read "Why Boring" /  
+`why-boring.md`, content copied verbatim (already clean of banned words),  
+and placed **first** in the Addendums nav — it's the motivating mindset  
+behind "boring," which the other three addendums (design-rationale  
 comparisons) assume the reader already bought into.
 
 **Changes**:
@@ -888,7 +1484,7 @@ comparisons) assume the reader already bought into.
 - `kitchen/mkdocs.yml` — added `Why Boring: addendums/why-boring.md` as the
   first entry under `Addendums:`, ahead of `Io 101`.
 - `kitchen/docs/index.md` — Addendums link now points to
-  `addendums/why-boring.md` instead of `addendums/slot-vs-ref-counting.md`;
+  `addendums/why-boring.md` instead of `addendums/slot-vs-ref-counting.md`;  
   line text updated to "mindset, design-rationale essays, and an Io primer."
 
 **Verification**:
@@ -898,7 +1494,7 @@ comparisons) assume the reader already bought into.
 | Banned-word grep on `design/boring-manifesto.md` | zero hits |
 | `bash kitchen/tools/build_site.sh` | clean, zero warnings |
 
-**Next**: owner decision on the 4 confirmed-duplicate page groups from the
+**Next**: owner decision on the 4 confirmed-duplicate page groups from the  
 prior audit still pending. Stage 9 continues. DOC 21+ TBD.
 
 ---
@@ -907,41 +1503,41 @@ prior audit still pending. Stage 9 continues. DOC 21+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner asked whether other `kitchen/docs/*.md` pages duplicate content the
-way the trimmed `index.md` did. Full-site audit found a repeated pattern:
-pages superseded by a newer, nav-wired page but left in place as unlinked
-orphans — `matryoshka-based-systems.md` (superseded by `manifesto.md` +
-`index.md`), `slot-vs-ref-counting.md`/`tag-vs-tagged-union.md`/
-`typeErasedQueue-vs-mailbox.md` at root level (superseded by their shorter
-`addendums/` counterparts), `building-blocks/core-concepts.md` (near-verbatim
-duplicates split out into `building-blocks/polynode.md`/`mailbox.md`/
-`pool.md`/`master.md`), and `concepts/index.md` +
-`print-server-the-system.md`/`print-server-with-matryoshka.md` (retells the
-same print-server story already covered by the nav-wired
-`story/print-server/*.md`, condensed to two pages instead of four).
-Reported rather than auto-fixed — a content-editorial decision. Also flagged
-non-duplicative orphans (`building-blocks/observable-by-human.md`, chat-log/
-draft files already known from the DOC 5 audit) as separate from the
+**Summary**  
+Owner asked whether other `kitchen/docs/*.md` pages duplicate content the  
+way the trimmed `index.md` did. Full-site audit found a repeated pattern:  
+pages superseded by a newer, nav-wired page but left in place as unlinked  
+orphans — `matryoshka-based-systems.md` (superseded by `manifesto.md` +  
+`index.md`), `slot-vs-ref-counting.md`/`tag-vs-tagged-union.md`/  
+`typeErasedQueue-vs-mailbox.md` at root level (superseded by their shorter  
+`addendums/` counterparts), `building-blocks/core-concepts.md` (near-verbatim  
+duplicates split out into `building-blocks/polynode.md`/`mailbox.md`/  
+`pool.md`/`master.md`), and `concepts/index.md` +  
+`print-server-the-system.md`/`print-server-with-matryoshka.md` (retells the  
+same print-server story already covered by the nav-wired  
+`story/print-server/*.md`, condensed to two pages instead of four).  
+Reported rather than auto-fixed — a content-editorial decision. Also flagged  
+non-duplicative orphans (`building-blocks/observable-by-human.md`, chat-log/  
+draft files already known from the DOC 5 audit) as separate from the  
 duplicate findings above.
 
-Separately, owner independently commented out the "Story — Print Server" and
-"Deep Dive — Video Transcoder" nav sections in `kitchen/mkdocs.yml` (temporary
-hide, not deletion) and asked about stale hand-written `Next:` footer links
-(confirmed still needed — `navigation.footer` is not enabled in the theme, so
-these are the only sequential-reading aid between pages). Owner then asked to
+Separately, owner independently commented out the "Story — Print Server" and  
+"Deep Dive — Video Transcoder" nav sections in `kitchen/mkdocs.yml` (temporary  
+hide, not deletion) and asked about stale hand-written `Next:` footer links  
+(confirmed still needed — `navigation.footer` is not enabled in the theme, so  
+these are the only sequential-reading aid between pages). Owner then asked to  
 hide Story/Deep Dive and fix the resulting dangling references to match.
 
 **Changes**:
 - `kitchen/docs/building-blocks/master.md` — wrapped the "See also: Story —
-  Print Server" line in an HTML comment (`<!-- -->`), same reversible-hide
+  Print Server" line in an HTML comment (`<!-- -->`), same reversible-hide  
   treatment as the `mkdocs.yml` `#` comments.
 - `kitchen/docs/manifesto.md` — wrapped the "Story — Print Server" bullet in
   the "Keep reading" list the same way.
 - `kitchen/docs/patterns/master-and-shutdown.md` — wrapped the inline "see the
-  Deep Dive page" reference and the trailing `Next: [Deep Dive...]` line in
-  HTML comments; added a live `Next: [Examples Catalog](../examples/index.md).`
-  line in its place, since Examples Catalog is now the section directly
+  Deep Dive page" reference and the trailing `Next: [Deep Dive...]` line in  
+  HTML comments; added a live `Next: [Examples Catalog](../examples/index.md).`  
+  line in its place, since Examples Catalog is now the section directly  
   following Patterns & Cookbook in the (Story/Deep-Dive-hidden) nav.
 
 **Verification**:
@@ -952,8 +1548,8 @@ hide Story/Deep Dive and fix the resulting dangling references to match.
 | Headless-Chrome DOM dump of `patterns/master-and-shutdown/` | both hidden references render as invisible `<!-- -->` comment nodes; `Next: Examples Catalog` renders as a real link |
 | `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
 
-**Next**: owner to decide on the 4 confirmed-duplicate page groups from the
-audit above (delete superseded originals, merge, or leave as-is) — reported,
+**Next**: owner to decide on the 4 confirmed-duplicate page groups from the  
+audit above (delete superseded originals, merge, or leave as-is) — reported,  
 not auto-fixed. Stage 9 continues. DOC 21+ TBD.
 
 ---
@@ -962,25 +1558,25 @@ not auto-fixed. Stage 9 continues. DOC 21+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner noticed `kitchen/docs/index.md` (the mkdocs site landing page)
-duplicated most of `manifesto.md`'s content — the same problem statement
-and "one constraint" pitch, just compressed. Directed trimming it to a
-short landing/nav page (title, one-line description, "Where to go next"
-links), pointing to the manifesto for the full argument instead of
-restating it. Also directed banning the word "pitch" and sweeping all
+**Summary**  
+Owner noticed `kitchen/docs/index.md` (the mkdocs site landing page)  
+duplicated most of `manifesto.md`'s content — the same problem statement  
+and "one constraint" pitch, just compressed. Directed trimming it to a  
+short landing/nav page (title, one-line description, "Where to go next"  
+links), pointing to the manifesto for the full argument instead of  
+restating it. Also directed banning the word "pitch" and sweeping all  
 documents for it.
 
 **Changes**:
 - `kitchen/docs/index.md` — dropped "First rule of building great software
-  systems," "The problem," and "One constraint" sections (all duplicated
-  in `manifesto.md`); kept title, one-line description, the "boring"
-  promise line, and "Where to go next" nav links. "the full pitch" →
+  systems," "The problem," and "One constraint" sections (all duplicated  
+  in `manifesto.md`); kept title, one-line description, the "boring"  
+  promise line, and "Where to go next" nav links. "the full pitch" →  
   "the full argument."
 - `design/rules-021.md` → `-022.md` — added "pitch" to the AI-sh/banned
   word list.
 - `design/docs-tooling-approach-001.md` → `-002.md` — only other live hit
-  found (a methodology doc, not historical log): "a closing pitch line" →
+  found (a methodology doc, not historical log): "a closing pitch line" →  
   "a closing tagline."
 - `design/context.md`, this file — rules/docs-tooling-approach pointers
   bumped.
@@ -1001,29 +1597,29 @@ documents for it.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner questioned whether the "Open source" GitHub-blob link was still
-needed now that the full source is embedded under `## Source` — agreed
-it's redundant and removed it. Owner also asked to confirm the examples
-catalog generation runs in CI. It did not: `.github/workflows/docs.yml`
-only ran `docs_zig.sh` (apidocs) then `mkdocs build` directly, never
-calling `gen_examples_docs.sh`. Deeper bug found while fixing this: the
-`.gitignore` entry `/kitchen/docs/examples/` (added in DOC 20) ignored the
-*entire* folder, including the 6 hand-authored catalog/group pages
-(`index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`, `flow.md`) —
-they were never trackable in git, so a fresh CI checkout would have missing
+**Summary**  
+Owner questioned whether the "Open source" GitHub-blob link was still  
+needed now that the full source is embedded under `## Source` — agreed  
+it's redundant and removed it. Owner also asked to confirm the examples  
+catalog generation runs in CI. It did not: `.github/workflows/docs.yml`  
+only ran `docs_zig.sh` (apidocs) then `mkdocs build` directly, never  
+calling `gen_examples_docs.sh`. Deeper bug found while fixing this: the  
+`.gitignore` entry `/kitchen/docs/examples/` (added in DOC 20) ignored the  
+*entire* folder, including the 6 hand-authored catalog/group pages  
+(`index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`, `flow.md`) —  
+they were never trackable in git, so a fresh CI checkout would have missing  
 nav targets regardless of whether the generation script ran.
 
 **Changes**:
 - `kitchen/tools/gen_examples_docs.sh` — removed the "Open source" link and
-  the now-unused `repo_url`/`link`/`src_rel` plumbing; file header comment
+  the now-unused `repo_url`/`link`/`src_rel` plumbing; file header comment  
   updated.
 - `.github/workflows/docs.yml` — added a "Regenerate Examples Catalog" step
-  (`./kitchen/tools/gen_examples_docs.sh`) between the autodoc step and the
+  (`./kitchen/tools/gen_examples_docs.sh`) between the autodoc step and the  
   `mkdocs build` step.
 - `.gitignore` — replaced the single `/kitchen/docs/examples/` entry with
-  one per *generated* subdirectory (`layer1/`..`layer4/`, `items/`,
-  `hooks/`, `helpers/`, `stories/`), leaving the 6 hand-authored pages at
+  one per *generated* subdirectory (`layer1/`..`layer4/`, `items/`,  
+  `hooks/`, `helpers/`, `stories/`), leaving the 6 hand-authored pages at  
   `kitchen/docs/examples/*.md` trackable.
 
 **Verification**:
@@ -1035,8 +1631,8 @@ nav targets regardless of whether the generation script ran.
 | Simulated CI flow: `rm -rf kitchen/docs/apidocs`, then `docs_zig.sh` → `gen_examples_docs.sh` → `mkdocs build` in that order | clean, zero warnings |
 | `bash kitchen/build_and_test_debug.sh` | PASS (167/167) |
 
-**Next**: owner to `git add` the 6 hand-authored catalog/group pages next
-time changes are committed (Claude does not run git). Stage 9 continues.
+**Next**: owner to `git add` the 6 hand-authored catalog/group pages next  
+time changes are committed (Claude does not run git). Stage 9 continues.  
 DOC 21+ TBD.
 
 ---
@@ -1045,23 +1641,23 @@ DOC 21+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner asked for named sections on each generated example page — Description,
-Diagram, Source — instead of unlabeled paragraphs. Implemented and fixed two
-bugs surfaced while doing it: the prose description carried trailing blank
-`//!` spacer lines into the page (extra blank space before the Diagram
-heading), and the diagram's closing fence glued onto the last diagram line
-with no line break (a `$(...)` command-substitution trailing-newline-
-stripping quirk, since the diagram was the last piece of a combined split
-string). Rewrote the split as two independent `awk` extractions (prose,
-diagram) instead of one combined string, and trimmed prose's trailing blank
+**Summary**  
+Owner asked for named sections on each generated example page — Description,  
+Diagram, Source — instead of unlabeled paragraphs. Implemented and fixed two  
+bugs surfaced while doing it: the prose description carried trailing blank  
+`//!` spacer lines into the page (extra blank space before the Diagram  
+heading), and the diagram's closing fence glued onto the last diagram line  
+with no line break (a `$(...)` command-substitution trailing-newline-  
+stripping quirk, since the diagram was the last piece of a combined split  
+string). Rewrote the split as two independent `awk` extractions (prose,  
+diagram) instead of one combined string, and trimmed prose's trailing blank  
 lines explicitly.
 
 **Changes**:
 - `kitchen/tools/gen_examples_docs.sh` — `desc` now split into `prose`
-  (everything before the first fenced ` ``` ` line, trailing blanks
-  trimmed) and `diagram` (the fenced block's contents) via two separate
-  `awk` passes. Output now: `# <title>`, `## Description`, `## Diagram`
+  (everything before the first fenced ` ``` ` line, trailing blanks  
+  trimmed) and `diagram` (the fenced block's contents) via two separate  
+  `awk` passes. Output now: `# <title>`, `## Description`, `## Diagram`  
   (only emitted when a diagram exists), `## Source`.
 
 **Verification**:
@@ -1083,18 +1679,18 @@ lines explicitly.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Follow-up to the SPDX-strip fix: owner found the embedded source snippet
-still duplicated the `//!` description + fenced diagram — already shown
-above it as rendered markdown, so it was repeated verbatim a second time
-inside the code block. Fixed the same way as SPDX: strip only from the
+**Summary**  
+Follow-up to the SPDX-strip fix: owner found the embedded source snippet  
+still duplicated the `//!` description + fenced diagram — already shown  
+above it as rendered markdown, so it was repeated verbatim a second time  
+inside the code block. Fixed the same way as SPDX: strip only from the  
 generated snippet, source file keeps its `//!` doc comment untouched.
 
 **Changes**:
 - `kitchen/tools/gen_examples_docs.sh` — after the SPDX-line `sed`, pipes
-  through an `awk` that skips the leading run of blank lines and `//!`
-  lines (the description/diagram block) before the embedded snippet
-  starts, stopping at the first real code line. File header comment
+  through an `awk` that skips the leading run of blank lines and `//!`  
+  lines (the description/diagram block) before the embedded snippet  
+  starts, stopping at the first real code line. File header comment  
   updated.
 
 **Verification**:
@@ -1114,18 +1710,18 @@ generated snippet, source file keeps its `//!` doc comment untouched.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner noticed the generated example pages' embedded source snippet led
-with the 2-line SPDX copyright/license header — boilerplate, not part of
-the example's teaching content. Asked whether the script should strip it,
-or whether the header should be removed from the source files themselves.
-Confirmed: script-side only — source files keep their SPDX headers
+**Summary**  
+Owner noticed the generated example pages' embedded source snippet led  
+with the 2-line SPDX copyright/license header — boilerplate, not part of  
+the example's teaching content. Asked whether the script should strip it,  
+or whether the header should be removed from the source files themselves.  
+Confirmed: script-side only — source files keep their SPDX headers  
 (license compliance); only the generated `.md` snippet hides them.
 
 **Changes**:
 - `kitchen/tools/gen_examples_docs.sh` — the embedded ```` ```zig ```` block
-  now pipes through `sed` to drop the `// SPDX-FileCopyrightText:` and
-  `// SPDX-License-Identifier:` lines plus the blank line immediately
+  now pipes through `sed` to drop the `// SPDX-FileCopyrightText:` and  
+  `// SPDX-License-Identifier:` lines plus the blank line immediately  
   after them, before embedding. File header comment updated to note this.
 
 **Verification**:
@@ -1145,26 +1741,26 @@ Confirmed: script-side only — source files keep their SPDX headers
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner asked how the examples catalog's intro line ("mirrored here as
-generated `.md` pages... never hand-edited") gets created, then asked for
-a list of which `kitchen/docs/examples/` files are hand-authored (safe to
-edit) vs. generated (rewritten by `gen_examples_docs.sh`, edits lost).
-Owner directed: put this in a new `kitchen/notes.md` — a running,
-unversioned notes file for this kind of tooling/housekeeping information
+**Summary**  
+Owner asked how the examples catalog's intro line ("mirrored here as  
+generated `.md` pages... never hand-edited") gets created, then asked for  
+a list of which `kitchen/docs/examples/` files are hand-authored (safe to  
+edit) vs. generated (rewritten by `gen_examples_docs.sh`, edits lost).  
+Owner directed: put this in a new `kitchen/notes.md` — a running,  
+unversioned notes file for this kind of tooling/housekeeping information  
 going forward, distinct from the versioned `design/*.md` docs.
 
 **Changes**:
 - `kitchen/notes.md` (new) — lists which `kitchen/docs/` paths are
-  generated (`examples/layer1-4/`, `items/`, `hooks/`, `helpers/`,
-  `stories/`, `apidocs/`) vs. hand-authored (the 6 examples-catalog group
-  pages: `index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`,
-  `flow.md`); includes a reminder pointing at the rules-021
+  generated (`examples/layer1-4/`, `items/`, `hooks/`, `helpers/`,  
+  `stories/`, `apidocs/`) vs. hand-authored (the 6 examples-catalog group  
+  pages: `index.md`, `polynode.md`, `mailbox.md`, `pool.md`, `io.md`,  
+  `flow.md`); includes a reminder pointing at the rules-021  
   examples-catalog nav sync rule.
 - `design/context.md` — added a "Kitchen notes" pointer line to
   `kitchen/notes.md`.
 - Saved to Claude memory (persists across future sessions, not just this
-  doc): `kitchen/notes.md`'s existence and purpose, indexed in
+  doc): `kitchen/notes.md`'s existence and purpose, indexed in  
   `MEMORY.md`.
 
 **Next**: Stage 9 continues. DOC 21+ TBD.
@@ -1175,12 +1771,12 @@ going forward, distinct from the versioned `design/*.md` docs.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Right after DOC 20 shipped, owner ran `preview_site.sh` and found mkdocs
-logging every mirrored example page as "not included in the nav
-configuration." Not an error — mkdocs still builds and serves those pages,
-reachable by clicking through from the 6 group pages — but link-only
-access with no sidebar entry was inconvenient. Owner directed adding every
+**Summary**  
+Right after DOC 20 shipped, owner ran `preview_site.sh` and found mkdocs  
+logging every mirrored example page as "not included in the nav  
+configuration." Not an error — mkdocs still builds and serves those pages,  
+reachable by clicking through from the 6 group pages — but link-only  
+access with no sidebar entry was inconvenient. Owner directed adding every  
 example to `nav:` and adding a rule so future example changes stay synced.
 
 **Changes**:
@@ -1189,9 +1785,9 @@ example to `nav:` and adding a rule so future example changes stay synced.
   + How-to PolyNode/Mailbox/Pool/Io groups + Flow group, every one of the
   76 mirrored pages now listed under its group's `nav:` subsection.
 - `design/rules-020.md` → `-021.md` — new "Examples-catalog nav sync" rule
-  under Documentation Rules: any `examples/`/`stories/` file add/remove/
-  rename must also update `kitchen/mkdocs.yml`'s nav and the matching
-  hand-authored group page; verify via the `build_site.sh` "not included in
+  under Documentation Rules: any `examples/`/`stories/` file add/remove/  
+  rename must also update `kitchen/mkdocs.yml`'s nav and the matching  
+  hand-authored group page; verify via the `build_site.sh` "not included in  
   nav" check.
 - `design/context.md`, this file — rules pointer bumped to -021.
 
@@ -1210,37 +1806,37 @@ example to `nav:` and adding a rule so future example changes stay synced.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner directed removing the 8 `zig build docs` example-autodoc targets
-(`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,
-`storiesdocs`, all built up across DOC 17/INTR 6) and the mkdocs page
-linking them (`kitchen/docs/examples_reference.md`) — build cost for a page
-nobody needs. `apidocs` (the real `src/matryoshka.zig` API reference) stays
-untouched. In its place: a hand-organized examples catalog, discussed and
-settled in-session — mirror `examples/`'s folder layout 1:1 under
-`kitchen/docs/examples/` via a new permanent script, with reader-facing
-grouping (how-to categories, not `layer1..4`) living entirely in
-hand-authored catalog/group pages that link into the mirrored tree.
+**Summary**  
+Owner directed removing the 8 `zig build docs` example-autodoc targets  
+(`layer1docs`..`layer4docs`, `itemsdocs`, `hooksdocs`, `helpersdocs`,  
+`storiesdocs`, all built up across DOC 17/INTR 6) and the mkdocs page  
+linking them (`kitchen/docs/examples_reference.md`) — build cost for a page  
+nobody needs. `apidocs` (the real `src/matryoshka.zig` API reference) stays  
+untouched. In its place: a hand-organized examples catalog, discussed and  
+settled in-session — mirror `examples/`'s folder layout 1:1 under  
+`kitchen/docs/examples/` via a new permanent script, with reader-facing  
+grouping (how-to categories, not `layer1..4`) living entirely in  
+hand-authored catalog/group pages that link into the mirrored tree.  
 Full session detail in `matryoshka-io-docs-plan-015.md`.
 
 **Changes**:
 - `build.zig` — removed the 8 doc-target call sites and unused helpers
-  (`addLayerDocTarget`, `stageDir`, `addDocTargetForModule`); `apidocs`
+  (`addLayerDocTarget`, `stageDir`, `addDocTargetForModule`); `apidocs`  
   target untouched.
 - `kitchen/tools/gen_examples_docs.sh` (new, permanent) — mirrors
-  `examples/`+`stories/` into `kitchen/docs/examples/`, one `.md` per
-  non-barrel `.zig` file: title, `//!` description + fenced diagram
-  verbatim, full embedded source, GitHub-blob "Open source" link (not a
-  relative repo-path link — the deployed site only serves `kitchen/docs/`,
-  so a relative link to `examples/*.zig` would 404 once published). Only
-  clears its own mirrored subdirs on each run, never the hand-authored
+  `examples/`+`stories/` into `kitchen/docs/examples/`, one `.md` per  
+  non-barrel `.zig` file: title, `//!` description + fenced diagram  
+  verbatim, full embedded source, GitHub-blob "Open source" link (not a  
+  relative repo-path link — the deployed site only serves `kitchen/docs/`,  
+  so a relative link to `examples/*.zig` would 404 once published). Only  
+  clears its own mirrored subdirs on each run, never the hand-authored  
   pages living alongside them.
 - `kitchen/tools/build_site.sh`, `preview_site.sh` — call the new script
   before `mkdocs build`/`serve`.
 - `kitchen/docs/examples/index.md` + 5 group pages (`polynode.md`,
-  `mailbox.md`, `pool.md`, `io.md`, `flow.md`) — new, hand-authored;
-  Items/Hooks/Helpers intro + How-to groups + a Flow group for cross-layer
-  Master compositions and the video transcoder story. First-pass grouping,
+  `mailbox.md`, `pool.md`, `io.md`, `flow.md`) — new, hand-authored;  
+  Items/Hooks/Helpers intro + How-to groups + a Flow group for cross-layer  
+  Master compositions and the video transcoder story. First-pass grouping,  
   owner-flagged as likely to be reshuffled later.
 - Deleted `kitchen/docs/examples_reference.md`.
 - `kitchen/mkdocs.yml` — removed `Examples Reference` nav entry; added
@@ -1268,7 +1864,7 @@ Full session detail in `matryoshka-io-docs-plan-015.md`.
 | Coverage check: all 76 mirrored pages linked exactly once across the 5 groups + index | confirmed |
 | Grep sweep for the 8 removed target names + `examples_reference` | zero hits except historical pre-DOC-20 session-log entries in this file (exempt) |
 
-**Next**: Stage 9 continues. Examples-catalog grouping may be reshuffled
+**Next**: Stage 9 continues. Examples-catalog grouping may be reshuffled  
 later (doc edit only). DOC 21+ TBD.
 
 ---
@@ -1277,17 +1873,17 @@ later (doc edit only). DOC 21+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-`.gitignore` still had a single `/kitchen/docs/examplesdocs/` entry from
-before the doc-target split; that directory no longer exists, and the 8
-new generated dirs (`layer1docs`, `layer2docs`, `layer3docs`, `layer4docs`,
-`itemsdocs`, `hooksdocs`, `helpersdocs`, `storiesdocs`) were showing up as
+**Summary**  
+`.gitignore` still had a single `/kitchen/docs/examplesdocs/` entry from  
+before the doc-target split; that directory no longer exists, and the 8  
+new generated dirs (`layer1docs`, `layer2docs`, `layer3docs`, `layer4docs`,  
+`itemsdocs`, `hooksdocs`, `helpersdocs`, `storiesdocs`) were showing up as  
 untracked in `git status`.
 
 **Changes**:
 - `.gitignore` — replaced `/kitchen/docs/examplesdocs/` with one entry per
-  new generated doc dir, mirroring the existing `/kitchen/docs/apidocs/`
-  pattern. Tracked source files under `kitchen/docs/` (`api/`, `patterns/`,
+  new generated doc dir, mirroring the existing `/kitchen/docs/apidocs/`  
+  pattern. Tracked source files under `kitchen/docs/` (`api/`, `patterns/`,  
   `examples_reference.md`, etc.) are untouched.
 
 **Verification**:
@@ -1302,32 +1898,32 @@ untracked in `git status`.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner reported that most doc-target pages' source browser showed the same
-`layer1` files regardless of which target was open (`itemsdocs`,
-`hooksdocs`, `helpersdocs` all listed `layer1/*.zig`). Root cause: Zig's
-`getEmittedDocs()` bundles the *entire module-root directory* into
-`sources.tar`, not just the reachable import graph. The prior fix (small
-`examples/docs_*.zig` stub files) narrowed the *declaration* graph (fixing
-the stack-overflow crash) but all stubs still lived in `examples/`, so
-every target's module root was still `examples/` and every target's
-`sources.tar` still bundled all of `layer1-4/` regardless of relevance.
-Confirmed this is not a build-cache artifact (reproduced on a fully clean
+**Summary**  
+Owner reported that most doc-target pages' source browser showed the same  
+`layer1` files regardless of which target was open (`itemsdocs`,  
+`hooksdocs`, `helpersdocs` all listed `layer1/*.zig`). Root cause: Zig's  
+`getEmittedDocs()` bundles the *entire module-root directory* into  
+`sources.tar`, not just the reachable import graph. The prior fix (small  
+`examples/docs_*.zig` stub files) narrowed the *declaration* graph (fixing  
+the stack-overflow crash) but all stubs still lived in `examples/`, so  
+every target's module root was still `examples/` and every target's  
+`sources.tar` still bundled all of `layer1-4/` regardless of relevance.  
+Confirmed this is not a build-cache artifact (reproduced on a fully clean  
 `.zig-cache`).
 
 **Changes**:
 - `build.zig` — replaced the `examples/docs_*.zig` stub approach with
-  per-target staging via `b.addWriteFiles()`: each doc target now copies
-  only the files it actually needs (its own layer + items/hooks/helpers,
-  or just items/, or just hooks/+items/, etc.) into an isolated scratch
-  directory, so its module root never shares a directory with unrelated
-  files. Added `stageDir` (copies a directory's `*.zig` files into the
-  staged tree, iterating via `b.graph.io`/`std.Io.Dir` — Zig 0.16 moved
-  directory iteration off `std.fs.cwd()`) and `addLayerDocTarget`
-  helpers. `itemsdocs`/`helpersdocs` root directly at their staged entry
-  file (no escape needed); `hooksdocs` and `layerNdocs` root at a small
-  `wf.add()`-generated stub at the staged tree's top level, since their
-  real files' relative imports (`../items/items.zig` etc.) need the
+  per-target staging via `b.addWriteFiles()`: each doc target now copies  
+  only the files it actually needs (its own layer + items/hooks/helpers,  
+  or just items/, or just hooks/+items/, etc.) into an isolated scratch  
+  directory, so its module root never shares a directory with unrelated  
+  files. Added `stageDir` (copies a directory's `*.zig` files into the  
+  staged tree, iterating via `b.graph.io`/`std.Io.Dir` — Zig 0.16 moved  
+  directory iteration off `std.fs.cwd()`) and `addLayerDocTarget`  
+  helpers. `itemsdocs`/`helpersdocs` root directly at their staged entry  
+  file (no escape needed); `hooksdocs` and `layerNdocs` root at a small  
+  `wf.add()`-generated stub at the staged tree's top level, since their  
+  real files' relative imports (`../items/items.zig` etc.) need the  
   module boundary at the shared parent.
 - Deleted the now-unused `examples/docs_layer1.zig` .. `docs_helpers.zig`
   stub files.
@@ -1349,40 +1945,40 @@ Confirmed this is not a build-cache artifact (reproduced on a fully clean
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-After INTR 6, the owner reported `examplesdocs` stuck on "Loading..." in
-the browser. Investigation (headless Chrome console capture) found a real
-client-side crash: `Uncaught (in promise) RangeError: Maximum call stack
-size exceeded` thrown from `main.wasm` (the Zig 0.16 autodoc renderer).
-Ruled out every structural hypothesis tied to today's `helpers/` split
-(per-file `PolyHelper`, `Self`/`@This()` self-reference, hooks structure)
-by reverting each in turn and re-testing — the crash persisted unchanged
-every time, including with the exact pre-refactor-equivalent layout. The
-sibling `tofu` repo had hit the identical symptom before (commit
-`1020ba27`, "Fix build of docs. Update GitHub Pages") — root cause there
+**Summary**  
+After INTR 6, the owner reported `examplesdocs` stuck on "Loading..." in  
+the browser. Investigation (headless Chrome console capture) found a real  
+client-side crash: `Uncaught (in promise) RangeError: Maximum call stack  
+size exceeded` thrown from `main.wasm` (the Zig 0.16 autodoc renderer).  
+Ruled out every structural hypothesis tied to today's `helpers/` split  
+(per-file `PolyHelper`, `Self`/`@This()` self-reference, hooks structure)  
+by reverting each in turn and re-testing — the crash persisted unchanged  
+every time, including with the exact pre-refactor-equivalent layout. The  
+sibling `tofu` repo had hit the identical symptom before (commit  
+`1020ba27`, "Fix build of docs. Update GitHub Pages") — root cause there  
 was a single combined doc target spanning too large a module tree.
 
 **Changes**:
 - `build.zig` — replaced the single large `examplesdocs` doc target
-  (rooted at `examples/examples.zig`, ~70+ files) with 8 small ones, each
-  its own `addObject`/`getEmittedDocs()`/`install_subdir`: `layer1docs`,
-  `layer2docs`, `layer3docs`, `layer4docs`, `itemsdocs`, `hooksdocs`,
-  `helpersdocs`, `storiesdocs`. Added `addDocTarget`/
+  (rooted at `examples/examples.zig`, ~70+ files) with 8 small ones, each  
+  its own `addObject`/`getEmittedDocs()`/`install_subdir`: `layer1docs`,  
+  `layer2docs`, `layer3docs`, `layer4docs`, `itemsdocs`, `hooksdocs`,  
+  `helpersdocs`, `storiesdocs`. Added `addDocTarget`/  
   `addDocTargetForModule` helpers to avoid repeating the boilerplate.
 - `examples/docs_layer1.zig` .. `docs_layer4.zig`, `docs_items.zig`,
-  `docs_hooks.zig`, `docs_helpers.zig` — small docs-only root stubs.
-  Needed because the real example files' relative imports (e.g.
-  `../items/items.zig`) escape their own directory; the module boundary
-  follows the root file's directory, so each doc target roots at a stub
-  placed in `examples/` (the shared parent) instead of the real entry
+  `docs_hooks.zig`, `docs_helpers.zig` — small docs-only root stubs.  
+  Needed because the real example files' relative imports (e.g.  
+  `../items/items.zig`) escape their own directory; the module boundary  
+  follows the root file's directory, so each doc target roots at a stub  
+  placed in `examples/` (the shared parent) instead of the real entry  
   file directly.
 - `stories` doc target gets a small stand-in "examples" module (just
   `helpers`) instead of the full `examples` module, for the same reason.
 - `kitchen/docs/examples_reference.md` — updated from one "Open Examples
   Reference" button to 8 buttons, one per doc target.
 - `design/rules-019.md` — added "Doc-generation module size" rule under
-  Documentation Rules: never root a `zig build docs` target at a module
-  spanning a large tree; verify a doc target actually renders in a
+  Documentation Rules: never root a `zig build docs` target at a module  
+  spanning a large tree; verify a doc target actually renders in a  
   browser (console check), not just that `zig build docs` exits 0.
 
 **Verification**:
@@ -1401,16 +1997,16 @@ was a single combined doc target spanning too large a module tree.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner directed: the standalone `helpers/` build module mixed three different
-concerns (item types, pool-hook implementations, generic test helpers) under
-one name. Split it into three folders under `examples/`, each with a single
-job, and wired them into the existing `examples` module instead of a
+**Summary**  
+Owner directed: the standalone `helpers/` build module mixed three different  
+concerns (item types, pool-hook implementations, generic test helpers) under  
+one name. Split it into three folders under `examples/`, each with a single  
+job, and wired them into the existing `examples` module instead of a  
 separate top-level one.
 
 **Changes**:
 - `examples/items/` — `Event.zig`, `Sensor.zig`, `ShutdownCommand.zig`,
-  `Timer.zig` (4 item types), `items.zig` (`freeItem`/`freeSlot`/`freeList`/
+  `Timer.zig` (4 item types), `items.zig` (`freeItem`/`freeSlot`/`freeList`/  
   `createByTag`/`destroyByTag` lifecycle helpers).
 - `examples/hooks/` — `AlwaysCreateHooks.zig`, `CappedPoolHooks.zig`
   (renamed from `AlwaysCreateCtx`/`CappedPoolCtx`), `hooks.zig` barrel.
@@ -1438,44 +2034,44 @@ separate top-level one.
 
 **Post-stage cleanup (follow-up, same day)**:
 - Fixed a placement bug: `items.zig` had centralized all four
-  `*PolyHelper` aliases instead of each living with its own item type.
-  Moved `EventPolyHelper`/`SensorPolyHelper`/`ShutdownCommandPolyHelper`/
-  `TimerPolyHelper` into their respective `Event.zig`/`Sensor.zig`/
-  `ShutdownCommand.zig`/`Timer.zig` files (each now defines its own
-  `const This = @This();` and `pub const XPolyHelper = polynode.PolyHelper(This);`).
-  `items.zig` now only re-exports the four types plus the lifecycle
-  helpers, which reference `Event.EventPolyHelper` etc. Updated ~60
-  call sites (`items.EventPolyHelper` → `items.Event.EventPolyHelper`,
+  `*PolyHelper` aliases instead of each living with its own item type.  
+  Moved `EventPolyHelper`/`SensorPolyHelper`/`ShutdownCommandPolyHelper`/  
+  `TimerPolyHelper` into their respective `Event.zig`/`Sensor.zig`/  
+  `ShutdownCommand.zig`/`Timer.zig` files (each now defines its own  
+  `const This = @This();` and `pub const XPolyHelper = polynode.PolyHelper(This);`).  
+  `items.zig` now only re-exports the four types plus the lifecycle  
+  helpers, which reference `Event.EventPolyHelper` etc. Updated ~60  
+  call sites (`items.EventPolyHelper` → `items.Event.EventPolyHelper`,  
   and similarly for the other three) via scripted sed.
 - Fixed the copy-pasted doc header in `examples/helpers/helpers.zig`
   (now: "Just some shared test glue, not production code.").
 - Fixed the 5 stale `helpers/`-path references surfaced above:
-  `design/patterns-012.md`, `design/matryoshka-api-reference-021.md`,
-  `design/collected-context-005.md`, `kitchen/docs/patterns/pool.md`,
-  `kitchen/docs/api/pool.md` — all now point at
+  `design/patterns-012.md`, `design/matryoshka-api-reference-021.md`,  
+  `design/collected-context-005.md`, `kitchen/docs/patterns/pool.md`,  
+  `kitchen/docs/api/pool.md` — all now point at  
   `examples/items/`/`examples/hooks/CappedPoolHooks.zig`.
 - Owner confirmed via local `kitchen/tools/preview_site.sh` that the
-  regenerated mkdocs site reflects the new layout (root `docs/` is
+  regenerated mkdocs site reflects the new layout (root `docs/` is  
   gitignored/CI-built and had been stale from before this stage).
 - Re-verified: `build_and_test_debug.sh`, `build_and_test_all.sh`
-  (167/167, all 4 opt modes), `build_cross_debug.sh`, `zig build docs`
-  — all PASS. Grep confirms zero remaining flat `items.XPolyHelper`
+  (167/167, all 4 opt modes), `build_cross_debug.sh`, `zig build docs`  
+  — all PASS. Grep confirms zero remaining flat `items.XPolyHelper`  
   references.
 
-**Next**: owner to decide on the 2 candidate patterns from the
-pattern-catalog scan (whole-file-is-struct convention, ptr→self via
+**Next**: owner to decide on the 2 candidate patterns from the  
+pattern-catalog scan (whole-file-is-struct convention, ptr→self via  
 `This` pool-hook erasure). Stage 9 continues, DOC 20+ TBD.
 
 ### 2026-07-07 — DOC 19 (move GitHub Pages output to root-level `docs/`)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner directed: GitHub Pages' standard folder convention is a root-level
-`docs/`, so the mkdocs-generated site should build there instead of
-`kitchen/output/`. `kitchen/docs/` (the mkdocs *source* markdown tree) is
-unrelated and untouched — only the *generated output* location moved. The
-new `docs/` folder stays untracked by git (build artifact, not source),
+**Summary**  
+Owner directed: GitHub Pages' standard folder convention is a root-level  
+`docs/`, so the mkdocs-generated site should build there instead of  
+`kitchen/output/`. `kitchen/docs/` (the mkdocs *source* markdown tree) is  
+unrelated and untouched — only the *generated output* location moved. The  
+new `docs/` folder stays untracked by git (build artifact, not source),  
 same treatment `kitchen/output/` already had.
 
 **Changes**:
@@ -1498,7 +2094,7 @@ same treatment `kitchen/output/` already had.
 | `git status`/`git check-ignore -v docs` | `docs/` ignored, no untracked artifact appears |
 | `bash kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167) |
 
-**Next**: owner confirmed local preview via `bash kitchen/tools/preview_site.sh`
+**Next**: owner confirmed local preview via `bash kitchen/tools/preview_site.sh`  
 works correctly. Stage 9 continues, DOC 20+ TBD.
 
 ---
@@ -1507,22 +2103,22 @@ works correctly. Stage 9 continues, DOC 20+ TBD.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Follow-up to API 4: owner asked to regenerate `kitchen/docs` and confirm
-`NodeHandle` was gone from it. API 4 only touched `src/`, `examples/`,
-`stories/`, and `design/*.md` — the hand-authored mkdocs content pages under
-`kitchen/docs/api/`, `kitchen/docs/patterns/`, `kitchen/docs/building-blocks/`
-(split out of the API reference in an earlier DOC stage) and
-`kitchen/mkdocs.yml`'s nav title still said `NodeHandle`. These pages are
-site content, not no-overwrite-versioned design docs, so edited in place
+**Summary**  
+Follow-up to API 4: owner asked to regenerate `kitchen/docs` and confirm  
+`NodeHandle` was gone from it. API 4 only touched `src/`, `examples/`,  
+`stories/`, and `design/*.md` — the hand-authored mkdocs content pages under  
+`kitchen/docs/api/`, `kitchen/docs/patterns/`, `kitchen/docs/building-blocks/`  
+(split out of the API reference in an earlier DOC stage) and  
+`kitchen/mkdocs.yml`'s nav title still said `NodeHandle`. These pages are  
+site content, not no-overwrite-versioned design docs, so edited in place  
 rather than creating new versions.
 
 **Changes**:
 - `kitchen/docs/building-blocks/polynode.md`, `kitchen/docs/api/pool.md`,
-  `kitchen/docs/patterns/slot-and-polynode.md`, `kitchen/docs/api/mailbox.md`,
-  `kitchen/docs/api/tags-and-slots.md`, `kitchen/docs/api/polyhelper.md`,
-  `kitchen/docs/api/polynode.md`, `kitchen/mkdocs.yml` — `NodeHandle` →
-  `ItemHandle` (wording only, including the nav entry "PolyNode & NodeHandle
+  `kitchen/docs/patterns/slot-and-polynode.md`, `kitchen/docs/api/mailbox.md`,  
+  `kitchen/docs/api/tags-and-slots.md`, `kitchen/docs/api/polyhelper.md`,  
+  `kitchen/docs/api/polynode.md`, `kitchen/mkdocs.yml` — `NodeHandle` →  
+  `ItemHandle` (wording only, including the nav entry "PolyNode & NodeHandle  
   & Slot" → "PolyNode & ItemHandle & Slot").
 - `kitchen/docs/apidocs/`, `kitchen/docs/examplesdocs/` — regenerated via
   `zig build docs` from the renamed `src/*.zig`.
@@ -1542,19 +2138,19 @@ rather than creating new versions.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner reviewed a shortlist of names for `*PolyNode` (`Handle`, `ObjectHandle`,
-`NodeHandle`, `ParentHandle`) and picked `ItemHandle` — `NodeHandle` leaked
-the intrusive-list-node implementation detail into a name meant to describe
-what the caller holds. Owner also directed adopting `ih` as the short
-variable-name form (replacing `nh`) and documenting bare `handle` as
-acceptable shorthand once the type is clear from context. A repo survey
-found zero existing `nh` identifiers, so that part is a documented
+**Summary**  
+Owner reviewed a shortlist of names for `*PolyNode` (`Handle`, `ObjectHandle`,  
+`NodeHandle`, `ParentHandle`) and picked `ItemHandle` — `NodeHandle` leaked  
+the intrusive-list-node implementation detail into a name meant to describe  
+what the caller holds. Owner also directed adopting `ih` as the short  
+variable-name form (replacing `nh`) and documenting bare `handle` as  
+acceptable shorthand once the type is clear from context. A repo survey  
+found zero existing `nh` identifiers, so that part is a documented  
 convention for future code, not a rename.
 
-Owner confirmed treating the previously-unlinked `rules-018.md` (mkdocs
-blank-line rule, never wired into context.md/STATUS.md pointers) as the
-current base — this stage's `rules-019.md` carries that content forward and
+Owner confirmed treating the previously-unlinked `rules-018.md` (mkdocs  
+blank-line rule, never wired into context.md/STATUS.md pointers) as the  
+current base — this stage's `rules-019.md` carries that content forward and  
 fixes the missing link as part of the version bump.
 
 **Changes**:
@@ -1563,14 +2159,14 @@ fixes the missing link as part of the version bump.
 - `examples/layer4/095-mailbox_as_item.zig`, `stories/video_transcoder/video_transcoder.zig`
   — same rename (doc-comment mention and local alias respectively).
 - `design/matryoshka-api-reference-020.md` → `-021.md` — `NodeHandle` →
-  `ItemHandle` throughout; `### What is a NodeHandle?` → `### What is an
-  ItemHandle?` with new naming-rationale bullets and the `ih`/`handle`
+  `ItemHandle` throughout; `### What is a NodeHandle?` → `### What is an  
+  ItemHandle?` with new naming-rationale bullets and the `ih`/`handle`  
   shorthand note; historical Change-log row (002) left untouched.
 - `design/matryoshka-architecture-001.md` → `-002.md`,
-  `design/patterns-011.md` → `-012.md`,
+  `design/patterns-011.md` → `-012.md`,  
   `design/collected-context-004.md` → `-005.md` — same rename, wording only.
 - `design/rules-018.md` → `-019.md` — new "Handle naming (API 4)" rule under
-  Coding Standards; historical DOC 18c mentions of `NodeHandle` left as-is
+  Coding Standards; historical DOC 18c mentions of `NodeHandle` left as-is  
   (describe a past bug by its then-current name).
 - `design/context.md` — all pointers bumped to the new versions.
 - `design/STATUS.md` — Sources of Truth pointers; this entry; API 4 stage
@@ -1595,50 +2191,50 @@ supersedes DOC 18b's disproved blank-line theory)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner reported DOC 18b's fix did not work: the container/module page for
-`matryoshka.mailbox` still showed `MailboxHandle`'s `///` comment spliced
-directly onto the module `//!` overview with no separator. Rather than
-guess again, tested empirically: built the real docs (`zig build docs`),
-served them locally, and rendered the actual page with headless Chrome
-(`google-chrome --headless --dump-dom`), extracting visible text from the
-DOM. Confirmed the merge is real and the DOC 18b blank-line fix does not
+**Summary**  
+Owner reported DOC 18b's fix did not work: the container/module page for  
+`matryoshka.mailbox` still showed `MailboxHandle`'s `///` comment spliced  
+directly onto the module `//!` overview with no separator. Rather than  
+guess again, tested empirically: built the real docs (`zig build docs`),  
+served them locally, and rendered the actual page with headless Chrome  
+(`google-chrome --headless --dump-dom`), extracting visible text from the  
+DOM. Confirmed the merge is real and the DOC 18b blank-line fix does not  
 address it.
 
-Root-caused by experiment, not inspection: reordered `src/mailbox.zig` so
-`MailboxPolyHelper` came before `MailboxHandle`, rebuilt, re-rendered — the
-merge followed whichever declaration became first (now showed
-`MailboxPolyHelper`'s comment instead). This rules out "plain alias consts
-specifically" and confirms the real cause: Zig's autodoc container page
-always splices the **first declaration's** `///` comment onto the module
+Root-caused by experiment, not inspection: reordered `src/mailbox.zig` so  
+`MailboxPolyHelper` came before `MailboxHandle`, rebuilt, re-rendered — the  
+merge followed whichever declaration became first (now showed  
+`MailboxPolyHelper`'s comment instead). This rules out "plain alias consts  
+specifically" and confirms the real cause: Zig's autodoc container page  
+always splices the **first declaration's** `///` comment onto the module  
 overview, unconditionally, regardless of blank lines or declaration kind.
 
-Owner asked "what if we simply comment[out with a] stub" — tested adding an
-undocumented, non-`pub` `const _doc_stub = void;` as the first declaration
-after the `//!` header. Rebuilt, re-rendered: container page came back
-clean, no splice, and the stub is invisible in the sidebar (private, no
-doc). Verified on `mailbox.zig`, then confirmed by inspection (not
-guesswork) that `pool.zig` and `polynode.zig` have the same first-declaration
-`///` shape and need the same fix; `matryoshka.zig` and all 67
-`examples/`/`stories/` files have no `///` comments at all (whole
-description lives in `//!`), so nothing bleeds and no stub is needed there —
+Owner asked "what if we simply comment[out with a] stub" — tested adding an  
+undocumented, non-`pub` `const _doc_stub = void;` as the first declaration  
+after the `//!` header. Rebuilt, re-rendered: container page came back  
+clean, no splice, and the stub is invisible in the sidebar (private, no  
+doc). Verified on `mailbox.zig`, then confirmed by inspection (not  
+guesswork) that `pool.zig` and `polynode.zig` have the same first-declaration  
+`///` shape and need the same fix; `matryoshka.zig` and all 67  
+`examples/`/`stories/` files have no `///` comments at all (whole  
+description lives in `//!`), so nothing bleeds and no stub is needed there —  
 confirmed by live-rendering one example's container page too.
 
-Separate finding, not fixed by the stub: `MailboxHandle`'s own dedicated
-doc page (`#matryoshka.mailbox.MailboxHandle`) shows `NodeHandle`'s doc, not
-its own — Zig autodoc resolves plain alias consts (`pub const X = Y.Z;`) to
-the aliased type's page. The stub stops the garbled container-page splice;
-it does not make the alias's own `///` comment render anywhere. Accepted as
-a known, separate Zig autodoc limitation (same precedent as the rules-014
+Separate finding, not fixed by the stub: `MailboxHandle`'s own dedicated  
+doc page (`#matryoshka.mailbox.MailboxHandle`) shows `NodeHandle`'s doc, not  
+its own — Zig autodoc resolves plain alias consts (`pub const X = Y.Z;`) to  
+the aliased type's page. The stub stops the garbled container-page splice;  
+it does not make the alias's own `///` comment render anywhere. Accepted as  
+a known, separate Zig autodoc limitation (same precedent as the rules-014  
 quoted-identifier limitation) — not something further stub tricks can fix.
 
 **Changes**:
 - `src/mailbox.zig`, `src/pool.zig`, `src/polynode.zig` — added
-  `const _doc_stub = void;` as the first declaration after the `//!` file
+  `const _doc_stub = void;` as the first declaration after the `//!` file  
   header.
 - `design/rules-016.md` → `-017.md` — replaced the disproved DOC 18b
-  blank-line rule with the first-declaration doc-stub rule, in both the
-  changelog note and the Comment/Doc Rules section; documented the
+  blank-line rule with the first-declaration doc-stub rule, in both the  
+  changelog note and the Comment/Doc Rules section; documented the  
   alias-page limitation as a known trade-off.
 - `design/context.md` — rules pointer → -017.
 - `design/STATUS.md` — this entry, DOC 18c stage line.
@@ -1661,21 +2257,21 @@ superseded by DOC 18c above — blank-line hypothesis was tested and disproved)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner found, while applying the DOC 18 staccato style to `src/mailbox.zig`/
-`src/pool.zig`, that a `//!` file-level doc comment block must end with a
-bare `//!` line followed by a real blank line — otherwise Zig's autodoc
-parser treats whatever comment follows as a continuation of the same
-file-level block instead of its own declaration doc comment. Same class of
-token-boundary bug as the rules-014 `//!`/`///` mixing issue (DOC 17b), just
-a different trigger: here it's a missing blank line, not a wrong marker.
-Owner had already applied the fix to all 4 `src/*.zig` files; directed
+**Summary**  
+Owner found, while applying the DOC 18 staccato style to `src/mailbox.zig`/  
+`src/pool.zig`, that a `//!` file-level doc comment block must end with a  
+bare `//!` line followed by a real blank line — otherwise Zig's autodoc  
+parser treats whatever comment follows as a continuation of the same  
+file-level block instead of its own declaration doc comment. Same class of  
+token-boundary bug as the rules-014 `//!`/`///` mixing issue (DOC 17b), just  
+a different trigger: here it's a missing blank line, not a wrong marker.  
+Owner had already applied the fix to all 4 `src/*.zig` files; directed  
 applying the same fix to the rest of the sources and adding the rule.
 
 **Changes**:
 - 67 `examples/`/`stories/` files with a `//!` file header — added a
-  trailing bare `//!` line (where missing) and a real blank line before the
-  first following comment or code, matching the pattern already applied to
+  trailing bare `//!` line (where missing) and a real blank line before the  
+  first following comment or code, matching the pattern already applied to  
   `src/*.zig`. Scripted, not hand-edited; content otherwise unchanged.
 - `design/rules-015.md` → `-016.md` — new rule: file-level `//!` block
   termination, in both the changelog note and the Comment/Doc Rules section.
@@ -1697,45 +2293,45 @@ applying the same fix to the rest of the sources and adding the rule.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-DOC 16/16b dropped "ownership" language from `src/*.zig` comments but
-explicitly deferred rewriting `matryoshka-api-reference-019.md` itself as "a
-separate future stage" — this is that stage. The reference still used
-"ownership-oriented infrastructure toolkit" / "Ownership model" / "Ownership
-flow" / "Ownership lifecycle" / "Cancellation ownership contract" framing
-(40+ hits) and mixed prose paragraphs into an otherwise staccato doc. Owner
-supplied 3 example files under `/home/g41797/Downloads/` (`polynode.zig`,
-`mailbox.zig`, `pool.zig`) — stripped-down doc-comment-only stubs — as a
-style model: plain send/place verbs, no academic framing, not a literal
+**Summary**  
+DOC 16/16b dropped "ownership" language from `src/*.zig` comments but  
+explicitly deferred rewriting `matryoshka-api-reference-019.md` itself as "a  
+separate future stage" — this is that stage. The reference still used  
+"ownership-oriented infrastructure toolkit" / "Ownership model" / "Ownership  
+flow" / "Ownership lifecycle" / "Cancellation ownership contract" framing  
+(40+ hits) and mixed prose paragraphs into an otherwise staccato doc. Owner  
+supplied 3 example files under `/home/g41797/Downloads/` (`polynode.zig`,  
+`mailbox.zig`, `pool.zig`) — stripped-down doc-comment-only stubs — as a  
+style model: plain send/place verbs, no academic framing, not a literal  
 patch (they omit real content that must stay).
 
-On starting, found the working tree already had partial owner-applied edits
-toward this goal on all 4 `src/*.zig` files: `polynode.zig` and
-`matryoshka.zig` fully matched the target style; `pool.zig`'s file header
-matched but its function-level comments were untouched; `mailbox.zig` had a
-partial edit in the wrong style (single sentences split across
-blank-line-separated fragments instead of proper staccato bullets) and had
-introduced a typo ("FIFI order is not guaranteed" — should read "FIFO").
-Owner directed: redo `mailbox.zig` from scratch rather than build on the
+On starting, found the working tree already had partial owner-applied edits  
+toward this goal on all 4 `src/*.zig` files: `polynode.zig` and  
+`matryoshka.zig` fully matched the target style; `pool.zig`'s file header  
+matched but its function-level comments were untouched; `mailbox.zig` had a  
+partial edit in the wrong style (single sentences split across  
+blank-line-separated fragments instead of proper staccato bullets) and had  
+introduced a typo ("FIFI order is not guaranteed" — should read "FIFO").  
+Owner directed: redo `mailbox.zig` from scratch rather than build on the  
 partial edit.
 
 **Changes**:
 - `design/matryoshka-api-reference-019.md` → `-020.md` — dropped all
-  "ownership" section titles, diagram captions, and prose throughout, in
-  favor of the one-place-one-state phrasing already established for `src/`;
-  converted 3 dense run-on sentences (mailbox.receive waiter fairness,
-  pool.get_wait zero-timeout divergence, pool.put_all mid-batch close) into
-  one-fact-per-bullet staccato. Same section order (DOC 9/10 dependency
-  ordering untouched), same facts, same diagrams (captions relabeled only).
+  "ownership" section titles, diagram captions, and prose throughout, in  
+  favor of the one-place-one-state phrasing already established for `src/`;  
+  converted 3 dense run-on sentences (mailbox.receive waiter fairness,  
+  pool.get_wait zero-timeout divergence, pool.put_all mid-batch close) into  
+  one-fact-per-bullet staccato. Same section order (DOC 9/10 dependency  
+  ordering untouched), same facts, same diagrams (captions relabeled only).  
   New Change-log row (020).
 - `src/mailbox.zig` — reverted the partial/typo'd edit, rewrote all
-  `///`/`//!` comments from scratch in the polynode.zig staccato format
-  (short intro line, blank `///`, related facts grouped). No "ownership"
-  language was present — DOC 16b already cleaned it; this pass was pure
+  `///`/`//!` comments from scratch in the polynode.zig staccato format  
+  (short intro line, blank `///`, related facts grouped). No "ownership"  
+  language was present — DOC 16b already cleaned it; this pass was pure  
   reformatting plus fixing the "FIFO" typo.
 - `src/pool.zig` — file header left as the owner's existing edit; reworded
-  the remaining function-level comments (`get`, `get_wait`, `put`,
-  `put_all`, `close`, `PoolHooks`, `getWaitResult`, `get_wait_future`) to
+  the remaining function-level comments (`get`, `get_wait`, `put`,  
+  `put_all`, `close`, `PoolHooks`, `getWaitResult`, `get_wait_future`) to  
   the same staccato format.
 - `src/polynode.zig`, `src/matryoshka.zig` — verified already matching, no
   changes.
@@ -1755,7 +2351,7 @@ partial edit.
 | Banned-word scan on `-020.md` and the 4 changed `src/*.zig` files | CLEAN — `unlock`/`ensureTotalCapacity` hits are real API names, not prose; `dll_node_ptr` is a code identifier, not the banned word; `fires` is inside a historical Change-log entry |
 | Section/fact coverage `-019` vs `-020` | same structure, same tables/diagrams — wording-only diff |
 
-**Next**: owner reviews the humanized reference; DOC 19+ TBD — likely
+**Next**: owner reviews the humanized reference; DOC 19+ TBD — likely  
 candidate unchanged: split api-reference-020.md into mkdocs Reference pages.
 
 ---
@@ -1764,54 +2360,54 @@ candidate unchanged: split api-reference-020.md into mkdocs Reference pages.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Follow-up to DOC 17. While verifying the entry-point rename, the owner
-manually tested moving `021-define_type.zig`'s doc comment from `///`
-(per-function) to `//!` (file-level) for the intro+bullets, keeping
-`///` for the Ownership diagram — then rebuilt the docs site from
-scratch to rule out stale-cache effects. Confirmed result: the file's
-container page showed the `//!` part in full, but the function's own
-declaration page showed only the leftover `///` part. Root cause:
-`//!` and `///` are different token kinds to the autodoc parser
-(`container_doc_comment` vs `doc_comment`); a function's doc comment
-is built by walking backward through *contiguous* same-kind tokens, so
-mixing the two above one function truncates it. Owner's decision:
-don't split — convert the whole block (intro + bullets + diagram) to
-`//!`, same position (top of file, after the SPDX header), since every
-example file has exactly one public entry point and the file-level
+**Summary**  
+Follow-up to DOC 17. While verifying the entry-point rename, the owner  
+manually tested moving `021-define_type.zig`'s doc comment from `///`  
+(per-function) to `//!` (file-level) for the intro+bullets, keeping  
+`///` for the Ownership diagram — then rebuilt the docs site from  
+scratch to rule out stale-cache effects. Confirmed result: the file's  
+container page showed the `//!` part in full, but the function's own  
+declaration page showed only the leftover `///` part. Root cause:  
+`//!` and `///` are different token kinds to the autodoc parser  
+(`container_doc_comment` vs `doc_comment`); a function's doc comment  
+is built by walking backward through *contiguous* same-kind tokens, so  
+mixing the two above one function truncates it. Owner's decision:  
+don't split — convert the whole block (intro + bullets + diagram) to  
+`//!`, same position (top of file, after the SPDX header), since every  
+example file has exactly one public entry point and the file-level  
 description is sufficient.
 
-Piloted on the 5 layer1 example files first (owner-directed), rebuilt
-the site, confirmed. Owner then reported the ASCII Ownership diagrams
-rendered flat (line breaks collapsed) — traced to Zig's autodoc
-parsing doc comments as CommonMark markdown, which collapses single
-line breaks into one paragraph outside a code block. Fix: wrap each
-diagram in a ` ``` ` fenced code block. Folded into the same pilot,
-re-verified on the 5 layer1 files, then rolled out to all remaining 62
+Piloted on the 5 layer1 example files first (owner-directed), rebuilt  
+the site, confirmed. Owner then reported the ASCII Ownership diagrams  
+rendered flat (line breaks collapsed) — traced to Zig's autodoc  
+parsing doc comments as CommonMark markdown, which collapses single  
+line breaks into one paragraph outside a code block. Fix: wrap each  
+diagram in a ` ``` ` fenced code block. Folded into the same pilot,  
+re-verified on the 5 layer1 files, then rolled out to all remaining 62  
 example files in one pass (script-driven, not hand-edited).
 
-While sweeping all example files for the `//!` conversion, found
-`examples/layer2/056-pipeline.zig` had an un-renamed entry point
-(`pub fn Pipeline`, PascalCase) — missed by DOC 17 because it was
-never a quoted identifier, so DOC 17's `@"..."` grep didn't catch it.
-Fixed in the same pass: renamed to `pipeline` (snake_case), test
+While sweeping all example files for the `//!` conversion, found  
+`examples/layer2/056-pipeline.zig` had an un-renamed entry point  
+(`pub fn Pipeline`, PascalCase) — missed by DOC 17 because it was  
+never a quoted identifier, so DOC 17's `@"..."` grep didn't catch it.  
+Fixed in the same pass: renamed to `pipeline` (snake_case), test  
 wrapper call site updated.
 
 **Changes**:
 - 67 example files (5 layer1 pilot + 62 layer2/3/4 rollout) — doc
-  comment marker converted `///` → `//!` at the top of the file, same
-  content, same position; each Ownership/flow diagram wrapped in a
-  ` ``` ` fenced code block; trailing prose after a diagram (where
+  comment marker converted `///` → `//!` at the top of the file, same  
+  content, same position; each Ownership/flow diagram wrapped in a  
+  ` ``` ` fenced code block; trailing prose after a diagram (where  
   present) left as a normal paragraph outside the fence.
 - `examples/layer2/056-pipeline.zig` — entry point renamed
-  `Pipeline` → `pipeline`; `tests/layer2_examples.zig` call site
+  `Pipeline` → `pipeline`; `tests/layer2_examples.zig` call site  
   updated to match.
 - `design/rules-014.md` → `rules-015.md` — "Description as code" and
-  "Coding Rules — Examples" updated: example doc comment is `//!` at
-  the top of the file (not `///` on the entry point); any ASCII
+  "Coding Rules — Examples" updated: example doc comment is `//!` at  
+  the top of the file (not `///` on the entry point); any ASCII  
   diagram inside a doc comment must be fenced.
 - `design/context.md`, `design/STATUS.md` — rules pointer bumped to
-  -015; this entry (covers 17b execution + 17c rollout together, since
+  -015; this entry (covers 17b execution + 17c rollout together, since  
   17b had no separate log entry pending owner confirmation).
 
 **Verification**:
@@ -1823,7 +2419,7 @@ wrapper call site updated.
 | `kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167), pilot run and full-rollout run |
 | Docs/site rebuild + visual spot-check | owner to run and confirm across layer2/3/4 (not just layer1) |
 
-**Next**: owner rebuilds docs/site and spot-checks pages across
+**Next**: owner rebuilds docs/site and spot-checks pages across  
 layer2/3/4; Stage 9 — README + autodocs continues.
 
 ---
@@ -1832,42 +2428,42 @@ layer2/3/4; Stage 9 — README + autodocs continues.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner reported every example description link in the generated
-`examplesdocs` (`zig build docs` autodoc viewer) failed with
-"Declaration not found." (e.g.
-`http://127.0.0.1:8000/examplesdocs/#examples.layer1.024-builder.@`).
-Owner tested directly: renaming `024-builder.zig`'s entry point from
-the quoted identifier `@"Builder pattern"` to a plain identifier fixed
-the link. Root cause confirmed: Zig's built-in autodoc (wasm) viewer
-cannot resolve declaration links for quoted identifiers (`@"..."`
-syntax) — not the space inside them, as first suspected. Since
-`zig build docs` is Zig's own stdlib tool, this is a viewer limitation
-worked around by renaming, not a bug patched in our own code. This
-reverses EXMPL 4b's `pub fn @"<description>"` decision; owner directed
+**Summary**  
+Owner reported every example description link in the generated  
+`examplesdocs` (`zig build docs` autodoc viewer) failed with  
+"Declaration not found." (e.g.  
+`http://127.0.0.1:8000/examplesdocs/#examples.layer1.024-builder.@`).  
+Owner tested directly: renaming `024-builder.zig`'s entry point from  
+the quoted identifier `@"Builder pattern"` to a plain identifier fixed  
+the link. Root cause confirmed: Zig's built-in autodoc (wasm) viewer  
+cannot resolve declaration links for quoted identifiers (`@"..."`  
+syntax) — not the space inside them, as first suspected. Since  
+`zig build docs` is Zig's own stdlib tool, this is a viewer limitation  
+worked around by renaming, not a bug patched in our own code. This  
+reverses EXMPL 4b's `pub fn @"<description>"` decision; owner directed  
 the fix explicitly in this session.
 
-**Fix**: every example/story entry point renamed from
-`pub fn @"<description>"` to a plain snake_case identifier derived
-from the description (e.g. `@"Builder pattern"` → `builder_pattern`).
-The staccato description text itself is unchanged — still the first
+**Fix**: every example/story entry point renamed from  
+`pub fn @"<description>"` to a plain snake_case identifier derived  
+from the description (e.g. `@"Builder pattern"` → `builder_pattern`).  
+The staccato description text itself is unchanged — still the first  
 line of the `///` doc comment. Only the identifier syntax changed.
 
 **Changes**:
 - 65 example files across `examples/layer1..4/` — entry point renamed
-  quoted-identifier → snake_case (scripted rename, description text
+  quoted-identifier → snake_case (scripted rename, description text  
   untouched).
 - `examples/layer1/024-builder.zig` — owner's manual mid-session edit
-  (`Builder_pattern`) normalized to `builder_pattern`; stray leftover
+  (`Builder_pattern`) normalized to `builder_pattern`; stray leftover  
   commented-out `@"..."` line removed.
 - 6 test-wrapper files' call sites updated to match:
-  `tests/layer1_examples.zig`, `tests/layer2_examples.zig`,
-  `tests/layer3_examples.zig`, `tests/layer4_examples.zig`,
+  `tests/layer1_examples.zig`, `tests/layer2_examples.zig`,  
+  `tests/layer3_examples.zig`, `tests/layer4_examples.zig`,  
   `tests/layer4_cross.zig`, `tests/layer4_select.zig`.
 - `design/rules-013.md` → `rules-014.md` — "Coding Rules — Examples"
-  signature rule and "Description as code" entry-point references
-  changed from `pub fn @"<description>"` to `pub fn <snake_case>`; new
-  documented constraint: autodoc generator restriction on quoted
+  signature rule and "Description as code" entry-point references  
+  changed from `pub fn @"<description>"` to `pub fn <snake_case>`; new  
+  documented constraint: autodoc generator restriction on quoted  
   identifiers.
 - `design/context.md`, `design/STATUS.md` — rules pointer bumped to
   -014; this entry.
@@ -1880,7 +2476,7 @@ line of the `///` doc comment. Only the identifier syntax changed.
 | `kitchen/build_and_test_debug.sh` (output → `zig-out/build_and_test_debug.log`) | PASS (167/167) |
 | `zig build docs` / site rebuild | owner to run and confirm visually |
 
-**Next**: owner runs `zig build docs` / site creation and confirms the
+**Next**: owner runs `zig build docs` / site creation and confirms the  
 example description links resolve in the browser.
 
 ---
@@ -1889,22 +2485,22 @@ example description links resolve in the browser.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Follow-up polish pass on the DOC 15 doc comments. Fixed the one genuine
-banned-word hit from the DOC 15 scan (`pool.zig`: "Ensure capacity" → "Grow
-capacity"). Dropped all "ownership"/"ownership transfer"/"owner" language from
-`src/*.zig` comments — owner: too abstract, computer-science-professor
-phrasing. Replaced with concrete send/place language and the invariant "an
-object sits in exactly one place, in exactly one state, at any moment."
-Split several long/dense comment lines into shorter staccato bullets. Confirmed
-no `.md` file references exist in any `src/*.zig` comment — readers of
+**Summary**  
+Follow-up polish pass on the DOC 15 doc comments. Fixed the one genuine  
+banned-word hit from the DOC 15 scan (`pool.zig`: "Ensure capacity" → "Grow  
+capacity"). Dropped all "ownership"/"ownership transfer"/"owner" language from  
+`src/*.zig` comments — owner: too abstract, computer-science-professor  
+phrasing. Replaced with concrete send/place language and the invariant "an  
+object sits in exactly one place, in exactly one state, at any moment."  
+Split several long/dense comment lines into shorter staccato bullets. Confirmed  
+no `.md` file references exist in any `src/*.zig` comment — readers of  
 source/generated docs never see the design docs.
 
-**Rule change**
-Added a terminology rule to `rules-012.md` (new version, replaces
-`rules-011.md`): no "ownership" language and no `.md` references in `src/`
-comments. Cross-references updated: `context.md`, `patterns-011.md`,
-`STATUS.md` Sources of Truth. Rewriting `matryoshka-api-reference-019.md` to
+**Rule change**  
+Added a terminology rule to `rules-012.md` (new version, replaces  
+`rules-011.md`): no "ownership" language and no `.md` references in `src/`  
+comments. Cross-references updated: `context.md`, `patterns-011.md`,  
+`STATUS.md` Sources of Truth. Rewriting `matryoshka-api-reference-019.md` to  
 match this terminology is explicitly out of scope — a separate future stage.
 
 **Changes**
@@ -1927,25 +2523,25 @@ match this terminology is explicitly out of scope — a separate future stage.
 | Grep for `.md` references in the 4 files | none |
 | Banned-word scan | clean — remaining "unlock" hits are the real `Io.Mutex.unlock` API name, not prose |
 
-**Next**: Stage 9 — README + autodocs continues. `matryoshka-api-reference-019.md`
+**Next**: Stage 9 — README + autodocs continues. `matryoshka-api-reference-019.md`  
 terminology rewrite is a separate future stage.
 
 ### 2026-07-06 — DOC 16b (gap-fix: missed ownership hits + file-header style)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Owner caught two gaps left by DOC 16: (1) a re-grep found 6 remaining
-"ownership"/"owned" hits the earlier sweep missed — `polynode.zig` (file
-header + `create`/`destroy` comments) and one repeated sentence in
-`mailbox.zig`/`pool.zig` result-type docs; (2) the `mailbox.zig` and
-`pool.zig` file headers still read as one run-on paragraph across several
-`//!` lines with no bullets, not real staccato style. Owner pointed at
-`std.Io`'s file header (intro line + flat bullet list) as the reference
-shape. Fixed both: reworded the 6 remaining hits to send/place language,
-restructured the `mailbox.zig`/`pool.zig`/`polynode.zig` headers into
-intro+bullet form matching `matryoshka.zig`'s existing shape. Also removed a
-stray leftover line on `pool.zig`'s `PoolResult` ("Re-spawn the event source
+**Summary**  
+Owner caught two gaps left by DOC 16: (1) a re-grep found 6 remaining  
+"ownership"/"owned" hits the earlier sweep missed — `polynode.zig` (file  
+header + `create`/`destroy` comments) and one repeated sentence in  
+`mailbox.zig`/`pool.zig` result-type docs; (2) the `mailbox.zig` and  
+`pool.zig` file headers still read as one run-on paragraph across several  
+`//!` lines with no bullets, not real staccato style. Owner pointed at  
+`std.Io`'s file header (intro line + flat bullet list) as the reference  
+shape. Fixed both: reworded the 6 remaining hits to send/place language,  
+restructured the `mailbox.zig`/`pool.zig`/`polynode.zig` headers into  
+intro+bullet form matching `matryoshka.zig`'s existing shape. Also removed a  
+stray leftover line on `pool.zig`'s `PoolResult` ("Re-spawn the event source  
 after handling each result.") that did not describe that type's contract.
 
 **Changes**
@@ -1966,29 +2562,29 @@ after handling each result.") that did not describe that type's contract.
 | Grep for `.md` references in the 4 files | none |
 | Long-line scan (`///`/`//!` over 90 chars) | none |
 
-**Next**: Stage 9 continues; `matryoshka-api-reference-019.md` terminology
+**Next**: Stage 9 continues; `matryoshka-api-reference-019.md` terminology  
 rewrite remains a separate future stage.
 
 ### 2026-07-06 — DOC 15 (doc comments for src/*.zig: rules-010 → -011)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**
-Added `///` doc comments to every public declaration in `src/polynode.zig`,
-`src/mailbox.zig`, `src/pool.zig`, plus `//!` file-level headers on those three
-and on `src/matryoshka.zig` (header only — pure barrel file). Content sourced
-from `matryoshka-api-reference-019.md`, written staccato, not copied verbatim.
-Existing `polynode.zig` comments reviewed and rewritten where they drifted from
-current staccato style. `PolyHelper` got one doc comment covering both
-`no_create_destroy` modes and how to select each — not duplicated per branch.
+**Summary**  
+Added `///` doc comments to every public declaration in `src/polynode.zig`,  
+`src/mailbox.zig`, `src/pool.zig`, plus `//!` file-level headers on those three  
+and on `src/matryoshka.zig` (header only — pure barrel file). Content sourced  
+from `matryoshka-api-reference-019.md`, written staccato, not copied verbatim.  
+Existing `polynode.zig` comments reviewed and rewritten where they drifted from  
+current staccato style. `PolyHelper` got one doc comment covering both  
+`no_create_destroy` modes and how to select each — not duplicated per branch.  
 `src/internal/cond_timeout.zig` excluded — owner: temporary workaround.
 
-**Rule change**
-`rules-010.md` banned `///` in `src/` (line 336). Owner lifted this ban for
-Stage 9 autodocs (`zig build docs` reads doc comments straight from
-`src/*.zig`). New version `rules-011.md` created; ban replaced with a rule
-permitting `///`/`//!` in `src/`, same staccato/comment-rule constraints as
-elsewhere. Cross-references updated: `context.md`, `patterns-011.md`,
+**Rule change**  
+`rules-010.md` banned `///` in `src/` (line 336). Owner lifted this ban for  
+Stage 9 autodocs (`zig build docs` reads doc comments straight from  
+`src/*.zig`). New version `rules-011.md` created; ban replaced with a rule  
+permitting `///`/`//!` in `src/`, same staccato/comment-rule constraints as  
+elsewhere. Cross-references updated: `context.md`, `patterns-011.md`,  
 `STATUS.md` Sources of Truth.
 
 **Changes**
@@ -1996,7 +2592,7 @@ elsewhere. Cross-references updated: `context.md`, `patterns-011.md`,
 - `design/context.md`, `design/patterns-011.md`, `design/STATUS.md` — pointer
   updated from rules-010 to rules-011.
 - `src/polynode.zig` — `//!` header; `///` on `PolyTag`, `PolyNode`,
-  `NodeHandle`, `Slot`, `reset`, `is_linked`, `PolyHelper` and its generated
+  `NodeHandle`, `Slot`, `reset`, `is_linked`, `PolyHelper` and its generated  
   members (both branches).
 - `src/mailbox.zig` — `//!` header; `///` on every `pub` declaration.
 - `src/pool.zig` — `//!` header; `///` on every `pub` declaration.
@@ -2014,7 +2610,7 @@ elsewhere. Cross-references updated: `context.md`, `patterns-011.md`,
 | AI-sh + banned-word scan | `matryoshka.zig`/`polynode.zig` clean; `mailbox.zig`/`pool.zig` hit banned word "unlock" (real `Io.Mutex.unlock` API name, not prose) and "ensure" (pre-existing `ensureTotalCapacity`/comment, untouched by this stage) — reported to owner, not auto-fixed |
 | Rules audit (rules-011.md) | LE import order, SPDX headers, no `////`, staccato comments — all clean |
 
-**Next**: owner decides on the reported banned-word hits (real API names vs.
+**Next**: owner decides on the reported banned-word hits (real API names vs.  
 pre-existing comment); Stage 9 — README + autodocs continues.
 
 ---
@@ -2023,40 +2619,40 @@ pre-existing comment); Stage 9 — README + autodocs continues.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: owner directed an audit of the sibling Odin project's docs
-(`/home/g41797/dev/root/github.com/g41797/matryoshka/kitchen/docs`) to find
-patterns/idioms not yet in the Zig `patterns-010.md` catalog. Classification rule:
-already-described → no action; new pattern with an existing Zig example → catalog
-entry only; new pattern with no existing example → new example plus catalog entry
+**Summary**: owner directed an audit of the sibling Odin project's docs  
+(`/home/g41797/dev/root/github.com/g41797/matryoshka/kitchen/docs`) to find  
+patterns/idioms not yet in the Zig `patterns-010.md` catalog. Classification rule:  
+already-described → no action; new pattern with an existing Zig example → catalog  
+entry only; new pattern with no existing example → new example plus catalog entry  
 (owner narrowed this last case to "skip advanced/niche items" this stage).
 
-An Explore agent inventoried 31 named patterns/idioms across the Odin docs folder
-(`advices.md`, `advice_catalog.md`, `block1..4_deepdive.md`/`_quickref.md`,
-`addendums/polytag.md`, `hard-rules.md`, `doctor-ordered.md`,
-`gotchas-of-pooling-items.md`, `forgotten_doll.md`, `dialogs.md`,
-`critical-issues.md`, both API-reference files). Cross-checked each against
+An Explore agent inventoried 31 named patterns/idioms across the Odin docs folder  
+(`advices.md`, `advice_catalog.md`, `block1..4_deepdive.md`/`_quickref.md`,  
+`addendums/polytag.md`, `hard-rules.md`, `doctor-ordered.md`,  
+`gotchas-of-pooling-items.md`, `forgotten_doll.md`, `dialogs.md`,  
+`critical-issues.md`, both API-reference files). Cross-checked each against  
 `patterns-010.md` and `examples/**/*.zig`.
 
-**Bucket A (already described, no action)**: explicit allocators (N/A for Zig),
-Builder ctor/dtor by tag, defer-cleanup/collection-drain, unknown-tag
-alloc-vs-free asymmetry, Maybe/MayItem ownership flag (= Slot), two-value unwrap,
-PolyTag pointer-identity tagging, two-mailbox interrupt+batch/OOB,
-defer-put-early, backpressure via on_put, belt-and-suspenders double pool_put,
-PoolHooks pattern, drain-and-reset before shutdown, dynamic topology. Also no
-action: Builder-to-Pool upgrade (Odin migration narrative), cond-var timeout fix
-and `container_of` idiom (internal implementation detail), one-place-at-a-time
+**Bucket A (already described, no action)**: explicit allocators (N/A for Zig),  
+Builder ctor/dtor by tag, defer-cleanup/collection-drain, unknown-tag  
+alloc-vs-free asymmetry, Maybe/MayItem ownership flag (= Slot), two-value unwrap,  
+PolyTag pointer-identity tagging, two-mailbox interrupt+batch/OOB,  
+defer-put-early, backpressure via on_put, belt-and-suspenders double pool_put,  
+PoolHooks pattern, drain-and-reset before shutdown, dynamic topology. Also no  
+action: Builder-to-Pool upgrade (Odin migration narrative), cond-var timeout fix  
+and `container_of` idiom (internal implementation detail), one-place-at-a-time  
 and isolation (discipline, not code shape).
 
-**Bucket B (added, example already existed)**: 7 entries added to
-`patterns-011.md` — Request-Response, Pipeline, Fan-In, Fan-Out (new "Topology
-patterns" section after Mailbox patterns), Shutdown via Exit message (alternative
-to the close-based Graceful shutdown sequence), Thread-is-container (folded into
-Master patterns' Observable function shapes), Intrusive node embedding (new first
-entry in PolyNode idioms). Each verified against the actual example file content,
+**Bucket B (added, example already existed)**: 7 entries added to  
+`patterns-011.md` — Request-Response, Pipeline, Fan-In, Fan-Out (new "Topology  
+patterns" section after Mailbox patterns), Shutdown via Exit message (alternative  
+to the close-based Graceful shutdown sequence), Thread-is-container (folded into  
+Master patterns' Observable function shapes), Intrusive node embedding (new first  
+entry in PolyNode idioms). Each verified against the actual example file content,  
 not just filename.
 
-**Bucket C (skipped, owner confirmed)**: self-send, function-pointer-as-tag,
-descriptor-struct-as-tag — advanced/niche, flagged rare even in the Odin source.
+**Bucket C (skipped, owner confirmed)**: self-send, function-pointer-as-tag,  
+descriptor-struct-as-tag — advanced/niche, flagged rare even in the Odin source.  
 No new example, no catalog entry.
 
 **Changes**:
@@ -2078,8 +2674,8 @@ No new example, no catalog entry.
 | Staccato audit | new entries match existing format (when-to-use, pattern/code shape, why, example) |
 | Post-stage cleanup | patterns-010.md, matryoshka-api-reference-019.md, Odin repo left untouched — no `.zig` touched; 167/167 tests unaffected; no kitchen scripts needed (doc-only stage) |
 
-**Next**: DOC 15+ — TBD, scoped with owner. Likely candidates unchanged: split
-api-reference-019 into mkdocs Reference pages; use manifesto-003 as source for the
+**Next**: DOC 15+ — TBD, scoped with owner. Likely candidates unchanged: split  
+api-reference-019 into mkdocs Reference pages; use manifesto-003 as source for the  
 docs-site Concepts entry page.
 
 ---
@@ -2088,22 +2684,22 @@ docs-site Concepts entry page.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: `patterns-009.md` was two catalogs glued together — a full "(008)"
-catalog (when-to-use, code shape, example links) and an appended older "(002)"
-catalog of short idioms extracted from the API reference, with heavy repetition
-between them (pool hooks, Select sources, Group spawn/await, polymorphic dispatch,
-slot cleanup). More pattern material lived only in `matryoshka-api-reference-019.md`
-(Cooperative cleanup patterns 1–4, Transporting infra handles, no-raw-allocator
-rule). Owner directed: one new version holding every pattern/idiom once, in logical
-order. New version `patterns-010.md`; `-009.md` and `api-reference-019.md` untouched
+**Summary**: `patterns-009.md` was two catalogs glued together — a full "(008)"  
+catalog (when-to-use, code shape, example links) and an appended older "(002)"  
+catalog of short idioms extracted from the API reference, with heavy repetition  
+between them (pool hooks, Select sources, Group spawn/await, polymorphic dispatch,  
+slot cleanup). More pattern material lived only in `matryoshka-api-reference-019.md`  
+(Cooperative cleanup patterns 1–4, Transporting infra handles, no-raw-allocator  
+rule). Owner directed: one new version holding every pattern/idiom once, in logical  
+order. New version `patterns-010.md`; `-009.md` and `api-reference-019.md` untouched  
 per the no-overwrite rule.
 
-**Structure of -010** (ownership idioms first, composition last): slot/ownership
-idioms → PolyNode idioms → Mailbox patterns → Pool patterns → Future patterns →
-Io.Select patterns → Io.Group patterns → Cancellation patterns → Graceful shutdown
-sequence → Master patterns. "One-shot event registration" absorbed into the Select
-event-loop entry; "fire-and-forget worker launch" absorbed into the Group worker-set
-entry. Error-handling-on-receive gains the `error.Wakeup` branch (the (008) entry
+**Structure of -010** (ownership idioms first, composition last): slot/ownership  
+idioms → PolyNode idioms → Mailbox patterns → Pool patterns → Future patterns →  
+Io.Select patterns → Io.Group patterns → Cancellation patterns → Graceful shutdown  
+sequence → Master patterns. "One-shot event registration" absorbed into the Select  
+event-loop entry; "fire-and-forget worker launch" absorbed into the Group worker-set  
+entry. Error-handling-on-receive gains the `error.Wakeup` branch (the (008) entry  
 predates `wakeUpAll`).
 
 **Changes**:
@@ -2124,8 +2720,8 @@ predates `wakeUpAll`).
 | `.zig` / kitchen build files touched | none — doc-only stage; 167/167 tests unaffected |
 | Post-stage cleanup | no scratch files created; -009 and api-reference-019 untouched |
 
-**Next**: DOC 14+ — TBD, scoped with owner. Likely candidates unchanged: split
-api-reference-019 into mkdocs Reference pages; manifesto-003 as source for the
+**Next**: DOC 14+ — TBD, scoped with owner. Likely candidates unchanged: split  
+api-reference-019 into mkdocs Reference pages; manifesto-003 as source for the  
 docs-site Concepts entry page.
 
 ---
@@ -2134,23 +2730,23 @@ docs-site Concepts entry page.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: owner reviewed `matryoshka-manifesto-002.md` and flagged its style as
-"AI-sh, too smart", using this example line pair: "Matryoshka defines the application
-model: how the system is structured. / Io defines the execution model: when work
-becomes runnable." Directive: find all such lines and say the same things in plain
-human language per the doc rules. New version `matryoshka-manifesto-003.md`; `-002.md`
-untouched per the no-overwrite rule. Only wording changed — structure, sections,
+**Summary**: owner reviewed `matryoshka-manifesto-002.md` and flagged its style as  
+"AI-sh, too smart", using this example line pair: "Matryoshka defines the application  
+model: how the system is structured. / Io defines the execution model: when work  
+becomes runnable." Directive: find all such lines and say the same things in plain  
+human language per the doc rules. New version `matryoshka-manifesto-003.md`; `-002.md`  
+untouched per the no-overwrite rule. Only wording changed — structure, sections,  
 diagrams, tables intact.
 
 **Key rewrites** (full list in docs-plan-010 session log):
 - flagged example → "Matryoshka answers: what is my system made of? / Io answers:
   when does my code run?"
 - "concurrency becomes implicit / parts couple through hidden assumptions /
-  architecture becomes accidental" → "nobody knows which code runs in parallel /
-  parts depend on each other in hidden ways / the structure just happens — nobody
+  architecture becomes accidental" → "nobody knows which code runs in parallel /  
+  parts depend on each other in hidden ways / the structure just happens — nobody  
   chose it"
 - constraint-payoff bullets ("explicit ownership boundaries", "reason about
-  locally", ...) → "you always know who owns what", "you can understand one Master
+  locally", ...) → "you always know who owns what", "you can understand one Master  
   without reading the whole system", ...
 - dense Master definition split into three short lines
 - "Io is a hidden transport behind Mailboxes" → "Io just moves messages behind
@@ -2174,8 +2770,8 @@ diagrams, tables intact.
 | `.zig` / kitchen build files touched | none — doc-only stage; 167/167 tests unaffected |
 | Post-stage cleanup | no scratch files created; -002 and all sources untouched |
 
-**Next**: DOC 13+ — TBD, scoped with owner. Likely candidates: split
-api-reference-019 into mkdocs Reference pages; manifesto-003 as source for the
+**Next**: DOC 13+ — TBD, scoped with owner. Likely candidates: split  
+api-reference-019 into mkdocs Reference pages; manifesto-003 as source for the  
 docs-site Concepts entry page.
 
 ---
@@ -2184,21 +2780,21 @@ docs-site Concepts entry page.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: owner directed a new manifesto version built from the README mindset and
-the mindset sources: `README.md`, `design/matryoshka-io-model.md`,
-`design/matryoshka-manifesto.md` (original, untouched), `design/matryoshka-master.md`
-(Master as role, four fundamental concepts), `design/master-Io.md` (Io hidden behind
-Mailboxes, bridge Masters, "why not just Io"). Target: after one read, the audience
-understands the model and wants to use matryoshka because it solves their problems.
-Style per rules-010.md: simple English, staccato rhythm, banned-word clean. Owner
+**Summary**: owner directed a new manifesto version built from the README mindset and  
+the mindset sources: `README.md`, `design/matryoshka-io-model.md`,  
+`design/matryoshka-manifesto.md` (original, untouched), `design/matryoshka-master.md`  
+(Master as role, four fundamental concepts), `design/master-Io.md` (Io hidden behind  
+Mailboxes, bridge Masters, "why not just Io"). Target: after one read, the audience  
+understands the model and wants to use matryoshka because it solves their problems.  
+Style per rules-010.md: simple English, staccato rhythm, banned-word clean. Owner  
 authorized auto mode; git disabled.
 
-**Narrative arc of -002**: problem (libraries vs systems; Io says *when*, not *what
-the system is made of*) → one constraint (everything is a Master communicating via
-Mailboxes; shared resources explicit via Pools) → Master is a role (role tree) → down
-to earth (one input mailbox, one message at a time, capability→primitive table) → four
-fundamental concepts (PolyNode / Mailbox / Pool / Master, troika bullets, 582 lines) →
-where Io fits (application model vs execution model, bridge diagram, design test,
+**Narrative arc of -002**: problem (libraries vs systems; Io says *when*, not *what  
+the system is made of*) → one constraint (everything is a Master communicating via  
+Mailboxes; shared resources explicit via Pools) → Master is a role (role tree) → down  
+to earth (one input mailbox, one message at a time, capability→primitive table) → four  
+fundamental concepts (PolyNode / Mailbox / Pool / Master, troika bullets, 582 lines) →  
+where Io fits (application model vs execution model, bridge diagram, design test,  
 hybrid-car framing) → start small → the simple question + "Be Master of your systems."
 
 **Changes**:
@@ -2220,8 +2816,8 @@ hybrid-car framing) → start small → the simple question + "Be Master of your
 | `.zig` / kitchen build files touched | none — doc-only stage; 167/167 tests unaffected |
 | Post-stage cleanup | no scratch files created; sources untouched (README, manifesto-001, model, master, master-Io) |
 
-**Next**: DOC 12+ — TBD, scoped with owner. Likely candidates: split
-api-reference-019 into mkdocs Reference pages; use manifesto-002 as source for the
+**Next**: DOC 12+ — TBD, scoped with owner. Likely candidates: split  
+api-reference-019 into mkdocs Reference pages; use manifesto-002 as source for the  
 docs-site Concepts entry page.
 
 ---
@@ -2230,12 +2826,12 @@ docs-site Concepts entry page.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: owner reviewed the DOC 9 output (`matryoshka-api-reference-018.md`) and
-found it still not logically ordered: several paragraphs discuss functions and concepts
-introduced only later. DOC 9 moved whole top-level sections; the remaining problems
-live one level deeper. Owner directed a deeper re-partition: preserve every piece of
-information, move blocks (including subsections inside sections) so nothing is used
-before it is introduced. New version `-019.md`; `-018.md` untouched per the
+**Summary**: owner reviewed the DOC 9 output (`matryoshka-api-reference-018.md`) and  
+found it still not logically ordered: several paragraphs discuss functions and concepts  
+introduced only later. DOC 9 moved whole top-level sections; the remaining problems  
+live one level deeper. Owner directed a deeper re-partition: preserve every piece of  
+information, move blocks (including subsections inside sections) so nothing is used  
+before it is introduced. New version `-019.md`; `-018.md` untouched per the  
 no-overwrite rule.
 
 **Forward references found in -018 (grep-verified)**:
@@ -2250,16 +2846,16 @@ no-overwrite rule.
 - polynode's "stdlib compatibility" names `mailbox.close()`/`receive_batch()`/
   `pool.put_all()` — name-level pointers only, kept (flagged to owner).
 
-**New order in -019**: intro → Ownership model (diagrams moved out) → polynode (tag
-identity moved out) → mailbox (opens with the relocated send/receive ownership
-diagrams) → pool → Tag identity (own section, incl. Transporting infra handles) →
-Slot-based programming → Cooperative cleanup patterns → root → Master → Cancel →
-contracts/invariants/thread-safety/complexity/violations/layer-deps → Change log (new
+**New order in -019**: intro → Ownership model (diagrams moved out) → polynode (tag  
+identity moved out) → mailbox (opens with the relocated send/receive ownership  
+diagrams) → pool → Tag identity (own section, incl. Transporting infra handles) →  
+Slot-based programming → Cooperative cleanup patterns → root → Master → Cancel →  
+contracts/invariants/thread-safety/complexity/violations/layer-deps → Change log (new  
 019 row) → Addendums/Io 101.
 
 **Changes**:
 - `design/matryoshka-api-reference-019.md` (new) — order per above; byte-exact block
-  moves (sed line-range reassembly); only additions: Change-log row, one separator,
+  moves (sed line-range reassembly); only additions: Change-log row, one separator,  
   heading-level promotion of the two relocated blocks.
 - `design/context.md` — API pointer → -019; docs plan → -008; plan → -034.
 - `design/matryoshka-io-docs-plan-007.md` → `-008.md` — DOC 10 session log + Stages.
@@ -2276,8 +2872,8 @@ contracts/invariants/thread-safety/complexity/violations/layer-deps → Change l
 | Banned-word scan on -019 | CLEAN (same single historical Change-log meta-reference as -018) |
 | `.zig` / kitchen build files touched | none — doc-only stage |
 
-**Next**: DOC 11+ — TBD, scoped when reached. Likely candidate: split
-`matryoshka-api-reference-019.md` into mkdocs Reference pages under
+**Next**: DOC 11+ — TBD, scoped when reached. Likely candidate: split  
+`matryoshka-api-reference-019.md` into mkdocs Reference pages under  
 `kitchen/docs/reference/`.
 
 ---
@@ -2286,37 +2882,37 @@ contracts/invariants/thread-safety/complexity/violations/layer-deps → Change l
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: `design/matryoshka-api-reference-017.md` (2216 lines) is planned as the
-base for the docs site's mkdocs Reference pages (DOC 2 finding #3), but its shape
-reflected development history, not a learning path: sections landed wherever each API
-stage touched them, generic `std.Io` runtime material (Io, Future, Io.Select, Io.Group,
-`io.concurrent`, Cancelable) was interleaved with matryoshka-specific API, and the last
-third of the file was 16 `Change manifest (NNN)` sections restating, as diffs, content
-already current in the main body above. Owner directed: read the whole doc, preserve
-every fact, delete only true repetitions, reorder the rest into a logical/teachable
-structure, and move all `std.Io`-generic material into a trailing `## Addendums` /
-`### Io 101` section. Owner confirmed this stage is reorder/re-version only — splitting
-the result into mkdocs pages is deferred. Owner authorized autonomous end-to-end
+**Summary**: `design/matryoshka-api-reference-017.md` (2216 lines) is planned as the  
+base for the docs site's mkdocs Reference pages (DOC 2 finding #3), but its shape  
+reflected development history, not a learning path: sections landed wherever each API  
+stage touched them, generic `std.Io` runtime material (Io, Future, Io.Select, Io.Group,  
+`io.concurrent`, Cancelable) was interleaved with matryoshka-specific API, and the last  
+third of the file was 16 `Change manifest (NNN)` sections restating, as diffs, content  
+already current in the main body above. Owner directed: read the whole doc, preserve  
+every fact, delete only true repetitions, reorder the rest into a logical/teachable  
+structure, and move all `std.Io`-generic material into a trailing `## Addendums` /  
+`### Io 101` section. Owner confirmed this stage is reorder/re-version only — splitting  
+the result into mkdocs pages is deferred. Owner authorized autonomous end-to-end  
 execution (going OOF; git stays disabled) and Opus-level effort for the analysis.
 
-**Method**: full inline read of all 2216 lines (DOC 1 precedent — owner prefers direct
-reading over subagent delegation for full traceability). Built a section-by-section
-content map classifying each section matryoshka-specific vs Io-generic. Verified all 16
-`Change manifest` sections are downstream-propagation notes fully subsumed by current
-main-body content, via term-frequency diff (`Cancelable`, `Io.Select`, `PolyHelper`,
-error names) between old and new file — deltas fully explained by the dropped manifest
+**Method**: full inline read of all 2216 lines (DOC 1 precedent — owner prefers direct  
+reading over subagent delegation for full traceability). Built a section-by-section  
+content map classifying each section matryoshka-specific vs Io-generic. Verified all 16  
+`Change manifest` sections are downstream-propagation notes fully subsumed by current  
+main-body content, via term-frequency diff (`Cancelable`, `Io.Select`, `PolyHelper`,  
+error names) between old and new file — deltas fully explained by the dropped manifest  
 block, no residual fact needed folding back in.
 
 **Changes**:
 - `design/matryoshka-api-reference-018.md` (new) — reordered: intro, ownership model,
-  slot-based programming, cooperative cleanup patterns, polynode, mailbox, pool,
-  matryoshka (root), Master (incl. the project-specific "Io backend for Layer 4 tests
-  and examples" convention, kept in the main body), Cancel model/contract, ownership
-  lifecycle/invariants/cancellation contract, thread-safety, complexity, contract
-  violations, layer dependencies, Change log (table only, new 018 row). New trailing
-  `## Addendums` / `### Io 101` section holds `std.Io` basics, event sources, Cancel,
-  and the `io.concurrent`/`Io.Group`/`Io.Select` internals subsection. The 16
-  `Change manifest (NNN)` sections dropped as repetition. No information lost, no new
+  slot-based programming, cooperative cleanup patterns, polynode, mailbox, pool,  
+  matryoshka (root), Master (incl. the project-specific "Io backend for Layer 4 tests  
+  and examples" convention, kept in the main body), Cancel model/contract, ownership  
+  lifecycle/invariants/cancellation contract, thread-safety, complexity, contract  
+  violations, layer dependencies, Change log (table only, new 018 row). New trailing  
+  `## Addendums` / `### Io 101` section holds `std.Io` basics, event sources, Cancel,  
+  and the `io.concurrent`/`Io.Group`/`Io.Select` internals subsection. The 16  
+  `Change manifest (NNN)` sections dropped as repetition. No information lost, no new  
   API surface.
 - `design/context.md` — API reference pointer → -018; docs plan pointer → -007; plan
   pointer → -033.
@@ -2334,10 +2930,10 @@ block, no residual fact needed folding back in.
 | Heading structure re-check | confirmed; one duplicate empty heading found and fixed during assembly |
 | `.zig` / kitchen build files touched | none — doc-only stage |
 
-**Next**: DOC 10+ — TBD, scoped when reached. Likely candidate: split
-`matryoshka-api-reference-018.md` into mkdocs Reference pages under
-`kitchen/docs/reference/`. Open items carried: storytelling-001/-003 duplicate H1,
-`test-example-story.md` split, `video-transcoder-003.md` as second Concepts story,
+**Next**: DOC 10+ — TBD, scoped when reached. Likely candidate: split  
+`matryoshka-api-reference-018.md` into mkdocs Reference pages under  
+`kitchen/docs/reference/`. Open items carried: storytelling-001/-003 duplicate H1,  
+`test-example-story.md` split, `video-transcoder-003.md` as second Concepts story,  
 further Building Blocks topics, Cookbook stub still unpopulated.
 
 ---
@@ -2346,49 +2942,49 @@ further Building Blocks topics, Cookbook stub still unpopulated.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: `design/mailbox-wakeUp.md` (untracked brainstorm doc, owner-authored) explored
-several designs for waking a blocked `mailbox.receive()` caller without sending a real
-message, rejecting each for lost-wakeup races or unneeded complexity, converging on:
-only `wakeUpAll()` (no single-receiver `wakeUp()`), implemented with one broadcast
-generation counter under the mailbox mutex. Owner confirmed this scope and explicitly asked
-for the implementation's field names/code shape to be designed independently rather than
-transcribed from the doc — the doc's role was race-condition rationale, not a spec. Inserted
-as Stage API 3, before Stage 9, following the API 2 precedent (impl + tests + examples + docs
+**Summary**: `design/mailbox-wakeUp.md` (untracked brainstorm doc, owner-authored) explored  
+several designs for waking a blocked `mailbox.receive()` caller without sending a real  
+message, rejecting each for lost-wakeup races or unneeded complexity, converging on:  
+only `wakeUpAll()` (no single-receiver `wakeUp()`), implemented with one broadcast  
+generation counter under the mailbox mutex. Owner confirmed this scope and explicitly asked  
+for the implementation's field names/code shape to be designed independently rather than  
+transcribed from the doc — the doc's role was race-condition rationale, not a spec. Inserted  
+as Stage API 3, before Stage 9, following the API 2 precedent (impl + tests + examples + docs  
 in one stage, no `.a`/`.b` split).
 
-**Design**: one `wake_epoch: u64` field on `_Mailbox`, read/written only under the existing
-`mutex` (no new atomics, same discipline as `len`/`closed`/`oob_count`). `wakeUpAll()` locks,
-checks `closed`, increments `wake_epoch`, broadcasts. `receive()` captures its own epoch before
-waiting; the wait loop's condition also breaks on an epoch change; if the loop exits with
-`len == 0` it returns `error.Wakeup`. Receivers that start after the bump capture the new
-epoch and are unaffected. Spurious wakeups (epoch unchanged) just loop again — no races,
-because the epoch is only ever touched under the mutex and `condition_waitTimeout` releases
+**Design**: one `wake_epoch: u64` field on `_Mailbox`, read/written only under the existing  
+`mutex` (no new atomics, same discipline as `len`/`closed`/`oob_count`). `wakeUpAll()` locks,  
+checks `closed`, increments `wake_epoch`, broadcasts. `receive()` captures its own epoch before  
+waiting; the wait loop's condition also breaks on an epoch change; if the loop exits with  
+`len == 0` it returns `error.Wakeup`. Receivers that start after the bump capture the new  
+epoch and are unaffected. Spurious wakeups (epoch unchanged) just loop again — no races,  
+because the epoch is only ever touched under the mutex and `condition_waitTimeout` releases  
 the mutex atomically with becoming a waiter.
 
 **Changes**:
 - `src/mailbox.zig` — `_Mailbox.wake_epoch: u64` field; new `pub fn wakeUpAll(mbh) error{Closed}!void`;
-  `receive()` error set gains `error.Wakeup`, wait loop checks the epoch, returns `error.Wakeup`
+  `receive()` error set gains `error.Wakeup`, wait loop checks the epoch, returns `error.Wakeup`  
   on a pure wake; `ReceiveResult` gains `wakeup: void`; `receiveResult()` handles `error.Wakeup`.
 - `tests/layer2_mailbox.zig` — 5 new tests (unnumbered, outside the original scenario
-  catalog — same precedent as the pre-existing OOB invariant test): blocked receiver wakes
-  with `error.Wakeup`; future receiver unaffected; multiple blocked receivers all wake;
-  `wakeUpAll` on a closed mailbox returns `error.Closed`; `wakeUpAll` with no waiters doesn't
+  catalog — same precedent as the pre-existing OOB invariant test): blocked receiver wakes  
+  with `error.Wakeup`; future receiver unaffected; multiple blocked receivers all wake;  
+  `wakeUpAll` on a closed mailbox returns `error.Closed`; `wakeUpAll` with no waiters doesn't  
   affect the next `receive()`.
 - `examples/layer2/097-wake_up_all.zig` (new) — worker blocks in `receive()`, coordinator
-  flips a shutdown flag and calls `wakeUpAll()`, worker wakes on `error.Wakeup`, re-checks the
-  flag, exits. Numbered 097 (fresh, beyond the existing 17-96 example catalog range) to avoid
-  colliding with Layer3's test scenarios 63-88, which already occupy that number range in the
-  project's flat scenario-numbering scheme. Registered in `examples/layer2/layer2.zig`; test
+  flips a shutdown flag and calls `wakeUpAll()`, worker wakes on `error.Wakeup`, re-checks the  
+  flag, exits. Numbered 097 (fresh, beyond the existing 17-96 example catalog range) to avoid  
+  colliding with Layer3's test scenarios 63-88, which already occupy that number range in the  
+  project's flat scenario-numbering scheme. Registered in `examples/layer2/layer2.zig`; test  
   wrapper added to `tests/layer2_examples.zig`.
 - Every pre-existing exhaustive `switch` on `receive()`/`receiveResult()` errors gained a
-  `.wakeup`/`error.Wakeup` arm: `tests/layer4_master.zig`, `tests/layer4_cancel.zig`,
-  `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/019-multi_worker_master.zig`,
-  `025-select_two_mailboxes.zig`, `026-select_cancel_close.zig`,
-  `027-select_cancel_master_decides.zig`, `028-select_mixed_sources.zig`,
-  `031-select_graceful_shutdown.zig`, `042-select_mailbox_event.zig`,
-  `044-select_mailbox_close.zig`, `045-select_mailbox_cancel.zig`,
-  `048-select_mailbox_pool_timer.zig`, `061-mailbox_less_to_mailbox_transition.zig`. None of
-  these call `wakeUpAll()`, so the new arm is unreachable in practice — treated the same as
+  `.wakeup`/`error.Wakeup` arm: `tests/layer4_master.zig`, `tests/layer4_cancel.zig`,  
+  `stories/video_transcoder/video_transcoder.zig`, `examples/layer4/019-multi_worker_master.zig`,  
+  `025-select_two_mailboxes.zig`, `026-select_cancel_close.zig`,  
+  `027-select_cancel_master_decides.zig`, `028-select_mixed_sources.zig`,  
+  `031-select_graceful_shutdown.zig`, `042-select_mailbox_event.zig`,  
+  `044-select_mailbox_close.zig`, `045-select_mailbox_cancel.zig`,  
+  `048-select_mailbox_pool_timer.zig`, `061-mailbox_less_to_mailbox_transition.zig`. None of  
+  these call `wakeUpAll()`, so the new arm is unreachable in practice — treated the same as  
   `error.Closed`/`error.Timeout` (benign wake, loop exits).
 - `design/matryoshka-api-reference-016.md` → `-017.md` — `wakeUpAll()` documented in mailbox
   Functions; `error.Wakeup` row in Error sets; `wakeup: void` in `ReceiveResult`; Change log entry.
@@ -2407,8 +3003,8 @@ the mutex atomically with becoming a waiter.
 | AI-sh + banned words scan on new/changed content | CLEAN |
 | Post-stage cleanup | doc-only pass — no obsolete code found; new example's `///` comment, entry-point name, LE import order match rules-010.md |
 
-**Post-stage cleanup**: reviewed all new/changed `.zig` files against rules-010.md (Observable
-by human, description as code, descriptive entry-point name, LE import order, banned words).
+**Post-stage cleanup**: reviewed all new/changed `.zig` files against rules-010.md (Observable  
+by human, description as code, descriptive entry-point name, LE import order, banned words).  
 No violations found — no further changes needed.
 
 **Next**: Stage 9 — Docs + README + autodocs.
@@ -2419,22 +3015,22 @@ No violations found — no further changes needed.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: DOC 7 populated Building Blocks with its first topic (Observable by
-human). Owner picked the four core concepts — PolyNode / Mailbox / Pool / Master —
-as DOC 8's topic: the vocabulary the whole toolkit is built on. Unlike the Concepts
-doc-site section (DOC 6), which stays domain-first and defers these terms to a
+**Summary**: DOC 7 populated Building Blocks with its first topic (Observable by  
+human). Owner picked the four core concepts — PolyNode / Mailbox / Pool / Master —  
+as DOC 8's topic: the vocabulary the whole toolkit is built on. Unlike the Concepts  
+doc-site section (DOC 6), which stays domain-first and defers these terms to a  
 second page, Building Blocks is exactly where these four terms get defined directly.
 
 **Key findings**:
 - `design/matryoshka-model-003.md`'s "Core Principles" section already states all
-  four concepts as one continuous idea, plus the "Layers compose" one-diagram
+  four concepts as one continuous idea, plus the "Layers compose" one-diagram  
   summary — needed only distillation, no new authoring.
 - `design/matryoshka-master.md` (an informal dialogue) independently arrives at the
   same four-concept framing and supplied the Master-as-role wording.
 
 **Changes**:
 - `kitchen/docs/building-blocks/core-concepts.md` (new) — PolyNode, Mailbox, Pool,
-  Master sub-sections plus the layering diagram, pointing back at
+  Master sub-sections plus the layering diagram, pointing back at  
   `matryoshka-model-003.md` and the Observable by Human page.
 - `kitchen/docs/building-blocks/index.md` — added a link to the new page.
 - `kitchen/mkdocs.yml` — "Building Blocks" nav entry gains the new page.
@@ -2452,19 +3048,19 @@ second page, Building Blocks is exactly where these four terms get defined direc
 | Banned-word scan on new content | CLEAN |
 | `.zig` files touched | none — doc-only stage |
 
-**Next**: DOC 9+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
-duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second
-Concepts story, further Building Blocks topics (Select loops, spawn/await, Master
+**Next**: DOC 9+ — TBD, scoped when reached. Open items carried: storytelling-001/-003  
+duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second  
+Concepts story, further Building Blocks topics (Select loops, spawn/await, Master  
 composition, pool patterns, API reference), Cookbook stub still unpopulated.
 
 ### 2026-07-04 — DOC 7 (populate Building Blocks with one topic)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: DOC 6 populated Concepts with the print-server story. Owner confirmed no
-second story for now and picked Building Blocks as DOC 7's scope. Chose "Observable by
-human" as the first topic: it is rules-010.md's headline MUST rule, and patterns-008.md's
-first pattern section is its concrete template — the two source docs already
+**Summary**: DOC 6 populated Concepts with the print-server story. Owner confirmed no  
+second story for now and picked Building Blocks as DOC 7's scope. Chose "Observable by  
+human" as the first topic: it is rules-010.md's headline MUST rule, and patterns-008.md's  
+first pattern section is its concrete template — the two source docs already  
 cross-reference each other as companions.
 
 **Key findings**:
@@ -2477,7 +3073,7 @@ cross-reference each other as companions.
 
 **Changes**:
 - `kitchen/docs/building-blocks/observable-by-human.md` (new) — rule + pattern
-  (Coordinator, Step, Init shapes), pointing at `031-select_graceful_shutdown.zig` and
+  (Coordinator, Step, Init shapes), pointing at `031-select_graceful_shutdown.zig` and  
   `018-master_with_pool.zig` as working examples.
 - `kitchen/docs/building-blocks/index.md` — rewritten from stub to landing page.
 - `kitchen/mkdocs.yml` — "Building Blocks" nav entry expanded to Overview + new page.
@@ -2495,25 +3091,25 @@ cross-reference each other as companions.
 | Banned-word scan on new content | CLEAN |
 | `.zig` files touched | none — doc-only stage |
 
-**Next**: DOC 8+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
-duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second
-Concepts story, further Building Blocks topics (Select loops, spawn/await, Master
+**Next**: DOC 8+ — TBD, scoped when reached. Open items carried: storytelling-001/-003  
+duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second  
+Concepts story, further Building Blocks topics (Select loops, spawn/await, Master  
 composition, pool patterns, API reference), Cookbook stub still unpopulated.
 
 ### 2026-07-04 — DOC 6 (populate Concepts with a story, top-down)
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: DOC 5 left three open items for later stages. Owner picked populating the
-Concepts stub as DOC 6's scope. First plan draft led with raw PolyNode/Mailbox/Pool/
-Master definitions; owner rejected it: "system has no Masters, Mailboxes, and Pools —
-it's more suitable to a story; later we see how it's built using Matryoshka, without
-details." Corrected direction: describe a real system first in domain terms, then show
+**Summary**: DOC 5 left three open items for later stages. Owner picked populating the  
+Concepts stub as DOC 6's scope. First plan draft led with raw PolyNode/Mailbox/Pool/  
+Master definitions; owner rejected it: "system has no Masters, Mailboxes, and Pools —  
+it's more suitable to a story; later we see how it's built using Matryoshka, without  
+details." Corrected direction: describe a real system first in domain terms, then show  
 the same system built with Matryoshka.
 
 **Key findings**:
 - `design/stories/*.md` already use exactly this two-part shape: Parts 1-2 are pure
-  domain (Discussion + SRS, no Matryoshka vocabulary), Parts 3-4 map requirements onto
+  domain (Discussion + SRS, no Matryoshka vocabulary), Parts 3-4 map requirements onto  
   PolyNode/Mailbox/Pool/Master and end with an ASCII flow diagram.
 - `design/matryoshka-model-003.md`'s Three-Category Model already names "Story" as this
   exact docs-facing artifact type, distinct from Test and Example.
@@ -2542,8 +3138,8 @@ the same system built with Matryoshka.
 | Banned-word scan on new content | CLEAN |
 | `.zig` files touched | none — doc-only stage |
 
-**Next**: DOC 7+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
-duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second
+**Next**: DOC 7+ — TBD, scoped when reached. Open items carried: storytelling-001/-003  
+duplicate H1, `test-example-story.md` split, `video-transcoder-003.md` as a second  
 Concepts story, Building Blocks/Cookbook stubs still unpopulated.
 
 ---
@@ -2552,26 +3148,26 @@ Concepts story, Building Blocks/Cookbook stubs still unpopulated.
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: Before scoping DOC 5, owner asked for an audit of four candidate content
-sources: `design/*.md`, `kitchen/docs/*.md`, the Odin `matryoshka` repo's `kitchen/docs/`,
-and a 4255-line ChatGPT brainstorm transcript. Owner directed a narrow, top-down scope:
-one entry-point page ("what is a Matryoshka-based system and why") plus a nav skeleton with
+**Summary**: Before scoping DOC 5, owner asked for an audit of four candidate content  
+sources: `design/*.md`, `kitchen/docs/*.md`, the Odin `matryoshka` repo's `kitchen/docs/`,  
+and a 4255-line ChatGPT brainstorm transcript. Owner directed a narrow, top-down scope:  
+one entry-point page ("what is a Matryoshka-based system and why") plus a nav skeleton with  
 stub placeholders for future sections — not a full site design in one stage.
 
 **Key findings**:
 - `design/*.md` current versions (rules-010, patterns-008, model-003, architecture-001,
-  api-reference-016) are rich but dense — future stages must split each into narrow topic
+  api-reference-016) are rich but dense — future stages must split each into narrow topic  
   pages, not dump them whole.
 - `kitchen/docs/*.md` is already fully wired into the mkdocs nav but is mostly raw chat
-  logs and iterative storytelling drafts; `index.md` is a 3-line stub;
-  `matryoshka-storytelling-001.md`/`-003.md` share a duplicate H1; `test-example-story.md`
+  logs and iterative storytelling drafts; `index.md` is a 3-line stub;  
+  `matryoshka-storytelling-001.md`/`-003.md` share a duplicate H1; `test-example-story.md`  
   covers three topics in one 793-line file. Not fixed this stage — flagged for later.
 - Odin `matryoshka/kitchen/docs/` has a large amount of language-agnostic prose reusable as
-  future content, distinct from its Odin-specific API reference files. Notably
+  future content, distinct from its Odin-specific API reference files. Notably  
   `matryoshka-zig-api-reference.md` already exists there as a Zig-ported counterpart.
 - The ChatGPT transcript mostly duplicates `design/` material (it reads like an early
-  draft), but its closing pitch — "most libraries document features; Matryoshka should
-  document architectures" — was new and is used verbatim as the new overview page's
+  draft), but its closing pitch — "most libraries document features; Matryoshka should  
+  document architectures" — was new and is used verbatim as the new overview page's  
   opening line.
 
 **Changes**:
@@ -2597,8 +3193,8 @@ stub placeholders for future sections — not a full site design in one stage.
 | Banned-word scan on new content | CLEAN |
 | `.zig` files touched | none — doc-only stage, kitchen test scripts not run |
 
-**Next**: DOC 6+ — TBD, scoped when reached. Open items carried: storytelling-001/-003
-duplicate H1, `test-example-story.md` three-topics-in-one-file split, breaking `design/`
+**Next**: DOC 6+ — TBD, scoped when reached. Open items carried: storytelling-001/-003  
+duplicate H1, `test-example-story.md` three-topics-in-one-file split, breaking `design/`  
 content into narrow topic pages to fill the Concepts/Building Blocks/Cookbook stubs.
 
 ---
@@ -2607,13 +3203,13 @@ content into narrow topic pages to fill the Concepts/Building Blocks/Cookbook st
 
 **Participants**: human (owner), Claude (agent).
 
-**Summary**: Owner asked to implement DOC 3's proposed layout — all infra scripts, mkdocs
-site skeleton — and check it locally. Owner also confirmed working in auto mode (no
+**Summary**: Owner asked to implement DOC 3's proposed layout — all infra scripts, mkdocs  
+site skeleton — and check it locally. Owner also confirmed working in auto mode (no  
 per-step confirmation needed; git actions still require an explicit ask).
 
 **Key findings**:
 - `build.zig`'s new `docs` step needs a doc-only module (`edocsMod`) to fold `stories`
-  into the `examplesdocs` target without changing the runtime `examples` module's import
+  into the `examplesdocs` target without changing the runtime `examples` module's import  
   graph — mirrors tofu's `cookbookMod` pattern exactly.
 - Zig's native `getEmittedDocs()` needs zero post-processing (unlike Odin's `odin-doc` +
   sed pipeline) — confirms DOC 1/DOC 2 finding.
@@ -2642,38 +3238,38 @@ per-step confirmation needed; git actions still require an explicit ask).
 | `zig build test -freference-trace --summary all` (output → `zig-out/test_run.log`) | 161/161 pass |
 | Kitchen script output | redirected to `zig-out/*.log`, read via Read/grep — no raw stdout |
 
-**Next**: DOC 5+ — TBD, scoped when reached. Open items carried: mkdocs nav-content
-authoring plan (DOC 2 finding #3, still using topical asides, not yet mapped from
+**Next**: DOC 5+ — TBD, scoped when reached. Open items carried: mkdocs nav-content  
+authoring plan (DOC 2 finding #3, still using topical asides, not yet mapped from  
 `design/`'s richer narrative source of truth).
 
 ### 2026-07-03 — DOC 3 (kitchen/ doc folder layout proposal + DOCS-folder claim check)
 **Participants**: human + Claude
 
-**Summary**: Doc-only stage, no code changes. Owner asked to (1) re-confirm the must-rule
-that all doc housekeeping lives under `kitchen/`, and (2) check a claim that a new,
-separate top-level `DOCS` folder is needed for GitHub Pages deployment. Also asked for a
+**Summary**: Doc-only stage, no code changes. Owner asked to (1) re-confirm the must-rule  
+that all doc housekeeping lives under `kitchen/`, and (2) check a claim that a new,  
+separate top-level `DOCS` folder is needed for GitHub Pages deployment. Also asked for a  
 concrete proposed folder/file layout.
 
 **Key findings**:
 - Must-rule re-confirmed — no new evidence contradicts it.
 - "DOCS folder" claim refuted as stated: matryoshka-io's pre-copied `docs.yml` has
-  `upload-pages-artifact` `path: docs/`, copied verbatim from tofu, where it only makes
-  sense because tofu's `mkdocs.yml` sets `site_dir: ../docs` (escaping its own housekeeping
-  folder to repo root). Odin `matryoshka` does not do this — its `site_dir: output` stays
-  under `kitchen/`, and its workflow points `upload-pages-artifact` at `kitchen/output`
-  directly. `actions/upload-pages-artifact` accepts any path; no GitHub Pages requirement
-  for a repo-root `docs/` folder in the Actions-based deploy flow. Conclusion: no new
+  `upload-pages-artifact` `path: docs/`, copied verbatim from tofu, where it only makes  
+  sense because tofu's `mkdocs.yml` sets `site_dir: ../docs` (escaping its own housekeeping  
+  folder to repo root). Odin `matryoshka` does not do this — its `site_dir: output` stays  
+  under `kitchen/`, and its workflow points `upload-pages-artifact` at `kitchen/output`  
+  directly. `actions/upload-pages-artifact` accepts any path; no GitHub Pages requirement  
+  for a repo-root `docs/` folder in the Actions-based deploy flow. Conclusion: no new  
   top-level `DOCS` folder needed — keep `site_dir` under `kitchen/`, matching the must-rule.
 - Owner directed a 2-way doc-target split (src vs examples), matching tofu exactly, not the
-  3-way split noted in DOC 2 finding #2 — `stories` folds into the `examples` doc target
+  3-way split noted in DOC 2 finding #2 — `stories` folds into the `examples` doc target  
   (same way tofu's `cookbook` target already pulls in `mailbox`).
 - Proposed layout: `kitchen/mkdocs.yml`, `kitchen/docs/{index.md + existing *.md, apidocs/,
-  examplesdocs/}`, `kitchen/tools/{docs_zig.sh, build_site.sh, preview_apidocs.sh,
+  examplesdocs/}`, `kitchen/tools/{docs_zig.sh, build_site.sh, preview_apidocs.sh,  
   preview_site.sh}` — advice only, nothing created this stage.
 
 **Changes**:
 - `design/matryoshka-io-docs-plan-002.md` — new "Stage DOC 3" section (must-rule
-  re-confirmation, DOCS-folder claim analysis, proposed layout, open items); Stages section
+  re-confirmation, DOCS-folder claim analysis, proposed layout, open items); Stages section  
   updated.
 - `design/STATUS.md` — Stage 9 stages line; this entry.
 
@@ -2684,10 +3280,10 @@ concrete proposed folder/file layout.
 | Kitchen scripts | not run — doc-only stage, no `.zig`/`build.zig` changes |
 | Post-stage cleanup | doc-only — no code to clean |
 
-**Next**: DOC 4 — TBD, scoped when reached. Likely candidate: build the actual mixed
-`kitchen/` doc infra per the DOC 3 layout proposal (mkdocs.yml, build.zig docs step for 2
-targets, preview scripts, docs.yml path fix). Open items carried: nav-content authoring
-plan; fixing matryoshka-io's pre-copied `docs.yml` (`path:` and missing `docs_zig.sh`/
+**Next**: DOC 4 — TBD, scoped when reached. Likely candidate: build the actual mixed  
+`kitchen/` doc infra per the DOC 3 layout proposal (mkdocs.yml, build.zig docs step for 2  
+targets, preview scripts, docs.yml path fix). Open items carried: nav-content authoring  
+plan; fixing matryoshka-io's pre-copied `docs.yml` (`path:` and missing `docs_zig.sh`/  
 `build.zig` `docs` step).
 
 ---
@@ -2695,26 +3291,26 @@ plan; fixing matryoshka-io's pre-copied `docs.yml` (`path:` and missing `docs_zi
 ### 2026-07-03 — DOC 2 (confirm tofu + Odin mix decision)
 **Participants**: human + Claude
 
-**Summary**: Doc-only stage, no code changes. Owner proposed that matryoshka-io's docs
-infra should mix tofu (autodoc generation) and the Odin `matryoshka` repo's `kitchen/`
-(layout, CI shape, local-preview scripts) — since Odin has everything needed except
-Zig-source autodoc generation. This stage audited Odin's `kitchen/` doc tooling in full and
+**Summary**: Doc-only stage, no code changes. Owner proposed that matryoshka-io's docs  
+infra should mix tofu (autodoc generation) and the Odin `matryoshka` repo's `kitchen/`  
+(layout, CI shape, local-preview scripts) — since Odin has everything needed except  
+Zig-source autodoc generation. This stage audited Odin's `kitchen/` doc tooling in full and  
 confirmed the claim, plus ran 3 additional checks the owner asked for.
 
 **Key findings**:
 - Odin's `kitchen/` is self-contained (mkdocs.yml, build_site.sh, preview_apidocs.sh,
-  preview_site.sh — dedicated local-preview scripts tofu lacks entirely) and CI-scoped
-  under one folder, matching matryoshka-io's own `kitchen/` convention (unlike tofu's
+  preview_site.sh — dedicated local-preview scripts tofu lacks entirely) and CI-scoped  
+  under one folder, matching matryoshka-io's own `kitchen/` convention (unlike tofu's  
   scattered layout).
 - The only piece Odin can't provide: its apidocs step clones/builds an external `odin-doc`
   HTML renderer with heavy Odin-specific `sed` post-processing — none of it applies to Zig.
 - Confirmed mix: borrow Odin's layout/CI/preview-script shape + tofu's `build.zig` `docs`
   step (`getEmittedDocs()`) for the actual generation mechanism.
 - Additional audit (owner-requested): (1) tofu's generated Zig autodoc output is a 4-file
-  WASM viewer with zero absolute paths — confirmed no post-processing needed, unlike Odin;
-  (2) matryoshka-io needs 3 doc targets (`matryoshka`, `examples`, `stories`), not tofu's 2
-  (`tofu`, `cookbook`) — matches existing `build.zig` module structure; (3) mkdocs nav
-  content can't be borrowed 1:1 from either prototype — matryoshka-io's `kitchen/docs/*.md`
+  WASM viewer with zero absolute paths — confirmed no post-processing needed, unlike Odin;  
+  (2) matryoshka-io needs 3 doc targets (`matryoshka`, `examples`, `stories`), not tofu's 2  
+  (`tofu`, `cookbook`) — matches existing `build.zig` module structure; (3) mkdocs nav  
+  content can't be borrowed 1:1 from either prototype — matryoshka-io's `kitchen/docs/*.md`  
   and `design/` don't match either prototype's nav shape, needs fresh authoring later.
 
 **Changes**:
@@ -2729,9 +3325,9 @@ confirmed the claim, plus ran 3 additional checks the owner asked for.
 | Kitchen scripts | not run — doc-only stage, no `.zig`/`build.zig` changes |
 | Post-stage cleanup | doc-only — no code to clean |
 
-**Next**: DOC 3 — TBD, scoped when reached. Likely candidate: build the actual mixed
-`kitchen/` doc infra (mkdocs.yml, build.zig docs step for 3 targets, preview scripts),
-per the decision recorded in DOC 2. Open items carried: fate of matryoshka-io's pre-copied
+**Next**: DOC 3 — TBD, scoped when reached. Likely candidate: build the actual mixed  
+`kitchen/` doc infra (mkdocs.yml, build.zig docs step for 3 targets, preview scripts),  
+per the decision recorded in DOC 2. Open items carried: fate of matryoshka-io's pre-copied  
 `docs.yml`; nav-content authoring plan.
 
 ---
@@ -2739,32 +3335,32 @@ per the decision recorded in DOC 2. Open items carried: fate of matryoshka-io's 
 ### 2026-07-03 — DOC 1 (tofu audit + docs plan skeleton)
 **Participants**: human + Claude
 
-**Summary**: Doc-only stage, no code changes. Owner decided Stage 9 docs will mix
-mkdocs-generated pages (from markdown) with autodocs generated from Zig sources, using the
-sibling `tofu` repo as prototype. Work proceeds iteratively (DOC 1, DOC 2, ... — not planned
-in advance). This stage: full read-only audit of tofu's doc flow (all housekeeping files,
-scattered across root scripts, `docs_site/`, `docs/`, `.github/workflows/docs.yml` — not
-confined to one folder like matryoshka-io's `kitchen/`), plus a look at the Odin
+**Summary**: Doc-only stage, no code changes. Owner decided Stage 9 docs will mix  
+mkdocs-generated pages (from markdown) with autodocs generated from Zig sources, using the  
+sibling `tofu` repo as prototype. Work proceeds iteratively (DOC 1, DOC 2, ... — not planned  
+in advance). This stage: full read-only audit of tofu's doc flow (all housekeeping files,  
+scattered across root scripts, `docs_site/`, `docs/`, `.github/workflows/docs.yml` — not  
+confined to one folder like matryoshka-io's `kitchen/`), plus a look at the Odin  
 `matryoshka` repo's `kitchen/` doc tooling for comparison.
 
 **Key findings**:
 - tofu's doc flow: `zig build docs` (via `build.zig` `docs` step, two `addObject` +
-  `getEmittedDocs()` targets) → `docs_site/docs/{apidocs,recipes}/`, then
-  `mkdocs build` → `docs/` (committed, GitHub Pages source). CI
+  `getEmittedDocs()` targets) → `docs_site/docs/{apidocs,recipes}/`, then  
+  `mkdocs build` → `docs/` (committed, GitHub Pages source). CI  
   (`.github/workflows/docs.yml`) runs the same two steps on push to `main`, then deploys.
 - Gap: tofu has no committed local-preview script — `_notes.txt` shows only a manual
   `python3 -m http.server` command for one case.
 - matryoshka-io already has `.github/workflows/docs.yml`, an exact copy of tofu's, but none
-  of the supporting infra exists yet (no `docs_zig.sh`, no `docs_site/`, no `build.zig`
-  `docs` step) — CI was pre-copied ahead of the infra it depends on. Open item for a future
+  of the supporting infra exists yet (no `docs_zig.sh`, no `docs_site/`, no `build.zig`  
+  `docs` step) — CI was pre-copied ahead of the infra it depends on. Open item for a future  
   DOC stage.
 - Odin `matryoshka`'s `kitchen/` has dedicated `preview_apidocs.sh`/`preview_site.sh`
-  scripts (tofu does not) and keeps everything under one `kitchen/` folder, matching
+  scripts (tofu does not) and keeps everything under one `kitchen/` folder, matching  
   matryoshka-io's own convention.
 
 **Changes**:
 - `design/matryoshka-io-docs-plan-002.md` — new version; Background section (mkdocs
-  decision, tofu prototype, kitchen/ rule, current project state) + full audit findings
+  decision, tofu prototype, kitchen/ rule, current project state) + full audit findings  
   (flow diagram, two tables) + iterative-stages placeholder (DOC 1 DONE, DOC 2+ TBD).
 - `design/context.md` — Docs plan pointer → -002.
 - `design/STATUS.md` — Docs plan source → -002; Stage 9 line; this entry.
@@ -2776,7 +3372,7 @@ confined to one folder like matryoshka-io's `kitchen/`), plus a look at the Odin
 | Kitchen scripts | not run — doc-only stage, no `.zig`/`build.zig` changes |
 | Post-stage cleanup | doc-only — no code to clean |
 
-**Next**: DOC 2 — TBD, scoped when reached (per iterative-stage rule). Open item carried:
+**Next**: DOC 2 — TBD, scoped when reached (per iterative-stage rule). Open item carried:  
 decide fate of matryoshka-io's pre-copied `docs.yml` (keep vs. hold back until infra built).
 
 ---
@@ -2784,9 +3380,9 @@ decide fate of matryoshka-io's pre-copied `docs.yml` (keep vs. hold back until i
 ### 2026-07-03 — EXMPL 4c (Eliminate remaining `drain` occurrences)
 **Participants**: human + Claude
 
-**Summary**: Owner flagged that `drain` still appeared in 14 files / 43 matches despite
-repeated requests. Root cause: prior stages only fixed `drain` inside files actively being
-rewritten, or fixed the one finding explicitly scoped by the owner. This pass swept every
+**Summary**: Owner flagged that `drain` still appeared in 14 files / 43 matches despite  
+repeated requests. Root cause: prior stages only fixed `drain` inside files actively being  
+rewritten, or fixed the one finding explicitly scoped by the owner. This pass swept every  
 live (non-historical, non-superseded-doc) occurrence.
 
 **Changes**:
@@ -2799,16 +3395,16 @@ live (non-historical, non-superseded-doc) occurrence.
 - `examples/layer4/034-cross_layer_batch_receive_pool_return.zig` — `batchDrainToPool` →
   `batchCollectToPool` (doc line, function name, call site).
 - `examples/layer4/040-master_batch_collect_receive_to_pool.zig` — `batchDrainToPool` →
-  `batchCollectToPool` (doc line, function name, call site); `error.MasterBatchDrainFailed`
+  `batchCollectToPool` (doc line, function name, call site); `error.MasterBatchDrainFailed`  
   → `error.MasterBatchCollectFailed`.
 - `examples/layer4/layer4.zig` — barrel alias `master_batch_drain_receive_to_pool` →
   `master_batch_collect_receive_to_pool`.
 - `tests/layer4_cross.zig` — updated reference to match renamed barrel alias.
 
-**Excluded** (historical/superseded, per doc-versioning rule — never edit a replaced doc
-version, never rewrite history): `design/patterns-007.md`, `design/rules-009.md`,
-`design/task1-examples-002.md`, `design/task2-examples-002.md`, `design/STATUS.md`
-historical Session Log entries. `design/rules-010.md`'s one hit is the banned-word list
+**Excluded** (historical/superseded, per doc-versioning rule — never edit a replaced doc  
+version, never rewrite history): `design/patterns-007.md`, `design/rules-009.md`,  
+`design/task1-examples-002.md`, `design/task2-examples-002.md`, `design/STATUS.md`  
+historical Session Log entries. `design/rules-010.md`'s one hit is the banned-word list  
 itself (meta-reference, not a violation).
 
 **Verification**:
@@ -2830,24 +3426,24 @@ No logic changed — word/identifier renames only. Test count unchanged (161/161
 ### 2026-07-03 — EXMPL 4b (Descriptive entry-point names)
 **Participants**: human + Claude
 
-**Summary**: Every example's `pub fn run` was identical across all 66 files, carrying no
-information. New rule: entry point uses a descriptive name instead of `run`, via Zig's
-quoted identifier syntax `pub fn @"<description>"`, where `<description>` is the example's
+**Summary**: Every example's `pub fn run` was identical across all 66 files, carrying no  
+information. New rule: entry point uses a descriptive name instead of `run`, via Zig's  
+quoted identifier syntax `pub fn @"<description>"`, where `<description>` is the example's  
 existing one-line staccato description (first line of its `///` doc comment).
 
 **Changes**:
 - `design/rules-009.md` → `rules-010.md` — "Coding Rules — Examples" Scope and shape
-  updated: entry point signature is now `pub fn @"<description>"(...)`, not `pub fn run`.
-  Master's own `run` method (private) explicitly called out as unaffected. Updated all
-  cross-referencing mentions in the Examples section (Description as code placement rule,
-  File layout rule, Master struct shape code block). Rules audit checklist item 10 wording
-  extended to cover "descriptive entry-point names". Stories section left unchanged — out
+  updated: entry point signature is now `pub fn @"<description>"(...)`, not `pub fn run`.  
+  Master's own `run` method (private) explicitly called out as unaffected. Updated all  
+  cross-referencing mentions in the Examples section (Description as code placement rule,  
+  File layout rule, Master struct shape code block). Rules audit checklist item 10 wording  
+  extended to cover "descriptive entry-point names". Stories section left unchanged — out  
   of scope (user request was examples only).
 - All 66 example files renamed `pub fn run(` → `pub fn @"<description>"(`, one per file,
-  no other content changed: `examples/layer1/021-025` (5), `examples/layer2/053-062` (10),
+  no other content changed: `examples/layer1/021-025` (5), `examples/layer2/053-062` (10),  
   `examples/layer3/089-092` (4), `examples/layer4/017-061,095-096` (47).
 - Test wrapper call sites updated to match (~66 call sites + 1 commented-out duplicate):
-  `tests/layer1_examples.zig`, `tests/layer2_examples.zig`, `tests/layer3_examples.zig`,
+  `tests/layer1_examples.zig`, `tests/layer2_examples.zig`, `tests/layer3_examples.zig`,  
   `tests/layer4_examples.zig`, `tests/layer4_select.zig`, `tests/layer4_cross.zig`.
 - `design/matryoshka-io-implementation-plan-030.md` → `-031.md` — EXMPL 4b summary bullet.
 - `design/context.md` — Rules pointer → rules-010.md; Plan pointer → plan-031.md.
@@ -2865,10 +3461,10 @@ existing one-line staccato description (first line of its `///` doc comment).
 | build_and_test_all.sh | PASS (161/161 × 4 modes) |
 | build_cross_debug.sh | PASS (3/3 targets: x86_64-macos, aarch64-macos, x86_64-windows) |
 
-No logic changed — only identifier names (source + call sites). Test count unchanged
+No logic changed — only identifier names (source + call sites). Test count unchanged  
 (161/161).
 
-**Next**: Stage 9 — Docs + README + autodocs. Owner still to decide on removing old-named
+**Next**: Stage 9 — Docs + README + autodocs. Owner still to decide on removing old-named  
 (pre-`NNN-`) layer1-3 example files, currently unreferenced and left in place.
 
 ---
@@ -2876,32 +3472,32 @@ No logic changed — only identifier names (source + call sites). Test count unc
 ### 2026-07-03 — EXMPL 4 (Description as code: staccato descriptions in source, layer1-3 renaming)
 **Participants**: human + Claude
 
-**Summary**
-Catalog docs (`task1-examples-002.md`, `task2-examples-002.md`) wrote every scenario as a
-single long prose line — a staccato-rhythm violation of the existing Documentation Rules.
-Root cause discussed with owner: an example's description should be treated as code —
-Observable-by-human structure (one-line intent + named steps) applied to prose. New rule
-added to `rules-008.md` → `rules-009.md`. Full staccato description now lives in each
-example's source file as a `///` doc comment (autodoc-extractable, feeds Stage 9), not
-duplicated in the catalog `.md`. Catalog docs become thin indexes: number, name, one-line
+**Summary**  
+Catalog docs (`task1-examples-002.md`, `task2-examples-002.md`) wrote every scenario as a  
+single long prose line — a staccato-rhythm violation of the existing Documentation Rules.  
+Root cause discussed with owner: an example's description should be treated as code —  
+Observable-by-human structure (one-line intent + named steps) applied to prose. New rule  
+added to `rules-008.md` → `rules-009.md`. Full staccato description now lives in each  
+example's source file as a `///` doc comment (autodoc-extractable, feeds Stage 9), not  
+duplicated in the catalog `.md`. Catalog docs become thin indexes: number, name, one-line  
 hook, link to source.
 
-`pub fn run` (and, for Master-pattern examples, the Master's own `run` method) moved to the
-top of each file, directly after the `///` description + ASCII diagram — the file's "flow
+`pub fn run` (and, for Master-pattern examples, the Master's own `run` method) moved to the  
+top of each file, directly after the `///` description + ASCII diagram — the file's "flow  
 descriptors" read first.
 
-`examples/layer1/` and `examples/layer2/` and `examples/layer3/` never received the `NNN-`
-scenario-number prefix that `examples/layer4/` got in EXMPL 3b. Brought in line: 5 layer1
-files → 021-025, 10 layer2 files → 053-062, 4 layer3 files → 089-092. `layer1.zig` /
-`layer2.zig` / `layer3.zig` import paths updated. Old-named files left in place (unreferenced,
+`examples/layer1/` and `examples/layer2/` and `examples/layer3/` never received the `NNN-`  
+scenario-number prefix that `examples/layer4/` got in EXMPL 3b. Brought in line: 5 layer1  
+files → 021-025, 10 layer2 files → 053-062, 4 layer3 files → 089-092. `layer1.zig` /  
+`layer2.zig` / `layer3.zig` import paths updated. Old-named files left in place (unreferenced,  
 non-compiling) — owner will remove them later, per owner instruction.
 
-All 47 `examples/layer4/*.zig` files (already numbered from EXMPL 3b) rewritten with the
+All 47 `examples/layer4/*.zig` files (already numbered from EXMPL 3b) rewritten with the  
 same `///` doc-comment + flow-descriptor-placement treatment; no renaming needed there.
 
 **Changes**
 - `design/rules-008.md` → `rules-009.md` — new "Description as code" rule section; Coding
-  Rules — Examples/Stories updated for `///` placement and catalog-as-index; comment rules
+  Rules — Examples/Stories updated for `///` placement and catalog-as-index; comment rules  
   exception for examples/stories `///`.
 - `examples/layer1/021-*.zig` .. `025-*.zig` (5 new files, renamed + rewritten);
   `examples/layer1/layer1.zig` import paths updated.
@@ -2933,12 +3529,12 @@ same `///` doc-comment + flow-descriptor-placement treatment; no renaming needed
 - `025-select_two_mailboxes.zig`: two `fired` occurrences (in log message and doc comment)
   fixed to `triggered`, consistent with prior EXMPL 3e fixes elsewhere.
 - Scenario 40 ("Master batch drain: receive_batch → put_all") — pre-existing name unchanged
-  since `task2-scenarios-001.md`, contains `drain`. Owner approved fix during this pass:
-  renamed to "Master batch collect" in doc comment and `task2-examples-003.md` index entry;
-  filename renamed `040-master_batch_drain_receive_to_pool.zig` →
+  since `task2-scenarios-001.md`, contains `drain`. Owner approved fix during this pass:  
+  renamed to "Master batch collect" in doc comment and `task2-examples-003.md` index entry;  
+  filename renamed `040-master_batch_drain_receive_to_pool.zig` →  
   `040-master_batch_collect_receive_to_pool.zig`, `layer4.zig` import updated.
 
-**Rules audit (rules-009.md)** — all 66 files touched by this stage (`examples/layer1/021-025`,
+**Rules audit (rules-009.md)** — all 66 files touched by this stage (`examples/layer1/021-025`,  
 `layer2/053-062`, `layer3/089-092`, `layer4/017-061`+`095-096`) checked against every rule.
 - LE import order: `std` last in every file. CLEAN.
 - Description as code: `///` doc comment present and first in every file. CLEAN.
@@ -2950,10 +3546,10 @@ same `///` doc-comment + flow-descriptor-placement treatment; no renaming needed
 
 **Pre-existing findings (not introduced by this stage, reported per rule)**
 - `patterns-008.md:960` — "Drain an entire mailbox" (banned word `drain`), carried unchanged
-  since `patterns-002.md`/`patterns-003.md` (flagged in EXMPL 3b, never fixed). Owner approved
+  since `patterns-002.md`/`patterns-003.md` (flagged in EXMPL 3b, never fixed). Owner approved  
   fix: "Empty an entire mailbox."
 - `src/polynode.zig`, `src/internal/cond_timeout.zig` — `///` doc comments in `src/`,
-  contradicting the "no `///` in `src/`" rule. Already reported in the API 2 session log
+  contradicting the "no `///` in `src/`" rule. Already reported in the API 2 session log  
   entry (2026-07-02); owner decided not to fix now, unchanged, out of scope for this stage.
 
 **Re-verification after `patterns-008.md` fix**
@@ -2964,7 +3560,7 @@ same `///` doc-comment + flow-descriptor-placement treatment; no renaming needed
 | build_and_test_all.sh | PASS (161/161 × 4 modes) |
 | build_cross_debug.sh | PASS (3/3 targets: x86_64-macos, aarch64-macos, x86_64-windows) |
 
-**Next**: Stage 9 — Docs + README + autodocs. Owner to decide on removing old-named
+**Next**: Stage 9 — Docs + README + autodocs. Owner to decide on removing old-named  
 layer1-3 example files (currently unreferenced, left in place per owner instruction).
 
 ---
@@ -2972,7 +3568,7 @@ layer1-3 example files (currently unreferenced, left in place per owner instruct
 ### 2026-07-03 — CI investigation: rare ReleaseSmall race in pool_fan_in (053)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 CI (Linux, `ReleaseSmall`, seed `0xa049e5bb`) failed `053-pool_fan_in.zig` with `PoolFanInFailed` — "wrong result sum". Master dispatched jobs 10/20/30 to 3 workers via 3 mailboxes; workers correctly doubled them to 20/40/60 (confirmed by worker log lines); but `collectResults()` read back 60, 40, and a stray 0 instead of 60, 40, 20 (sum 100 instead of 120). No code changes made — investigation only, per STATUS.md rule "Show intent before code changes. Get owner approval."
 
 **Ruled out (by code audit)**
@@ -2988,7 +3584,7 @@ CI (Linux, `ReleaseSmall`, seed `0xa049e5bb`) failed `053-pool_fan_in.zig` with 
 - 28 local runs (20 random-seed, 8 with CI's exact seed `0xa049e5bb`) via `zig build test -Doptimize=ReleaseSmall` all passed — not reproducible via `zig build test`'s `--seed` alone (it controls test/fuzz ordering, not thread scheduling).
 - Added a temporary in-process stress test to `tests/layer4_select.zig` (500 iterations of `layer4.pool_fan_in.run()` in one `Io.Threaded` instance per iteration, one test binary). Reproduced `PoolFanInFailed` at iteration 132/500 — roughly **1-in-500** failure rate. Confirms a genuine, rare, timing-dependent race, not a deterministic logic bug. Log level was `.warn` during the stress run, so exact corrupted values for iteration 132 were not captured.
 
-**Conclusion**
+**Conclusion**  
 No defect found in `matryoshka-io` source by static audit, from the example down through `pool.zig`/`mailbox.zig`, `cond_timeout.zig`, Zig 0.16 stdlib `Io.Mutex`/`Io.Condition`, to the raw Linux futex syscalls and `Future.await()`. Suspected upstream Zig 0.16 `Io.Threaded` internals bug (thread-pool/task-scheduling, adjacent to the already-tracked workaround at Open Item 5, `https://codeberg.org/ziglang/zig/issues/31278`) or a ReleaseSmall-specific codegen issue. Confirming further would require dynamic tooling (e.g. ThreadSanitizer) or a minimal standalone repro outside this codebase to file upstream — out of scope for this session.
 
 **Changes**
@@ -3010,7 +3606,7 @@ No defect found in `matryoshka-io` source by static audit, from the example down
 ### 2026-07-02 — API 2 (PolyHelper Slot-aware identification API)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 `PolyHelper.cast(slot.?)` appeared 139+ times across the codebase, exposing the implementation detail that `Slot = ?*PolyNode` and using a misleading name. Stage API 2 (inserted before Stage 9) renames `cast`→`identifyNodeAs` / `mustCast`→`mustIdentifyNodeAs` and adds two new Slot-aware helpers: `identifySlotAs` and `mustIdentifySlotAs`.
 
 Four functions in `PolyHelper(T)`:
@@ -3057,7 +3653,7 @@ Four functions in `PolyHelper(T)`:
 ### 2026-07-02 — EXMPL 3e (Observable: structural extraction signals + fix 24 violating examples)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Full audit after EXMPL 3d revealed 24 remaining Observable violations across 47 layer4 files — none had section comments, so the heuristic signal missed them. Root cause: the rule was subjective. EXMPL 3e adds four objective structural extraction signals to rules-007.md and fixes all 24 violating files.
 
 New structural extraction signals (rules-007.md, added to Observable by human — MUST).
@@ -3100,7 +3696,7 @@ Ctx lifetime rule.
 | AI-sh + banned words scan | CLEAN (5 new violations fixed) |
 | Full layer4 audit | CLEAN (47/47 PASS after 2 post-audit fixes) |
 
-**Post-stage cleanup**
+**Post-stage cleanup**  
 AI-sh scan — 5 new violations introduced by EXMPL 3e, all fixed.
 - `026`: `fires first` → `triggers first` in ownership diagram.
 - `026`: `timer fired` → `timer triggered` in coordinator log.
@@ -3124,7 +3720,7 @@ Pre-existing violations in non-changed files (owner to decide).
 ### 2026-07-02 — EXMPL 3d (Observable: extract steps from flat examples)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Extract section-comment-marked blocks from 31 flat layer4 example files into named private step functions. `pub fn run` becomes a thin coordinator in each file.
 
 Parameter rule (owner-approved): pass 1-2 coordinator-scope params explicitly; if any step needs 3+ coordinator-scope params, introduce a local `const Ctx = struct { ... }` (stack-allocated, no heap). Steps become methods inside the Ctx struct body.
@@ -3134,15 +3730,15 @@ Files skipped (section comments that don't warrant extraction):
 - `043` — two 1-line operation comments (common-sense inline)
 - `044` — comment inside defer block explaining double-close behavior
 
-**Extraction approach**
-Explicit-param files (17): step functions declared at file scope, take 1-2 coordinator-scope params directly.
+**Extraction approach**  
+Explicit-param files (17): step functions declared at file scope, take 1-2 coordinator-scope params directly.  
 Struct files (14): `const Ctx = struct { ... fn step(self: *Ctx) ... };` declared at file scope; `run` creates `var ctx: Ctx = .{...}` and calls `ctx.step()`.
 
 Key technical note: Zig method-call syntax `ctx.method()` requires the function to be declared inside the struct body, not at file scope. Methods use `self: *Ctx` as the first parameter.
 
-**Changes**
-Explicit-param files: 022, 023, 028, 029, 033, 036, 039, 040, 046, 050, 052, 054, 057, 058, 059, 060, 095
-Struct files: 024, 025, 030, 032, 034, 035, 037, 038, 041, 051, 055, 056, 061, 096
+**Changes**  
+Explicit-param files: 022, 023, 028, 029, 033, 036, 039, 040, 046, 050, 052, 054, 057, 058, 059, 060, 095  
+Struct files: 024, 025, 030, 032, 034, 035, 037, 038, 041, 051, 055, 056, 061, 096  
 Doc: `design/matryoshka-io-implementation-plan-027.md` — EXMPL 3d DONE
 
 **Verification**
@@ -3162,8 +3758,8 @@ Doc: `design/matryoshka-io-implementation-plan-027.md` — EXMPL 3d DONE
 ### 2026-07-01 — EXMPL 3c (Observable by human rule + 3 Master fixes)
 **Participants**: human + Claude
 
-**Summary**
-New MUST rule: "Observable by human". Added to `rules-005.md` as first coding rule section.
+**Summary**  
+New MUST rule: "Observable by human". Added to `rules-005.md` as first coding rule section.  
 Fixed 3 Master files that violated the coordinator rule. Created `patterns-004.md` with new "Observable function shapes" pattern section.
 
 Observable by human rule.
@@ -3212,7 +3808,7 @@ Master file fixes.
 ### 2026-07-01 — EXMPL 3b (Rename NNN- prefix + Master pattern conversion)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Two-part stage. All 47 `examples/layer4/*.zig` files renamed to `NNN-current-name.zig`. Six complex examples rewritten with the Master pattern.
 
 Rename.
@@ -3274,7 +3870,7 @@ Doc updates.
 ### 2026-07-01 — EXMPL 1 (Example completeness audit + rule addition)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Doc-only stage. No Zig code written. No kitchen scripts needed.
 
 New principle added to thinking model.
@@ -3326,7 +3922,7 @@ Audit results.
 ### 2026-07-01 — EXMPL 2 (Master pattern: pilot + doc update)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 New coding rule: flat function vs. allocate-a-Master. Pilot example implemented and all kitchen scripts pass.
 
 New rules added.
@@ -3379,8 +3975,8 @@ Pilot implementation.
 ### 2026-07-01 — EXMPL 3a (7 semantic rewrites — pool items as empty containers)
 **Participants**: human + Claude
 
-**Summary**
-EXMPL 1 revised 7 scenario descriptions but wrote no code. EXMPL 3a implements those descriptions.
+**Summary**  
+EXMPL 1 revised 7 scenario descriptions but wrote no code. EXMPL 3a implements those descriptions.  
 Root cause: old code seeded pool items with data; workers read/modified that data. New spec: pool items are empty containers; work input comes from outside (Master state, spawn-time args, mailbox).
 
 Affected files (flat style — no Master struct):
@@ -3428,10 +4024,10 @@ Process note.
 ### 2026-06-29 — Story Rhythm Fixes (Both stories)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Both story narratives rewritten with SRS + Translation + Central Insight sections conforming to the `# Storytelling Rule` rhythm added to `kitchen/docs/matryoshka-storytelling-001.md`. No code changed. No architecture changed.
 
-**Why**
+**Why**  
 The storytelling doc was updated with explicit rhythm rules. Discussion, SRS, Translation, and Central Insight must all feel like the same engineer wrote them on the same day. Both stories violated the SRS and Translation rules: numbered bold paragraphs instead of flat bullets, P1/P2 dialogue instead of a table of mappings.
 
 **What changed**
@@ -3469,10 +4065,10 @@ The storytelling doc was updated with explicit rhythm rules. Discussion, SRS, Tr
 ### 2026-06-29 — STORY 1 Rewrite (Video Transcoder narrative)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 STORY 1 narrative rewritten to match the storytelling model established by STORY 2. No code changed. Deliverable: `design/stories/video-transcoder-002.md`. Original `video-transcoder-001.md` preserved.
 
-**Why rewrite**
+**Why rewrite**  
 Story 1 was written before the storytelling model matured. Story 2 established: start with people, developer negotiation before software, no Matryoshka terminology until Part 3, SRS as observable behavior only, translation feels inevitable. The collection should feel like one book.
 
 **What changed**
@@ -3509,17 +4105,17 @@ Story 1 was written before the storytelling model matured. Story 2 established: 
 ### 2026-06-29 — STORY 2 (Print Server narrative)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 STORY 2 narrative written. No code. Deliverable: `design/stories/print-server-001.md`.
 
-**Central insight**
+**Central insight**  
 Job location IS status. No shared job table. No status flags. Ownership is the status.
 
-**Secondary pattern**
+**Secondary pattern**  
 OOB cancellation: `mailbox.send_oob` lets a cancel signal jump the queue and reach the Printer Master before the next job.
 
-**What this adds over Story 1**
-Story 1 hero: pool as backpressure signal + ownership routing.
+**What this adds over Story 1**  
+Story 1 hero: pool as backpressure signal + ownership routing.  
 Story 2 hero: ownership transfer as synchronization + OOB for priority signals.
 
 **Changes**
@@ -3551,7 +4147,7 @@ Story 2 hero: ownership transfer as synchronization + OOB for priority signals.
 ### 2026-06-28 — INTR 5 doc quality overhaul
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Doc quality overhaul. `rules-001.md`, `matryoshka-model-001.md`, `patterns-002.md` created as versioned replacements. Cross-references updated across all docs. `video_transcoder.zig` refactored per the Master composition rule.
 
 **New docs**
@@ -3598,7 +4194,7 @@ Doc quality overhaul. `rules-001.md`, `matryoshka-model-001.md`, `patterns-002.m
 ### 2026-06-28 — INTR 5 (Stories + documentation infrastructure)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stories infrastructure created with a pilot (video transcoder). Permanent documentation infrastructure created: model, rules, docs plan, slim implementation plan.
 
 **Stories infrastructure (pilot)**
@@ -3641,7 +4237,7 @@ Stories infrastructure created with a pilot (video transcoder). Permanent docume
 ### 2026-06-28 — INTR 4 (Bug fixes + doc corrections from foreign-advices-003)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Three correctness bugs fixed in `src/pool.zig` and `src/mailbox.zig`. Six doc corrections applied to new API reference version 015.
 
 **Bug fixes**
@@ -3688,7 +4284,7 @@ Three correctness bugs fixed in `src/pool.zig` and `src/mailbox.zig`. Six doc co
 ### 2026-06-28 — Stage 8 (Cross-layer + Mailbox-less patterns)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 8 complete. 15 new example files under `examples/layer4/` covering scenarios 32–41 (cross-layer) and 57–61 (mailbox-less). 15 test wrappers in `tests/layer4_cross.zig`.
 
 **New examples (cross-layer, scenarios 32–41)**
@@ -3739,8 +4335,8 @@ Stage 8 complete. 15 new example files under `examples/layer4/` covering scenari
 ### 2026-06-28 — Session 19 (Stage 7.b — Event source examples)
 **Participants**: human + Claude
 
-**Summary**
-Stage 7.b complete. 22 new example files under `examples/layer4/` covering scenarios 25-31 and 42-56.
+**Summary**  
+Stage 7.b complete. 22 new example files under `examples/layer4/` covering scenarios 25-31 and 42-56.  
 22 test wrappers in `tests/layer4_select.zig`.
 
 Key patterns demonstrated:
@@ -3807,8 +4403,8 @@ Fixes during verification:
 ### 2026-06-28 — Session 18 (Stage 7.a + INTR 3 — Event source helpers + diagram retrofit)
 **Participants**: human + Claude
 
-**Summary**
-Stage 7.a: added event source helper API to `src/mailbox.zig` and `src/pool.zig`.
+**Summary**  
+Stage 7.a: added event source helper API to `src/mailbox.zig` and `src/pool.zig`.  
 INTR 3: added ASCII ownership circuit diagrams to all 29 existing example files.
 
 Key decisions:
@@ -3841,9 +4437,9 @@ Key decisions:
 ### 2026-06-28 — Session 17 (INTR 2 — Thread-safe hooks + multi-thread example)
 **Participants**: human + Claude
 
-**Summary**
-Pool hooks are called outside the pool mutex — multiple threads can invoke them simultaneously.
-`CappedPoolCtx` was not thread-safe: it used the stale `in_pool_count` hint for the cap decision.
+**Summary**  
+Pool hooks are called outside the pool mutex — multiple threads can invoke them simultaneously.  
+`CappedPoolCtx` was not thread-safe: it used the stale `in_pool_count` hint for the cap decision.  
 INTR 2 fixes this and documents the hook concurrency contract.
 
 Key decisions:
@@ -3878,10 +4474,10 @@ Key decisions:
 ### 2026-06-27 — Pre-Stage 7 (API reference 013 + memory)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Doc-only update. No code changes. No kitchen scripts.
 
-Investigated `Io.Select` internals by reading `std/Io.zig:1367` and ICE agent source.
+Investigated `Io.Select` internals by reading `std/Io.zig:1367` and ICE agent source.  
 Key findings:
 - `Io.Select(U)` is `queue: Queue(U)` + `group: Group`, not a Future container.
 - `select.concurrent(field, fn, args)` spawns fn, wraps result, puts in queue.
@@ -3924,8 +4520,8 @@ Updated API reference to 013:
 ### 2026-06-27 — Doc fix (pre-Stage 7 — scenario split cleanup)
 **Participants**: human + Claude
 
-**Summary**
-Resolved stale references to deleted `task1-tests-001.md` and `task2-tests-001.md`.
+**Summary**  
+Resolved stale references to deleted `task1-tests-001.md` and `task2-tests-001.md`.  
 Recreated both files. Reclassified scenarios 32-38 as examples (cross-layer integration — all have stories, not unit-test style).
 
 **Changes**
@@ -3935,7 +4531,7 @@ Recreated both files. Reclassified scenarios 32-38 as examples (cross-layer inte
 - `design/context.md` — updated counts and descriptions for all four task docs
 - `design/STATUS.md` — updated Sources of Truth counts and notes
 
-**Verification**
+**Verification**  
 Docs-only change. No code changes, no kitchen scripts needed.
 
 ---
@@ -3943,7 +4539,7 @@ Docs-only change. No code changes, no kitchen scripts needed.
 ### 2026-06-27 — Session 16 (Stage 6 — Cancellation + Shutdown)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 6 complete. 14 new tests (scenarios 3-16) in `tests/layer4_cancel.zig`.
 
 Coverage:
@@ -3993,7 +4589,7 @@ Coverage:
 ### 2026-06-27 — Session 15 (doc update: PolyHelper.create/destroy rule)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Doc-only update. No code changes. No kitchen scripts.
 
 Added `### No raw allocator calls on PolyNode-based types` rule to `## Cooperative cleanup patterns` in api-reference-013.md. Same rule as one bullet in `### Implementation (MUST)` in plan-013.md. Collapsed INTR 1.d to one-line summary in plan-013.md.
@@ -4020,7 +4616,7 @@ Added `### No raw allocator calls on PolyNode-based types` rule to `## Cooperati
 ### 2026-06-27 — Session 14 (post-INTR audit + fixes)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Full source audit (`.zig` + `.md`) and comprehensive fix pass. All four findings applied.
 
 **Allocator audit + bug fixes**
@@ -4080,7 +4676,7 @@ Full source audit (`.zig` + `.md`) and comprehensive fix pass. All four findings
 ### 2026-06-27 — Session 13 (INTR 1.d)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 INTR 1.d — slot-based cleanup patterns applied to all remaining layers (layer1, layer2, layer4).
 
 **Layer 1**
@@ -4140,7 +4736,7 @@ INTR 1.d — slot-based cleanup patterns applied to all remaining layers (layer1
 ### 2026-06-27 — Session 12 (INTR 1)
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 INTR 1 — Slot-based programming retrofit (pre-Stage-6).
 
 Three sub-stages completed:
@@ -4206,7 +4802,7 @@ Owner applied before this session:
 ### 2026-06-26 — Session 11
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 5.b (Master examples — scenarios 17–24) completed.
 
 8 new example files added under `examples/layer4/`, covering:
@@ -4259,7 +4855,7 @@ Key findings during coding:
 ### 2026-06-26 — Session 10
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 5.a (Master — impl + tests) completed.
 
 Two new tests using real `Io.Threaded.init` concurrency (not `global_single_threaded`):
@@ -4291,7 +4887,7 @@ Pre-stage doc work (Session 9 continuation):
 ### 2026-06-26 — Session 9
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 4.b (Infra as Items — examples) completed.
 
 Key insight identified and documented before examples: the `tag` field identifies class (type), not instance or role. Infra handles (`_Mailbox`, `_Pool` are private) have no user-visible fields. Instance identity uses pointer comparison; role uses protocol between sender and receiver.
@@ -4334,7 +4930,7 @@ Examples:
 ### 2026-06-26 — Session 8
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 3 (Pool) completed across three sub-stages.
 
 Stage 3.a — Pool impl + tests:
@@ -4390,7 +4986,7 @@ CI fix:
 ### 2026-06-26 — Session 7
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 2.5 (Pre-Stage-3 fixes) completed. Based on architectural review by another AI (pass-1.md, pass-2.md, pass-3.md):
 - Rejected ~60% of findings as intentional architecture (NodeHandle aliases, C-style vtable hooks, intrusive-only types, close asymmetry).
 - Deferred future-adapter findings to Stage 7.
@@ -4437,7 +5033,7 @@ Plan and docs updated:
 ### 2026-06-26 — Session 6
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 2.b (Mailbox examples) completed with 59/59 tests passing. Post-stage cleanup:
 - `src/mailbox.zig`: added `polynode.reset(poly)` after `popFirst()` in both `receive` and `try_receive` — critical fix for `!is_linked` assert when re-sending received items from multi-element queues.
 - `helpers/helpers.zig`: added `freeItem` (tag-dispatch free for Event+Sensor) and `freeList` (walk + freeItem each node).
@@ -4492,7 +5088,7 @@ Stage 2.b (Mailbox examples) completed with 59/59 tests passing. Post-stage clea
 ### 2026-06-25 — Session 5
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 2.a (Mailbox impl + tests) completed with all 46 tests passing. Post-stage cleanup:
 - `src/mailbox.zig`: removed `///` doc comments; replaced manual tag management with `MailboxPolyHelper = polynode.PolyHelper(_Mailbox)`; renamed `dll_node` → `node`.
 - `helpers/helpers.zig`: added `pub fn clearList` (replaces banned "drain" pattern).
@@ -4525,7 +5121,7 @@ Stage 2.a (Mailbox impl + tests) completed with all 46 tests passing. Post-stage
 ### 2026-06-25 — Session 4
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 1.b: renamed NodeMixin → PolyHelper (bad name, not in API ref). Created API ref -007 with PolyHelper documentation and naming convention (XxxPoly = polynode.PolyHelper(Xxx)). Created 5 Layer 1 examples with test wrappers. Wired examples module in build.zig via createModule. Added SPDX preservation rule.
 
 **Changes**
@@ -4561,7 +5157,7 @@ Stage 1.b: renamed NodeMixin → PolyHelper (bad name, not in API ref). Created 
 ### 2026-06-25 — Session 1
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Created Stage 0 infrastructure. build.zig adapted from mailbox repo. Stub source files for polynode, mailbox, pool. condition_waitTimeout copied from legacy mailbox into src/internal/cond_timeout.zig with explicit types (LE import style). One test verifies module loads. Kitchen scripts for build/test/cross-compile.
 
 **Changes**
@@ -4592,7 +5188,7 @@ Created Stage 0 infrastructure. build.zig adapted from mailbox repo. Stub source
 ### 2026-06-25 — Session 3
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 1.a: implemented PolyNode ownership atom and Layer 1 tests. Types: PolyTag, PolyNode, NodeHandle, Slot, reset, is_linked, NodeMixin. Helper types (Event, Sensor) in new helpers/ module. Tests cover scenarios 1-14, 17. Discovered DoublyLinkedList does no safety checks — is_linked only detects multi-element membership. Added rules: tests before examples (N.a/N.b split), plan versioning, post-stage cleanup. Switched tmod to createModule (private, not exported).
 
 **Changes**
@@ -4623,7 +5219,7 @@ Stage 1.a: implemented PolyNode ownership atom and Layer 1 tests. Types: PolyTag
 ### 2026-06-25 — Session 2
 **Participants**: human + Claude
 
-**Summary**
+**Summary**  
 Stage 0.5: re-partitioned scenarios from task1-scenarios-001.md (86) and task2-scenarios-001.md (61) into four docs. Tests and examples separated by job: tests check correctness, examples show stories. Scenario numbers preserved. Updated context.md with pointers to all four new docs.
 
 **Changes**
@@ -4633,7 +5229,7 @@ Stage 0.5: re-partitioned scenarios from task1-scenarios-001.md (86) and task2-s
 - `design/task2-examples-001.md` — 45 example scenarios for Layer 4 + cross-layer (32-38 added as examples)
 - `design/context.md` — added pointers to all four new docs + historical sources
 
-**Verification**
+**Verification**  
 Docs-only stage. No code changes, no kitchen scripts needed.
 
 **Next**: Stage 1 — PolyNode. Show intent first.

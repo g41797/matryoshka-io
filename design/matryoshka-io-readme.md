@@ -33,7 +33,7 @@ Matryoshka is based on a simple concurrency principle.
 
 > **Share by communicating.**
 
-Instead of sharing application objects,
+Instead of sharing application objects,  
 communicate the application objects themselves.
 
 An Item moves from one Master to another.
@@ -174,7 +174,7 @@ Nothing more.
 
 A **Pool** stores reusable Items.
 
-Instead of destroying an Item after use,
+Instead of destroying an Item after use,  
 it can be returned to a Pool.
 
 Another Master may later reuse that Item.

@@ -1,6 +1,6 @@
 # Flow — Master compositions
 
-Bigger, cross-layer examples: a full Master combining Mailbox, Pool, and
+Bigger, cross-layer examples: a full Master combining Mailbox, Pool, and  
 Select/Group in one coordinator.
 
 - [Minimal Master](layer4/017-minimal_master.md)

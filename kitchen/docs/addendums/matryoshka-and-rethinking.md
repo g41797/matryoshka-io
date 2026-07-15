@@ -1,5 +1,5 @@
-# Matryoshka-Io Patterns
-## Inspired by ["Rethinking Classical Concurrency Patterns"](https://drive.google.com/file/d/1nPdvhB0PutEJzdCq5ms6UI58dp50fcAN/view)
+# Matryoshka-Io and Rethinking Patterns
+## Inspired by ["Rethinking Classical Concurrency Patterns"](https://drive.google.com/file/d/1nPdvhB0PutEJzdCq5ms6UI58dp50fcAN){:target="_blank"}
 
 The paper is written in Go.
 
@@ -337,5 +337,5 @@ Ownership first.
 
 Communication second.
 
-Concurrency becomes almost boring.
+Concurrency becomes almost boring.  
 ```

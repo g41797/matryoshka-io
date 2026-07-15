@@ -1,10 +1,10 @@
 # Task 2 — Example Scenarios for Layer 4 and Cross-Layer (003)
 
-Index only. Full staccato description lives in each source file's `///` doc comment,
+Index only. Full staccato description lives in each source file's `///` doc comment,  
 per "Description as code" in [rules-009.md](rules-009.md).
 
-Pool items are empty containers on acquisition. Work input comes from outside the pool item:
-a mailbox, a timer, a network source, spawn-time arguments, or the worker's own accumulated state.
+Pool items are empty containers on acquisition. Work input comes from outside the pool item:  
+a mailbox, a timer, a network source, spawn-time arguments, or the worker's own accumulated state.  
 See "Pool items are empty containers" in [matryoshka-model-003.md](matryoshka-model-003.md).
 
 All Layer 4 examples use real `Io.Threaded.init(gpa, .{})` — concurrency, cancellation, real I/O.

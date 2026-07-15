@@ -53,7 +53,7 @@ A Mailbox is built from a `PolyNode`, same as any application object.
 - A Mailbox can be stored in a Pool.
 - A Mailbox can be embedded into a larger structure.
 
-This is how a worker signals "I'm done": it sends its own Mailbox back to whoever is
+This is how a worker signals "I'm done": it sends its own Mailbox back to whoever is  
 coordinating it, instead of a separate finished-message.
 
 ## Why this matters

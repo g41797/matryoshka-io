@@ -1,6 +1,6 @@
 # API Reference — PolyNode, ItemHandle, Slot
 
-New to the concepts? See [Building Blocks — PolyNode](../building-blocks/polynode.md)
+New to the concepts? See [Building Blocks — PolyNode](../building-blocks/polynode.md)  
 first.
 
 This page covers the actual Zig types and functions.
@@ -66,10 +66,10 @@ Every PolyNode-based type needs four things:
 - A way to check the tag before casting.
 - A way to cast from `*PolyNode` back to `*YourType`.
 
-This section builds each piece manually. Understanding this is the foundation
+This section builds each piece manually. Understanding this is the foundation  
 for everything in Matryoshka.
 
-Don't care about the manual steps? See [PolyHelper](polyhelper.md) — it generates all
+Don't care about the manual steps? See [PolyHelper](polyhelper.md) — it generates all  
 four pieces for you. Come back here when you want to know what it generates and why.
 
 ### Step 1 — Define the struct
@@ -99,12 +99,12 @@ Event instance
 +---------------------------+
 ```
 
-Why: Matryoshka never sees `Event`. It only sees `*PolyNode`.
+Why: Matryoshka never sees `Event`. It only sees `*PolyNode`.  
 The `poly` field is the bridge between your type and the infrastructure.
 
 ### Step 2 — Create a unique tag
 
-A tag is just an address. Two different variables have two different addresses.
+A tag is just an address. Two different variables have two different addresses.  
 Same variable always has the same address.
 
 ```zig
@@ -112,10 +112,10 @@ var _event_tag: PolyTag = .{};
 pub const EVENT_TAG: *const anyopaque = &_event_tag;
 ```
 
-Why `var` not `const`: a mutable global has a guaranteed unique runtime address.
+Why `var` not `const`: a mutable global has a guaranteed unique runtime address.  
 `const` may be deduplicated by the linker.
 
-Why it's unique: each `var` declaration occupies its own memory location.
+Why it's unique: each `var` declaration occupies its own memory location.  
 `&_event_tag` is that location's address. No two `var` declarations share an address.
 
 ```text
@@ -151,7 +151,7 @@ Event                           Event
 +------------------+            +------------------+
 ```
 
-Why: the tag is how you identify what type a `*PolyNode` points into.
+Why: the tag is how you identify what type a `*PolyNode` points into.  
 Without it, you cannot safely cast.
 
 ### Step 4 — Get a pointer to the embedded PolyNode
@@ -176,7 +176,7 @@ ev: Event                        poly: *PolyNode
 
 ### Step 5 — Check the tag before casting
 
-You have a `*PolyNode`. You need to know what it points into.
+You have a `*PolyNode`. You need to know what it points into.  
 Compare the tag:
 
 ```zig
@@ -185,8 +185,8 @@ if (poly.tag == EVENT_TAG) {
 }
 ```
 
-Why check first: `@fieldParentPtr` does not validate anything.
-If you cast a Sensor's PolyNode to `*Event`, you get garbage.
+Why check first: `@fieldParentPtr` does not validate anything.  
+If you cast a Sensor's PolyNode to `*Event`, you get garbage.  
 The tag check is the only runtime safety you have.
 
 ```text
@@ -220,13 +220,13 @@ poly: *PolyNode
 recovered: *Event      <-- @fieldParentPtr subtracts the field offset
 ```
 
-The field name `"poly"` is validated at compile time.
-The offset calculation is done at compile time.
+The field name `"poly"` is validated at compile time.  
+The offset calculation is done at compile time.  
 Runtime cost: one pointer subtraction.
 
 ### Step 7 — Two-level recovery (from list node)
 
-Inside a mailbox or pool, items are linked via `std.DoublyLinkedList`.
+Inside a mailbox or pool, items are linked via `std.DoublyLinkedList`.  
 The list operates on `*DoublyLinkedList.Node`, not `*PolyNode`.
 
 Recovery is two steps:

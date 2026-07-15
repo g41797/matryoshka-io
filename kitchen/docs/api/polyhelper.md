@@ -2,7 +2,7 @@
 
 Want the manual walkthrough first? See [PolyNode, ItemHandle, Slot](polynode.md).
 
-`PolyHelper` generates the tag, check, identification functions, and init for any PolyNode type.
+`PolyHelper` generates the tag, check, identification functions, and init for any PolyNode type.  
 One call replaces all the manual boilerplate.
 
 ```zig
@@ -113,7 +113,7 @@ See `helpers/types.zig` for the pattern.
 
 ## PolyHelper — create and destroy
 
-These two functions exist only when `T` does not declare `no_create_destroy`.
+These two functions exist only when `T` does not declare `no_create_destroy`.  
 They collapse the three-step alloc+init+slot pattern into one call.
 
 ```zig
@@ -164,8 +164,8 @@ const no_create_destroy = void{};
 
 If `T` declares this field, `PolyHelper(T)` generates only: `TAG`, `isIt`, `identifyNodeAs`, `mustIdentifyNodeAs`, `identifySlotAs`, `mustIdentifySlotAs`, `init`.
 
-Infrastructure types (`_Mailbox`, `_Pool`) declare `no_create_destroy`.
-They manage their own lifecycle.
+Infrastructure types (`_Mailbox`, `_Pool`) declare `no_create_destroy`.  
+They manage their own lifecycle.  
 Generating `create`/`destroy` for them would be wrong.
 
 ```text

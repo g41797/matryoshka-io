@@ -2,7 +2,7 @@
 
 Extracted from `task2-scenarios-001.md`. Scenario numbers preserved.
 
-Tests check implementation: correctness, error paths, state transitions, contract violations.
+Tests check implementation: correctness, error paths, state transitions, contract violations.  
 All tests use real `Io.Threaded.init(gpa, .{})` — concurrency, cancellation, real I/O.
 
 ---

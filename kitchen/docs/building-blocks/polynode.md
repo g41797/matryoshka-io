@@ -10,7 +10,7 @@ Every Matryoshka design starts with one question: **who owns this item right now
 
 Not what data it holds, not which thread touches it — just who owns it.
 
-Ownership must be visible at the call site. If you need to read the implementation to
+Ownership must be visible at the call site. If you need to read the implementation to  
 know who owns an item, the design is wrong.
 
 ```text
@@ -43,7 +43,7 @@ User object                      Infrastructure sees
 
 ## Handle — a pointer to the marker
 
-A handle is what Matryoshka actually moves: a pointer to the embedded `PolyNode`, never
+A handle is what Matryoshka actually moves: a pointer to the embedded `PolyNode`, never  
 the object itself.
 
 - One handle, one object.
@@ -67,12 +67,12 @@ Given a handle, you can identify the object it came from and cast back to it:
 - without virtual dispatch
 - with one runtime check (a tag comparison), not a chain of them
 
-That is the whole ownership atom. Everything else in Matryoshka — Mailbox, Pool,
+That is the whole ownership atom. Everything else in Matryoshka — Mailbox, Pool,  
 Master — moves handles like this one, never the items directly.
 
 ---
 
 Next: [Mailbox](mailbox.md) — how a handle moves from one owner to another.
 
-See also: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md) for the actual
+See also: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md) for the actual  
 Zig types and functions.

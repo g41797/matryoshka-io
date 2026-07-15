@@ -40,7 +40,7 @@ Matryoshka's premise: the object already exists somewhere.
 create it → send it → receive it → reuse it or free it
 ```
 
-A Mailbox never creates storage, never owns capacity. It only moves a handle from one
+A Mailbox never creates storage, never owns capacity. It only moves a handle from one  
 holder to another — a narrower job than a queue's.
 
 ## Pool becomes the backpressure mechanism instead
@@ -70,7 +70,7 @@ Allocator   memory
 Master      scheduling, application policy
 ```
 
-A `TypeErasedQueue` bundles synchronization, storage, capacity, and allocation policy
+A `TypeErasedQueue` bundles synchronization, storage, capacity, and allocation policy  
 into one type. Matryoshka splits them — each piece has exactly one job.
 
 ## What's still worth borrowing
@@ -83,13 +83,13 @@ Implementation techniques, not architecture:
 - cancellation-safe waiter handling
 - fairness under heavy contention
 
-None of these require adopting bounded capacity, waiting-producer lists, or embedded
-storage — the parts of `TypeErasedQueue`'s design that solve a different problem than
+None of these require adopting bounded capacity, waiting-producer lists, or embedded  
+storage — the parts of `TypeErasedQueue`'s design that solve a different problem than  
 Mailbox solves.
 
 ## Mailbox is not really a queue
 
-Internally, a Mailbox uses `std.DoublyLinkedList` — an implementation detail, not the
+Internally, a Mailbox uses `std.DoublyLinkedList` — an implementation detail, not the  
 architecture. The API reflects the real job:
 
 ```zig
@@ -104,5 +104,5 @@ enqueue(...)
 dequeue(...)
 ```
 
-A queue stores values. A Mailbox moves the object that already exists from one holder to
+A queue stores values. A Mailbox moves the object that already exists from one holder to  
 the next.

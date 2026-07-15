@@ -4,7 +4,7 @@ Extracted from `task1-scenarios-001.md`. Scenario numbers preserved.
 
 Tests check implementation: correctness, edge cases, error paths, state transitions, contract violations.
 
-Master, Cancel, Futures, Io.Group, and subsystem coordination
+Master, Cancel, Futures, Io.Group, and subsystem coordination  
 are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ---

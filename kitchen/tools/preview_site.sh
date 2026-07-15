@@ -17,6 +17,7 @@ fi
 bash "$TOOLS_DIR/docs_zig.sh"
 bash "$TOOLS_DIR/gen_examples_docs.sh"
 bash "$TOOLS_DIR/fix_md_lists.sh"
+bash "$TOOLS_DIR/fix_md_hardbreaks.sh"
 
 echo "--- Starting MkDocs site ---"
 echo "Preview: http://localhost:8000"

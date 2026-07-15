@@ -2,7 +2,7 @@
 
 > Function descriptions in this reference serve as the source for `///` Zig doc comments in the implementation.
 
-Matryoshka is a small infrastructure toolkit.
+Matryoshka is a small infrastructure toolkit.  
 It provides three independent building blocks:
 
 - **polynode** — type identity
@@ -18,7 +18,7 @@ Applications combine these blocks to create:
 
 Every object follows the same rule: one place, one state, at any moment.
 
-Matryoshka moves handles from one place to another.
+Matryoshka moves handles from one place to another.  
 Everything transported is a `ItemHandle` (`*PolyNode`):
 - events
 - requests
@@ -138,7 +138,7 @@ Every PolyNode-based type needs four things:
 - A way to check the tag before casting.
 - A way to cast from `*PolyNode` back to `*YourType`.
 
-This section builds each piece manually. Understanding this is the foundation
+This section builds each piece manually. Understanding this is the foundation  
 for everything in Matryoshka.
 
 ---
@@ -170,14 +170,14 @@ Event instance
 +---------------------------+
 ```
 
-Why: Matryoshka never sees `Event`. It only sees `*PolyNode`.
+Why: Matryoshka never sees `Event`. It only sees `*PolyNode`.  
 The `poly` field is the bridge between your type and the infrastructure.
 
 ---
 
 #### Step 2 — Create a unique tag
 
-A tag is just an address. Two different variables have two different addresses.
+A tag is just an address. Two different variables have two different addresses.  
 Same variable always has the same address.
 
 ```zig
@@ -185,10 +185,10 @@ var _event_tag: PolyTag = .{};
 pub const EVENT_TAG: *const anyopaque = &_event_tag;
 ```
 
-Why `var` not `const`: a mutable global has a guaranteed unique runtime address.
+Why `var` not `const`: a mutable global has a guaranteed unique runtime address.  
 `const` may be deduplicated by the linker.
 
-Why it's unique: each `var` declaration occupies its own memory location.
+Why it's unique: each `var` declaration occupies its own memory location.  
 `&_event_tag` is that location's address. No two `var` declarations share an address.
 
 ```text
@@ -226,7 +226,7 @@ Event                           Event
 +------------------+            +------------------+
 ```
 
-Why: the tag is how you identify what type a `*PolyNode` points into.
+Why: the tag is how you identify what type a `*PolyNode` points into.  
 Without it, you cannot safely cast.
 
 ---
@@ -255,7 +255,7 @@ ev: Event                        poly: *PolyNode
 
 #### Step 5 — Check the tag before casting
 
-You have a `*PolyNode`. You need to know what it points into.
+You have a `*PolyNode`. You need to know what it points into.  
 Compare the tag:
 
 ```zig
@@ -264,8 +264,8 @@ if (poly.tag == EVENT_TAG) {
 }
 ```
 
-Why check first: `@fieldParentPtr` does not validate anything.
-If you cast a Sensor's PolyNode to `*Event`, you get garbage.
+Why check first: `@fieldParentPtr` does not validate anything.  
+If you cast a Sensor's PolyNode to `*Event`, you get garbage.  
 The tag check is the only runtime safety you have.
 
 ```text
@@ -301,15 +301,15 @@ poly: *PolyNode
 recovered: *Event      <-- @fieldParentPtr subtracts the field offset
 ```
 
-The field name `"poly"` is validated at compile time.
-The offset calculation is done at compile time.
+The field name `"poly"` is validated at compile time.  
+The offset calculation is done at compile time.  
 Runtime cost: one pointer subtraction.
 
 ---
 
 #### Step 7 — Two-level recovery (from list node)
 
-Inside a mailbox or pool, items are linked via `std.DoublyLinkedList`.
+Inside a mailbox or pool, items are linked via `std.DoublyLinkedList`.  
 The list operates on `*DoublyLinkedList.Node`, not `*PolyNode`.
 
 Recovery is two steps:
@@ -384,7 +384,7 @@ This works. But every type needs the same boilerplate:
 
 ### PolyHelper — all of the above, generated
 
-`PolyHelper` generates the tag, check, identification functions, and init for any PolyNode type.
+`PolyHelper` generates the tag, check, identification functions, and init for any PolyNode type.  
 One call replaces all the manual boilerplate.
 
 ```zig
@@ -488,7 +488,7 @@ See `examples/items/` for the pattern.
 
 ### PolyHelper — create and destroy
 
-These two functions exist only when `T` does not declare `no_create_destroy`.
+These two functions exist only when `T` does not declare `no_create_destroy`.  
 They collapse the three-step alloc+init+slot pattern into one call.
 
 ```zig
@@ -537,8 +537,8 @@ const no_create_destroy = void{};
 
 If `T` declares this field, `PolyHelper(T)` generates only: `TAG`, `isIt`, `identifyNodeAs`, `mustIdentifyNodeAs`, `identifySlotAs`, `mustIdentifySlotAs`, `init`.
 
-Infrastructure types (`_Mailbox`, `_Pool`) declare `no_create_destroy`.
-They manage their own lifecycle.
+Infrastructure types (`_Mailbox`, `_Pool`) declare `no_create_destroy`.  
+They manage their own lifecycle.  
 Generating `create`/`destroy` for them would be wrong.
 
 ```text
@@ -619,7 +619,7 @@ mailbox.receive(mbh, &slot, null)   Receiver holds ItemHandle
 pub const MailboxHandle = ItemHandle;
 ```
 
-MailboxHandle is itself a *PolyNode.
+MailboxHandle is itself a *PolyNode.  
 A mailbox can be:
 - sent through another mailbox
 - stored in pools
@@ -774,7 +774,7 @@ pub fn receive_future(mbh: MailboxHandle, timeout_ns: ?u64) ConcurrentError!Io.F
 
 #### When to use
 
-**`select.concurrent` pattern** (primary):
+**`select.concurrent` pattern** (primary):  
 ```zig
 try select.concurrent(.inbox, mailbox.receiveResult, .{mbh, null});
 const event = try select.await();
@@ -784,7 +784,7 @@ switch (event) {
 }
 ```
 
-**`receive_future` pattern** (direct await or Group):
+**`receive_future` pattern** (direct await or Group):  
 ```zig
 const fut = try mailbox.receive_future(mbh, null);
 const result = try fut.await(io);
@@ -871,7 +871,7 @@ FREE
 pub const PoolHandle = ItemHandle;
 ```
 
-PoolHandle is itself a *PolyNode.
+PoolHandle is itself a *PolyNode.  
 A pool can be:
 - sent through a mailbox
 - embedded into larger structures
@@ -1122,10 +1122,10 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
 
 ## Tag identity — class, not instance
 
-`PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.
+`PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.  
 `TAG` is a pointer to that static — the same address for every instance of `T`.
 
-Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is this a T?"**
+Tag dispatch (`is_it_you`, `isIt`, `identifyNodeAs`) answers one question: **"is this a T?"**  
 It does not answer: "which T?" or "what role does this T play?"
 
 For user-defined types (Event, Sensor, etc.):
@@ -1144,7 +1144,7 @@ For infra handles (MailboxHandle, PoolHandle):
 
 **Worker-finish-signal pattern**
 
-Master creates `worker_mbh`, spawns a worker via `io.concurrent` and passes `worker_mbh` as parameter.
+Master creates `worker_mbh`, spawns a worker via `io.concurrent` and passes `worker_mbh` as parameter.  
 Worker processes items until a shutdown signal, then:
 - Sends `worker_mbh` back to master's inbox (unclosed) as the finish signal.
 - Exits.
@@ -1169,7 +1169,7 @@ const WorkerInbox = struct {
 pub const WorkerInboxPolyHelper = polynode.PolyHelper(WorkerInbox);
 ```
 
-`WorkerInboxPolyHelper.TAG` is distinct from `MailboxPolyHelper.TAG`.
+`WorkerInboxPolyHelper.TAG` is distinct from `MailboxPolyHelper.TAG`.  
 The receiver dispatches on `WorkerInboxPolyHelper.TAG` and finds the embedded handle.
 
 ---
@@ -1200,7 +1200,7 @@ Every acquisition API has this check:
 std.debug.assert(slot.* == null);
 ```
 
-Overwriting a non-null slot would lose the previous item with no error signal.
+Overwriting a non-null slot would lose the previous item with no error signal.  
 The assert catches this immediately.
 
 ### Why cleanup operations accept null
@@ -1264,8 +1264,8 @@ Code order:                      Execution when acquire fails:
 
 ## Cooperative cleanup patterns
 
-These patterns follow from the slot rule.
-Place cleanup before acquisition.
+These patterns follow from the slot rule.  
+Place cleanup before acquisition.  
 The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.
 
 ### Pattern 1 — defer-put-early (pool item)
@@ -1281,7 +1281,7 @@ try pool.get(ph, TAG, .new_only, &slot);
 
 Put before get — safe because pool.put is a no-op on null.
 
-If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains
+If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains  
 held). Add a fallback destroy to avoid a leak:
 
 ```zig
@@ -1348,7 +1348,7 @@ Pattern 1 (pool item)            Pattern 2 (heap item)
 
 ### No raw allocator calls on PolyNode-based types
 
-In examples and tests, never use `allocator.create` / `allocator.destroy` directly on
+In examples and tests, never use `allocator.create` / `allocator.destroy` directly on  
 PolyNode-based user types (Event, Sensor, Timer, ShutdownCommand).
 
 Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot` instead.
@@ -1397,12 +1397,12 @@ pub const pool = @import("pool.zig");
 
 ## Master (Layer 4) — intentionally not part of the API
 
-No `master` module.
-No `Master` struct.
+No `master` module.  
+No `Master` struct.  
 By design.
 
-Io creates tasks through `io.concurrent()`.
-Master is an Io task that follows the Matryoshka rules — the coordination boundary.
+Io creates tasks through `io.concurrent()`.  
+Master is an Io task that follows the Matryoshka rules — the coordination boundary.  
 It holds and composes the lower layers.
 
 Applications build Masters from:
@@ -1428,7 +1428,7 @@ PolyNode + Mailbox + Pool            transport + lifecycle
 PolyNode + Mailbox + Pool + Io.Select   full stack
 ```
 
-A Master may be:
+A Master may be:  
 ```zig
 const Server = struct { inbox: mailbox.MailboxHandle, pool: pool.PoolHandle, ... };
 const Scheduler = struct { pool: pool.PoolHandle, ... };  // no mailbox
@@ -1436,7 +1436,7 @@ const Pipeline = struct { stages: [3]mailbox.MailboxHandle, ... };
 fn main(init: std.process.Init) !void { ... }
 ```
 
-Matryoshka provides the building blocks.
+Matryoshka provides the building blocks.  
 The application assembles them.
 
 ### Io backend for Layer 4 tests and examples
@@ -1500,14 +1500,14 @@ Matryoshka plugs into the same pattern:
 
 ## Cancel model
 
-Only functions that wait on a condition can be canceled.
+Only functions that wait on a condition can be canceled.  
 Everything else runs to completion.
 
 - A waiting function blocks until a handle becomes available or a timeout expires.
 - While waiting, the runtime can cancel the operation. The function returns `error.Canceled`.
 - All other functions do their work and return. They cannot be canceled.
 
-A function is cancelable if and only if its return type includes `Cancelable` in the error union.
+A function is cancelable if and only if its return type includes `Cancelable` in the error union.  
 The signature is the single source of truth.
 
 ## Cancel contract summary
@@ -1616,7 +1616,7 @@ Cancellation never closes the mailbox or pool. Closing is the caller's responsib
 
 ## Contract violations
 
-Programming errors.
+Programming errors.  
 Checked via `std.debug.assert`:
 - Active in Debug and ReleaseSafe.
 - Removed in ReleaseFast and ReleaseSmall.
@@ -1698,7 +1698,7 @@ Valid combinations:
 
 ## Addendums
 
-Generic `std.Io` runtime material — not matryoshka-specific. Read this section first if
+Generic `std.Io` runtime material — not matryoshka-specific. Read this section first if  
 you are new to `std.Io`; the sections above assume it.
 
 ---
@@ -1716,7 +1716,7 @@ Zig 0.16 provides `std.Io` — the runtime's interface for concurrent and I/O op
 
 #### Event sources
 
-An event source is a blocking function passed to `select.concurrent`. When it returns,
+An event source is a blocking function passed to `select.concurrent`. When it returns,  
 the result is wrapped in the Select union and placed in the internal queue.
 
 Two patterns for producing Select events:

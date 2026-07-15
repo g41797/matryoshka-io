@@ -1,9 +1,9 @@
 # Task 1 — Example Scenarios for Layers 1–3 (003)
 
-Index only. Full staccato description lives in each source file's `///` doc comment,
+Index only. Full staccato description lives in each source file's `///` doc comment,  
 per "Description as code" in [rules-009.md](rules-009.md).
 
-Master, Cancel, Futures, Io.Group, and subsystem coordination
+Master, Cancel, Futures, Io.Group, and subsystem coordination  
 are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ---
@@ -44,7 +44,7 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ## Layer 4 — Infra as Items
 
-Infra handles (MailboxHandle, PoolHandle) are PolyNodes and can be transported as items.
+Infra handles (MailboxHandle, PoolHandle) are PolyNodes and can be transported as items.  
 Tag dispatch confirms class. Pointer comparison identifies instance. Role is established by protocol.
 
 95. **Worker finish signal via mailbox return** → [examples/layer4/095-mailbox_as_item.zig](../examples/layer4/095-mailbox_as_item.zig)

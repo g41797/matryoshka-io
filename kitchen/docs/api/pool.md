@@ -49,7 +49,7 @@ FREE
 pub const PoolHandle = ItemHandle;
 ```
 
-PoolHandle is itself a *PolyNode.
+PoolHandle is itself a *PolyNode.  
 A pool can be:
 
 - sent through a mailbox
@@ -185,10 +185,10 @@ pub fn put(ph: PoolHandle, slot: *Slot) void
   - `pool.is_it_you(ph.*.tag)`
   - `!polynode.is_linked(slot.*)`
 
-**No sequence guarantee.** A call pattern like "put three times, then get
-three times" carries no fixed count, identity, or ordering guarantee — it
-depends entirely on hook policy. This repo's own example hooks
-(`examples/hooks/`) reset to default values on `put`, but that's our
+**No sequence guarantee.** A call pattern like "put three times, then get  
+three times" carries no fixed count, identity, or ordering guarantee — it  
+depends entirely on hook policy. This repo's own example hooks  
+(`examples/hooks/`) reset to default values on `put`, but that's our  
 examples' convention, not a matryoshka rule.
 
 ```zig

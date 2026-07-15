@@ -14,9 +14,9 @@ Change from patterns-011:
 - API 4 renamed `NodeHandle` → `ItemHandle` — the old name leaked the intrusive-node implementation detail.
 - No pattern content changed, wording only.
 
-One unified catalog. Every pattern and idiom appears once, in logical order.
-Companion: [rules-024.md](rules-024.md) — what is mandatory.
-Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.
+One unified catalog. Every pattern and idiom appears once, in logical order.  
+Companion: [rules-024.md](rules-024.md) — what is mandatory.  
+Companion: [matryoshka-model-003.md](matryoshka-model-003.md) — the thinking model.  
 Companion: [matryoshka-api-reference-025.md](matryoshka-api-reference-025.md) — signatures and contracts.
 
 How this doc differs from rules.
@@ -30,7 +30,7 @@ How to use it.
 - Copy the code shape. Adapt names to your domain.
 - Open the referenced example for the full working version.
 
-Each entry lists: name, when to use, code shape, example reference.
+Each entry lists: name, when to use, code shape, example reference.  
 Every example path is under `examples/` or `stories/`.
 
 Order of this catalog.
@@ -51,7 +51,7 @@ The slot rule in full: [api-reference — Slot-based programming](matryoshka-api
 When to use.
 - Every ownership acquisition.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 ```
@@ -65,7 +65,7 @@ Why.
 When to use.
 - Before every receive/get/create operation.
 
-Code shape.
+Code shape.  
 ```zig
 std.debug.assert(slot.* == null);
 ```
@@ -80,7 +80,7 @@ Why.
 When to use.
 - Every ownership transfer.
 
-Code shape.
+Code shape.  
 ```zig
 try mailbox.send(mbh, &slot);
 // slot == null
@@ -103,7 +103,7 @@ Why.
 When to use.
 - Every deferred cleanup.
 
-Code shape.
+Code shape.  
 ```zig
 defer pool.put(ph, &slot);
 ```
@@ -123,7 +123,7 @@ Why.
 When to use.
 - Acquiring a pool item. The defer goes before the get.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer pool.put(ph, &slot);              // no-op if slot == null
@@ -144,7 +144,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 When to use.
 - Creating a heap item. The defer goes before the create.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer EventPolyHelper.destroy(allocator, &slot);   // no-op if slot == null
@@ -161,7 +161,7 @@ Example: `examples/layer2/097-wake_up_all.zig`.
 When to use.
 - Receiving into a slot. Cleanup must cover both the error path and the normal path.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer if (slot) |poly| helpers.freeItem(poly, allocator);
@@ -177,7 +177,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 When to use.
 - Pool may already be closed when the item comes back.
 
-Code shape.
+Code shape.  
 ```zig
 defer EventPolyHelper.destroy(allocator, &slot);   // fallback: frees if pool.put left slot non-null
 defer pool.put(ph, &slot);                          // primary: recycles to pool (clears slot on success)
@@ -196,7 +196,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 When to use.
 - Every PolyNode-based user type (Event, Sensor, Timer, ShutdownCommand).
 
-Code shape.
+Code shape.  
 ```zig
 // WRONG — raw allocator on PolyNode-based type
 const ev = try alloc.create(Event);
@@ -211,7 +211,7 @@ Why.
 - `PolyHelper.create` sets the tag and initializes the node.
 - Raw `allocator.create` skips both. The object is unusable for dispatch.
 
-Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.
+Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.  
 Full list: [api-reference — No raw allocator calls](matryoshka-api-reference-025.md).
 
 ---
@@ -223,7 +223,7 @@ Full list: [api-reference — No raw allocator calls](matryoshka-api-reference-0
 When to use.
 - Every PolyNode-based user type, from first definition.
 
-Code shape.
+Code shape.  
 ```zig
 pub const Message = struct {
     poly: polynode.PolyNode = .{},
@@ -245,7 +245,7 @@ Example: `examples/layer1/021-define_type.zig`.
 When to use.
 - Every PolyNode type.
 
-Code shape.
+Code shape.  
 ```zig
 pub const EventPolyHelper =
     polynode.PolyHelper(Event);
@@ -261,7 +261,7 @@ Why.
 When to use.
 - Recovering a concrete type from a `*PolyNode` handle (e.g. an `ItemHandle` received from a mailbox or returned by a pool event source).
 
-Code shape.
+Code shape.  
 ```zig
 if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
     ...
@@ -277,7 +277,7 @@ Why.
 When to use.
 - After `create` or `get`, to access fields of the item in a Slot before sending or returning it.
 
-Code shape (assert non-null, known type).
+Code shape (assert non-null, known type).  
 ```zig
 var slot: Slot = null;
 defer EventPolyHelper.destroy(allocator, &slot);
@@ -286,7 +286,7 @@ EventPolyHelper.mustIdentifySlotAs(&slot).code = 42;
 try mailbox.send(mbh, &slot);
 ```
 
-Code shape (optional — type may vary).
+Code shape (optional — type may vary).  
 ```zig
 if (EventPolyHelper.identifySlotAs(&slot)) |ev| {
     ev.code = 42;
@@ -303,7 +303,7 @@ Why.
 When to use.
 - One mailbox or one list carries more than one item type. The receiver recovers the concrete type.
 
-Code shape.
+Code shape.  
 ```zig
 if (EventPolyHelper.identifyNodeAs(handle)) |ev| {
     // handle Event
@@ -323,7 +323,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/03
 When to use.
 - Runtime dispatch.
 
-Pattern.
+Pattern.  
 ```
 tag
     ↓
@@ -349,7 +349,7 @@ Details: [api-reference — Tag identity](matryoshka-api-reference-025.md).
 When to use.
 - Mailbox or Pool must participate in polymorphic dispatch by tag.
 
-Code shape.
+Code shape.  
 ```zig
 const WorkerInbox = struct {
     poly: PolyNode,
@@ -367,7 +367,7 @@ Why.
 When to use.
 - Returning ownership of communication endpoints.
 
-Pattern.
+Pattern.  
 ```
 Worker
     │
@@ -404,7 +404,7 @@ Details: [api-reference — Transporting infra handles](matryoshka-api-reference
 When to use.
 - Sharing lifecycle managers.
 
-Pattern.
+Pattern.  
 ```
 PoolHandle
     ↓
@@ -423,7 +423,7 @@ Why.
 When to use.
 - Non-blocking work loop.
 
-Code shape.
+Code shape.  
 ```zig
 if (try mailbox.try_receive(mbh, &slot)) {
     ...
@@ -435,7 +435,7 @@ if (try mailbox.try_receive(mbh, &slot)) {
 When to use.
 - Empty an entire mailbox in one call.
 
-Code shape.
+Code shape.  
 ```zig
 var list = try mailbox.receive_batch(mbh);
 
@@ -454,7 +454,7 @@ When to use.
 - Shutdown.
 - Urgent control messages.
 
-Code shape.
+Code shape.  
 ```zig
 try mailbox.send_oob(mbh, &slot);
 ```
@@ -468,7 +468,7 @@ Why.
 When to use.
 - Shutdown. Recover every queued object.
 
-Code shape.
+Code shape.  
 ```zig
 var list = mailbox.close(mbh);
 
@@ -487,7 +487,7 @@ When to use.
 - Re-check external state (a flag flipped outside the mailbox) without sending a real item.
 - Poke a Master blocked in `receive()` so it re-evaluates its loop condition.
 
-Code shape.
+Code shape.  
 ```zig
 shutdown.store(true, .release);
 try mailbox.wakeUpAll(mbh);
@@ -515,7 +515,7 @@ Example: `examples/layer2/097-wake_up_all.zig`.
 
 ## Topology patterns
 
-Recurring shapes for wiring mailboxes and workers together. Each is a composition of the
+Recurring shapes for wiring mailboxes and workers together. Each is a composition of the  
 Mailbox patterns above, not a new mechanism.
 
 ### Request-Response
@@ -523,7 +523,7 @@ Mailbox patterns above, not a new mechanism.
 When to use.
 - One side asks, the other answers, on two dedicated mailboxes.
 
-Pattern.
+Pattern.  
 ```
 main ──Event(request)──► req_mbh ──► worker
                                         │ process
@@ -542,7 +542,7 @@ Example: `examples/layer2/057-request_response.zig`, `examples/layer4/021-reques
 When to use.
 - A chain of stages, each transforming and forwarding.
 
-Pattern.
+Pattern.  
 ```
 producer ──Event──► stage1 ──► transformer ──Event──► stage2 ──► consumer
 ```
@@ -558,7 +558,7 @@ Example: `examples/layer2/056-pipeline.zig`, `examples/layer4/020-pipeline_maste
 When to use.
 - Several concurrent senders, one shared mailbox, one receiver.
 
-Pattern.
+Pattern.  
 ```
 sender A ──►
 sender B ──► mailbox ──receive_batch──► one receiver, dispatch by tag
@@ -576,7 +576,7 @@ Example: `examples/layer2/058-fan_in.zig`, `examples/layer4/053-pool_fan_in.zig`
 When to use.
 - Several worker threads compete for items on one shared mailbox.
 
-Pattern.
+Pattern.  
 ```
 main ──items──► mailbox ──► worker A
                        ├──► worker B   (compete; each item goes to exactly one)
@@ -598,7 +598,7 @@ Example: `examples/layer2/061-fan_out.zig`, `examples/layer4/054-pool_fan_out.zi
 When to use.
 - The common case: reuse a stored item if one is free, otherwise create a fresh one.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 defer pool.put(ph, &slot);
@@ -614,7 +614,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 When to use.
 - Seeding. You want a fresh item every time, never a stored one.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 try pool.get(ph, EventPolyHelper.TAG, .new_only, &slot);
@@ -630,7 +630,7 @@ When to use.
 - Consume what is stored. Stop when the pool is empty.
 - Empty pool returns `error.NotAvailable` — a normal end condition, not a failure.
 
-Code shape.
+Code shape.  
 ```zig
 var slot: Slot = null;
 pool.get(ph, EventPolyHelper.TAG, .available_only, &slot) catch |err| switch (err) {
@@ -646,7 +646,7 @@ Example: `examples/layer3/pool_seeding.zig`.
 When to use.
 - A fixed-size pool. Pool capacity is set once at startup, no on-demand creation.
 
-Code shape.
+Code shape.  
 ```zig
 for (0..N_BUFFERS) |_| {
     var slot: Slot = null;
@@ -666,7 +666,7 @@ When to use.
 - `on_get`: decide how an item is created or reinitialized.
 - `on_put`: decide whether a returned item is kept or destroyed (cap policy).
 
-Pattern.
+Pattern.  
 ```
 on_get
     ↓
@@ -678,7 +678,7 @@ on_put
 keep or destroy
 ```
 
-Code shape.
+Code shape.  
 ```zig
 fn onGet(_: *anyopaque, _: *const anyopaque, _: usize, _: *Slot) void {}        // fixed-size: never create
 fn onPut(_: *anyopaque, _: usize, _: *Slot) void {}                              // keep all
@@ -694,7 +694,7 @@ Example: `examples/layer3/capped_pool.zig` (cap policy), `examples/hooks/CappedP
 When to use.
 - Shared hook state.
 
-Code shape.
+Code shape.  
 ```zig
 lockUncancelable()
 
@@ -715,7 +715,7 @@ Example: `examples/hooks/CappedPoolHooks.zig`.
 When to use.
 - Free all stored items when the pool shuts down.
 
-Code shape.
+Code shape.  
 ```zig
 fn onClose(ctx: *anyopaque, list: *std.DoublyLinkedList) void {
     const self: *VideoBufCtx = @ptrCast(@alignCast(ctx));
@@ -737,7 +737,7 @@ Example: `examples/layer3/pool_teardown.zig`, `stories/video_transcoder/video_tr
 When to use.
 - Pool stores multiple object types.
 
-Pattern.
+Pattern.  
 ```
 Pool
  ├── Event
@@ -758,7 +758,7 @@ Why.
 When to use.
 - Only one asynchronous operation. No Select loop needed.
 
-Code shape.
+Code shape.  
 ```zig
 const future =
     try mailbox.receive_future(mbh, null);
@@ -772,7 +772,7 @@ const result =
 When to use.
 - Abort one asynchronous operation.
 
-Code shape.
+Code shape.  
 ```zig
 try future.cancel(io);
 ```
@@ -790,7 +790,7 @@ Why.
 When to use.
 - Wait on several sources at once: mailbox, pool, timer, external push.
 
-Code shape.
+Code shape.  
 ```zig
 var buf: [8]MasterEvent = undefined;
 var sel: std.Io.Select(MasterEvent) = std.Io.Select(MasterEvent).init(io, &buf);
@@ -818,7 +818,7 @@ Why.
 - Each registration produces exactly one completion.
 - Re-register the source after each item.
 
-The rhythm.
+The rhythm.  
 ```
 register
     ↓
@@ -836,7 +836,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`, `examples/layer4/02
 When to use.
 - Event-driven Master.
 
-Code shape.
+Code shape.  
 ```zig
 try select.concurrent(
     .mailbox,
@@ -850,7 +850,7 @@ try select.concurrent(
 When to use.
 - Wait for reusable items.
 
-Code shape.
+Code shape.  
 ```zig
 try select.concurrent(
     .pool,
@@ -864,7 +864,7 @@ try select.concurrent(
 When to use.
 - One loop coordinates everything.
 
-Pattern.
+Pattern.  
 ```
 Mailbox
 Pool
@@ -884,7 +884,7 @@ When to use.
 - A producer must slow down when no buffers are free.
 - Pool availability becomes an event source in the same loop as data.
 
-Code shape.
+Code shape.  
 ```zig
 try sel.concurrent(.buf_ev, pool.getWaitResult, .{ buf_ph, VideoBufferPolyHelper.TAG, null });
 // ...
@@ -910,7 +910,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 When to use.
 - A result is already available, or an external thread or callback must inject one without spawning.
 
-Code shape.
+Code shape.  
 ```zig
 select.queue.putOneUncancelable(select.io, .{ .field = value }) catch {};
 ```
@@ -922,7 +922,7 @@ Example: `examples/layer4/043-select_direct_push.zig`.
 When to use.
 - Shutting down a Select loop. Spawned sources may still hold items. None must leak.
 
-Code shape.
+Code shape.  
 ```zig
 while (sel.cancel()) |event| {
     switch (event) {
@@ -952,7 +952,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 When to use.
 - The remaining spawned sources carry no owned item (e.g. a timer). Discard them.
 
-Code shape.
+Code shape.  
 ```zig
 sel.cancelDiscard();
 ```
@@ -969,7 +969,7 @@ When to use.
 - Run several workers. Wait for all to finish.
 - Spawn now, await later — the spawn does not block.
 
-Code shape.
+Code shape.  
 ```zig
 var group: Io.Group = .init;
 try group.concurrent(io, workerFn, .{&ctx0});
@@ -986,7 +986,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 When to use.
 - Multiple execution rounds.
 
-Pattern.
+Pattern.  
 ```
 spawn
 await
@@ -1003,7 +1003,7 @@ Why.
 When to use.
 - Stop a Group of workers that block on `mailbox.receive`.
 
-Code shape.
+Code shape.  
 ```zig
 // workers exit when receive returns error.Closed
 var rem: std.DoublyLinkedList = mailbox.close(ready_queue);
@@ -1020,7 +1020,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 When to use.
 - Stop a Group of workers that block on `pool.get_wait`, with no mailbox to close.
 
-Code shape.
+Code shape.  
 ```zig
 group.cancel(io);   // injects error.Canceled into all blocked workers, then waits
 ```
@@ -1055,7 +1055,7 @@ Everything else completes normally.
 When to use.
 - Recovering after cancellation.
 
-Pattern.
+Pattern.  
 ```
 Canceled
     ↓
@@ -1066,7 +1066,7 @@ resource still owned by mailbox/pool
 
 ### Close versus Cancel
 
-Pattern.
+Pattern.  
 ```
 Close
     ↓
@@ -1084,7 +1084,7 @@ Never substitute one for the other.
 When to use.
 - A worker blocks on `mailbox.receive` or `pool.get_wait` and must react to each outcome.
 
-Code shape.
+Code shape.  
 ```zig
 mailbox.receive(ctx.mbh, &slot, null) catch |err| switch (err) {
     error.Canceled => return error.Canceled,   // report up — Master decides
@@ -1125,7 +1125,7 @@ Why this order.
 - Await workers before closing the pool, or a worker returns an item to a closed pool.
 - A pool returns the item to the caller when closed — the worker must free it as a fallback.
 
-Code shape (worker fallback for closed pool).
+Code shape (worker fallback for closed pool).  
 ```zig
 pool.put(ctx.buf_ph, &sc.buffer_slot);
 if (sc.buffer_slot != null) {
@@ -1142,7 +1142,7 @@ When to use.
 - Simpler than the close-based sequence above when there is only one worker and no pool to
   empty in lockstep.
 
-Pattern.
+Pattern.  
 ```
 main ──Event×N──► mailbox ──► worker (processes, frees each)
 main ──ShutdownCommand──► mailbox ──► worker (recognizes tag, exits, frees it)
@@ -1170,7 +1170,7 @@ Concrete templates for the "Observable by human" MUST rule. See [rules-024.md](r
 When to use.
 - Any function that sequences discrete steps: `pub fn run`, a Master's `run`, any sequencing method.
 
-Code shape.
+Code shape.  
 ```zig
 fn run(self: *Master) !void {
     try self.seedResources();
@@ -1192,7 +1192,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 When to use.
 - Any function that implements one discrete phase of the coordinator.
 
-Code shape.
+Code shape.  
 ```zig
 fn seedResources(self: *Master) !void {
     for (0..N) |i| {
@@ -1216,7 +1216,7 @@ Example: `examples/layer4/031-select_graceful_shutdown.zig`.
 When to use.
 - Allocating a Master struct and acquiring its resources.
 
-Code shape.
+Code shape.  
 ```zig
 fn init(allocator: std.mem.Allocator, io: std.Io) !*Master {
     const self = try allocator.create(Master);
@@ -1245,7 +1245,7 @@ Example: `examples/layer4/018-master_with_pool.zig`.
 When to use.
 - Releasing a Master struct and its resources.
 
-Code shape.
+Code shape.  
 ```zig
 fn destroy(self: *Master) void {
     var rem: std.DoublyLinkedList = mailbox.close(self.mbh);
@@ -1270,10 +1270,10 @@ When to use.
 Rule.
 - The spawned function receives `*Master` (or a small `*Ctx`) directly as its argument.
 - It keeps no other thread-local bookkeeping — the thread's own stack holds no separate
-  ITC state to track and free later. The Master struct (heap-allocated, see Init above) is
+  ITC state to track and free later. The Master struct (heap-allocated, see Init above) is  
   the single source of truth, reachable through the one pointer the thread was given.
 
-Code shape.
+Code shape.  
 ```zig
 var ctx: WorkerCtx = .{ .mbh = mbh, .alloc = allocator };
 var fut = try io.concurrent(workerFn, .{&ctx});
@@ -1301,7 +1301,7 @@ When to use.
 - `buf` and `sel` are declared at coordinator scope; passed as `*Sel` (transient) to step functions.
 - Use when the file has 1-2 coordinator-scope params (explicit passing) or 3+ params (introduce a local Ctx struct).
 
-Code shape (explicit params, 1-2 shared values).
+Code shape (explicit params, 1-2 shared values).  
 ```zig
 const Sel = std.Io.Select(MasterEvent);
 
@@ -1346,7 +1346,7 @@ fn runEventLoop(ph: PoolHandle, io: std.Io, sel: *Sel) !void {
 }
 ```
 
-Code shape (3+ shared values — local Ctx struct, stack-allocated).
+Code shape (3+ shared values — local Ctx struct, stack-allocated).  
 ```zig
 const Ctx = struct {
     mbh: MailboxHandle,
@@ -1384,7 +1384,7 @@ When to use.
 - A flat `pub fn run` that spawns concurrent workers (`io.concurrent`, `group.concurrent`) and awaits them.
 - The spawn block and the await block together form one named step.
 
-Code shape (single spawn+await step).
+Code shape (single spawn+await step).  
 ```zig
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     const mbh: MailboxHandle = try mailbox.new(io, allocator);
@@ -1407,7 +1407,7 @@ fn spawnAndAwaitWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io
 }
 ```
 
-Code shape (separate spawn and await steps).
+Code shape (separate spawn and await steps).  
 ```zig
 fn spawnWorkers(mbh: MailboxHandle, alloc: std.mem.Allocator, io: std.Io, group: *std.Io.Group) !void {
     for (0..N_WORKERS) |i| {
@@ -1443,7 +1443,7 @@ Two Masters in the pilot story.
 - Worker set — an `Io.Group`. Each worker receives a `StreamContext`, encodes, returns the buffer to the pool, sends an `EncodedSegment` to storage.
 - Storage task — a single-mailbox loop. Receives `EncodedSegment`, logs, frees.
 
-Code shape (thin run).
+Code shape (thin run).  
 ```zig
 pub fn run(allocator: std.mem.Allocator, io: std.Io) !void {
     // 1. initialize shared resources: pool, mailboxes
@@ -1462,7 +1462,7 @@ Example: `stories/video_transcoder/video_transcoder.zig`.
 When to use.
 - Separate lifecycle from transport.
 
-Pattern.
+Pattern.  
 ```
 Pool
    │
@@ -1477,7 +1477,7 @@ Mailbox
 
 ### Full Layer-4 architecture
 
-Pattern.
+Pattern.  
 ```
           Io.Select
                │

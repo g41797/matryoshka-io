@@ -1,6 +1,6 @@
 # Building Blocks
 
-Four ideas, named and diagrammed. No Zig syntax yet — see
+Four ideas, named and diagrammed. No Zig syntax yet — see  
 [API Reference](../api/polynode.md) once you want to write code.
 
 - [PolyNode](polynode.md) — everything exchanged.

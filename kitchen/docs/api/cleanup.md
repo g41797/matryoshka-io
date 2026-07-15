@@ -1,7 +1,7 @@
 # API Reference — Cooperative Cleanup
 
-These patterns follow from the slot rule.
-Place cleanup before acquisition.
+These patterns follow from the slot rule.  
+Place cleanup before acquisition.  
 The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.
 
 ## Pattern 1 — defer-put-early (pool item)
@@ -17,7 +17,7 @@ try pool.get(ph, TAG, .new_only, &slot);
 
 Put before get — safe because pool.put is a no-op on null.
 
-If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains
+If the pool may be closed while the item is held, pool.put leaves slot non-null (caller retains  
 held). Add a fallback destroy to avoid a leak:
 
 ```zig
@@ -84,7 +84,7 @@ Pattern 1 (pool item)            Pattern 2 (heap item)
 
 ## No raw allocator calls on PolyNode-based types
 
-In examples and tests, never use `allocator.create` / `allocator.destroy` directly on
+In examples and tests, never use `allocator.create` / `allocator.destroy` directly on  
 PolyNode-based user types (Event, Sensor, Timer, ShutdownCommand).
 
 Use `PolyHelper.create`, `PolyHelper.destroy`, or `helpers.freeSlot` instead.

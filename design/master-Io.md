@@ -25,8 +25,8 @@ Or, mapped to capabilities rather than specific APIs:
 | Async operation completion | Completion event            |
 | Custom integration         | Custom event source         |
 
-The key idea is that **Io doesn't change the computational model**. It simply provides additional ways for a Master to receive messages.
-
+The key idea is that **Io doesn't change the computational model**. It simply provides additional ways for a Master to receive messages.  
+  
 In other words:
 
 > Everything that happens in the system eventually becomes a message delivered to a Master's mailbox.

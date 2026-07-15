@@ -35,7 +35,7 @@ Every design starts with one question: **who owns this item right now?**
 
 ## Mailbox — how ownership moves
 
-A mailbox routes state, not data: an object that carries state moves between
+A mailbox routes state, not data: an object that carries state moves between  
 owners, rather than a copy of its bytes being handed around.
 
 - One owner at a time means no mutex during processing.
@@ -44,20 +44,20 @@ owners, rather than a copy of its bytes being handed around.
 
 ## Pool — reuse and backpressure
 
-`pool.get` returns a resource: an empty, reusable container. Whatever the
-previous owner wrote has already been consumed or reset — the container
+`pool.get` returns a resource: an empty, reusable container. Whatever the  
+previous owner wrote has already been consumed or reset — the container  
 carries no work intent on its own.
 
 - A pool resource alone never defines a complete pattern. To do useful work
-  a worker also needs at least one other input: a mailbox message, a
+  a worker also needs at least one other input: a mailbox message, a  
   network read, a timer tick, shared state.
 
 - An empty pool is not just an error condition — it is a backpressure
-  signal. `pool.getWaitResult` inside `Io.Select` makes availability a
+  signal. `pool.getWaitResult` inside `Io.Select` makes availability a  
   first-class event source.
 
 - One loop handles data and buffer availability together. No sleep, no
-  poll, no explicit backpressure code — when a worker returns an item, the
+  poll, no explicit backpressure code — when a worker returns an item, the  
   pool wakes the waiter.
 
 ## Master — an Io task, not a struct you must define
@@ -66,8 +66,8 @@ carries no work intent on its own.
 - A Master is an Io task that follows the Matryoshka rules.
 - Not a struct you must define.
 
-A worker is simply a Master with one dedicated responsibility — it
-owns its mailbox, its private state, its execution, and it may coordinate
+A worker is simply a Master with one dedicated responsibility — it  
+owns its mailbox, its private state, its execution, and it may coordinate  
 nobody and own no shared resources. It is still a Master.
 
 - Any `Io.Select` loop is a Master. It is where startup order, shutdown
@@ -82,7 +82,7 @@ Two tiers for how much structure a Master needs:
   variables, short lifecycle. A plain function is enough.
 
 - **Allocated struct** — multiple phases with shared state between them, a
-  distinct init/work/shutdown lifecycle, or a `run` method that needs named
+  distinct init/work/shutdown lifecycle, or a `run` method that needs named  
   private steps to stay readable. Allocate the Master on the heap.
 
 Cancel and close are different signals a Master must tell apart:
@@ -104,6 +104,6 @@ Cancel and close are different signals a Master must tell apart:
 
 ## Next
 
-Further Building Blocks topics — Select event loops, spawn/await
-coordination, Master composition, pool patterns, API reference — are
+Further Building Blocks topics — Select event loops, spawn/await  
+coordination, Master composition, pool patterns, API reference — are  
 planned for later stages.

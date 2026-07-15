@@ -2,13 +2,13 @@
 
 Extracted from `task1-scenarios-001.md`. Scenario numbers preserved.
 
-Examples show real usage patterns, stress-test API in realistic composed ways.
+Examples show real usage patterns, stress-test API in realistic composed ways.  
 Each example has a test wrapper.
 
-All scenarios comply with the example completeness rule in [rules-002.md](rules-002.md):
+All scenarios comply with the example completeness rule in [rules-002.md](rules-002.md):  
 each example shows origin of work input, what the worker does, and where results go.
 
-Master, Cancel, Futures, Io.Group, and subsystem coordination
+Master, Cancel, Futures, Io.Group, and subsystem coordination  
 are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ---
@@ -49,7 +49,7 @@ are intentionally excluded. Layers 1–3 must be fully testable without them.
 
 ## Layer 4 — Infra as Items
 
-Infra handles (MailboxHandle, PoolHandle) are PolyNodes and can be transported as items.
+Infra handles (MailboxHandle, PoolHandle) are PolyNodes and can be transported as items.  
 Tag dispatch confirms class. Pointer comparison identifies instance. Role is established by protocol.
 
 95. **Worker finish signal via mailbox return** — Master creates `worker_mbh`, spawns a real thread (`std.Thread.spawn`). Master sends work items + ShutdownCommand sentinel to `worker_mbh`. Worker processes items; on sentinel, sends `worker_mbh` back to master's inbox (unclosed) and exits. Master receives the PolyNode: `mailbox.is_it_you` confirms class; `received == worker_mbh` confirms instance. Master closes and destroys `worker_mbh`, then joins the thread (OS cleanup only — the mailbox return was the logical finish signal).
