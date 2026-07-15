@@ -676,7 +676,8 @@ Rules:
 - Where a genuine intra-paragraph hard break is wanted (two lines that must
   stay in the same paragraph), the first line MUST end in two-or-more  
   trailing spaces.
-- List items, headings, blockquotes, table rows, and fenced code content
+- List items, headings, blockquotes, table rows, link/image reference
+  lines (badges, shields, footnote-style refs), and fenced code content  
   are exempt — a following non-blank line after these is normal Markdown  
   syntax, not a soft-break hazard.
 - Enforced by `kitchen/tools/fix_md_hardbreaks.sh`, wired into

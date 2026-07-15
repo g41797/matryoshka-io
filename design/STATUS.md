@@ -282,6 +282,13 @@ Verified against a scratch copy of `design/` + `kitchen/`: first run fixed
 content confirmed untouched (diagram in `matryoshka-architecture-003.md`  
 spot-checked byte-for-byte).
 
+Follow-up fix: owner caught that the script would have added trailing  
+spaces to `README.md`'s badge/shield lines (consecutive `[![...]](...)`  
+image links) — a following non-blank line after a link/image reference is  
+normal Markdown, not a soft-break hazard. Extended `is_special()` in  
+`fix_md_hardbreaks.sh` to also exempt any line starting with `[`, repo-wide.  
+Re-verified on a scratch copy: badge lines untouched, still idempotent.
+
 Documented the rule in `design/rules-025.md` (new version, replaces  
 rules-024.md) under a new "Markdown hard-break rule — MUST" section.  
 Updated `design/context.md` Rules/Plan pointers and `design/STATUS.md`  

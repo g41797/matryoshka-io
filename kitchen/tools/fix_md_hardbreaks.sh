@@ -9,10 +9,10 @@
 # wording changes. Idempotent — safe to re-run.
 #
 # Skips fenced code blocks (``` or ~~~). Does not touch list items,
-# headings, blockquotes, or table rows — a following non-blank line after
-# these is normal Markdown syntax, not a soft-break hazard. Does not touch
-# lines that are already blank or already end in two-or-more trailing
-# spaces.
+# headings, blockquotes, table rows, or link/image reference lines (badges,
+# shields, footnote-style refs) — a following non-blank line after these is
+# normal Markdown syntax, not a soft-break hazard. Does not touch lines that
+# are already blank or already end in two-or-more trailing spaces.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "$(readlink -f "$0")")/../.." && pwd)"
@@ -21,7 +21,7 @@ fix_one() {
     local f="$1"
     awk '
         function is_special(line) {
-            return (line ~ /^[[:space:]]*([-*+][[:space:]]|[0-9]+[.)][[:space:]]|#|>|\|)/)
+            return (line ~ /^[[:space:]]*([-*+][[:space:]]|[0-9]+[.)][[:space:]]|#|>|\||\[)/)
         }
         BEGIN { in_fence = 0 }
         {
