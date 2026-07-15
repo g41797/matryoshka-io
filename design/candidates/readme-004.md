@@ -3,113 +3,107 @@
 *A practical way to build concurrent software systems with Zig Io.*
 
 ---
-
 ## First rule
 
 > If you want to build a great software system,
 > start by building a software system.
 
-We know how to write Zig libraries.
+We know how to write Zig libraries.  
 
-We are still learning how to build Zig systems.
+We are still learning how to build Zig systems.  
+
+Especially after the introduction of `std.Io`.  
+
+---
+
+## Promise
+
+*They say,*
+
+> "Give someone a fish, and you feed them for a day.    
+> Teach them to fish, and you feed them for a lifetime."
+
+I can't teach you to fish.  
+
+But I can give you a fishing rod.  
+
+**Matryoshka-Io is that *fishing rod* for *building software systems*.**
 
 ---
 
 ## The problem
 
-Zig Io answers one question well: **when does work run?**
+Zig Io gives you excellent tools:
 
-It does not answer the questions that decide whether a system holds together:
+- Tasks.
+- Groups.
+- Futures.
+- Synchronization.
+- Cancellation.
+- Concurrency.
+- Async...
+- And much more.
 
-- Where are the boundaries?
-- Which part holds which state?
-- How do parts talk to each other?
-- Who controls a shared resource?
-- How do the parts combine into a system?
+There are many ways to combine them.  
 
-Without answers, concurrent code drifts.
+Matryoshka-Io takes a different approach.  
 
-Nobody clearly knows what runs in parallel.
+It removes choices:
 
-Parts depend on each other in hidden ways.
+- a small subset of Io
+- a few building blocks
+- a few rules
+- clear communication
+- manageable resource reuse
 
-The structure just happens — nobody chose it.
+The hard problems do not disappear.  
 
-Io does not prevent any of that. It runs it faster.
+But they become easier to discuss.  
 
-Matryoshka's promise is to make building Zig systems a little more **boring**.
+Because the system becomes **_visible_**.  
 
-Not slow. Not old. Just predictable — easy to understand, easy to change, easy to keep running.
-
----
-
-## Not another runtime
-
-Matryoshka is not another runtime.
-
-It is a way to organize Io tasks.
-
-Zig Io gives you an excellent foundation for concurrent execution.
-
-Matryoshka gives that execution a common language and a repeatable shape.
-
-- Io answers: **How do tasks run?**
-- Matryoshka answers: **How do tasks cooperate?**
-
-It does not replace Io. It uses it.
 
 ---
 
-## Design foundation
+## Four building blocks. One principle. Common language.
 
-Matryoshka is built around one concurrency principle:
-
-> **Share by communicating.**
-
-Instead of sharing access to an application object, pass the object itself.
-
-The object moves from one Master to another.
-
-At any moment, it is in exactly one place.
-
-This follows the principle described by Bryan C. Mills:
-
-> Share the thing by communicating the thing.
-
-The same idea applies to reusable resources.
-
-Resource limits are resources too.
-
----
-
-## Four concepts
-
-Every Matryoshka system is built from only four concepts.
+Every Matryoshka system is built from four building blocks:  
 
 - **Master** — execution
 - **Item** — state
 - **Mailbox** — communication
 - **Pool** — resource reuse
 
-Everything else is implementation.
+They all follow one principle:
+
+> **Share by communicating.**
+
+You stop talking about: 
+
+- tasks
+- futures
+- mutexes
+- queues
+
+You start talking about: 
+
+- Masters
+- Items
+- Mailboxes
+- Pools
 
 ### Master
 
-Zig creates concurrent tasks through `io.concurrent()`.
+A **Master** is 
 
-A **Master** is an Io task that follows the Matryoshka rules.
+- an _Threaded_ Io task
+- created by `_concurrent()_`
+- follows the Matryoshka rules
+- holds its own state
+- works with Items
+- communicate with another Masters and/or application
 
-Every Master is created by `io.concurrent()`.
 
-Not every Io task is a Master.
-
-A Master typically performs one responsibility.
-
-It holds its own state.
-
-It works with Items.
-
-A worker is simply a Master with one dedicated responsibility.
 
 ### Item
 
