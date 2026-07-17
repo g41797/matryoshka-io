@@ -34,11 +34,6 @@ nav:
   - Home: index.md
   - The Manifesto: manifesto.md
   - The Shape of a Real System: the-shape.md
-#  - Story — Print Server:
-#      - Discussion: story/print-server/discussion.md
-#      - Requirements: story/print-server/requirements.md
-#      - Matryoshka Translation: story/print-server/translation.md
-#      - Flow Diagram: story/print-server/flow.md
   - Building Blocks:
       - Overview: building-blocks/index.md
       - PolyNode: building-blocks/polynode.md
@@ -156,7 +151,7 @@ nav:
       - Slot vs Ref-Counting: addendums/slot-vs-ref-counting.md
       - Tag vs Tagged Union: addendums/tag-vs-tagged-union.md
       - Mailbox vs TypeErasedQueue: addendums/typeErasedQueue-vs-mailbox.md
-      - Matryoshka and Rethinking Patterns: addendums/matryoshka-and-rethinking.md
+      - Notation: addendums/matryoshka-io-notation.md
   - API Docs: api_reference.md
 
 plugins:

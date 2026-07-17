@@ -96,7 +96,7 @@ You start talking about:
 
 A **Master** is 
 
-- an _Threaded_ Io task
+- an _Threaded_ Io _task_
 - created by `_concurrent()_`
 - follows the Matryoshka rules
 - holds its own state
