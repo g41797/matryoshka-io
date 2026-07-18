@@ -165,46 +165,27 @@ syntax, and [API Reference](api/polynode.md) once you're ready to write code.
 
 ### Item vs ItemHandle and PolyNode
 
-Now it's time to talk about implementation:
-
 - Item is allocatable application object.  
 - Matryoshka-Io does not work with Items.  
 - It works with ItemHandles:  
 ```zig
 pub const ItemHandle = *PolyNode;
 ```
+You will learn internals later.    
 
-where PolyNode:   
-```zig
-pub const PolyNode = struct {
-    node: std.DoublyLinkedList.Node = .{},
-    tag: *const anyopaque = undefined,
-};
-```
+For now - just remember
 
-PolyNode allows:
+- Item - for application and/or master code
+- ItemHandle (actually address of PolyHandle) - for Matryoshka-Io
+     - PolyNode is embedded within every Item  
 
-- participation in intrusive containers - via node
-- simple run-time type identification - via tag
-
-Zig doesn't support _inheritance_, it support _composition_.
-
-Application object
-
-- in order to be Matryoshka-Io' Item  
-- should embed PolyNode within
-
-Given a `PolyNode`, you can identify the containing object:
-
-* without interfaces
-* without virtual dispatch
 
 ### Mailbox
 
 `Mailbox`:
 
-* transfers `ItemHandles`  between Masters
-* does not know or care about the concrete object type
+* transfers Items  between Masters
+* does not know or care about the concrete item type
 
 ### Pool
 
@@ -212,7 +193,7 @@ Given a `PolyNode`, you can identify the containing object:
 
 * creates new Items or gets them from available 
 * returns items for reuse instead of destroying them
-* does not know or care about the concrete object type
+* does not know or care about the concrete item type
 
 ### Together
 

@@ -1,5 +1,5 @@
 site_name: Be Master of your systems
-docs_dir: docs
+docs_dir: ./docs
 site_dir: ../docs
 site_description: Building Blocks for Modular Monoliths in Zig
 repo_url: https://github.com/g41797/Matryoshka-Io/
@@ -7,7 +7,7 @@ repo_name: Matryoshka-Io on GitHub
 
 theme:
   name: material
-  favicon: assets/favicon.png
+  favicon: assets/favicon-2.png
   icon:
     repo: fontawesome/brands/github
   palette:
@@ -34,7 +34,6 @@ theme:
 nav:
   - Home: index.md
   - The Manifesto: manifesto.md
-  - The Shape of a Real System: the-shape.md
   - Building Blocks:
       - Overview: building-blocks/index.md
       - PolyNode: building-blocks/polynode.md
@@ -153,7 +152,7 @@ nav:
       - Tag vs Tagged Union: addendums/tag-vs-tagged-union.md
       - Mailbox vs TypeErasedQueue: addendums/typeErasedQueue-vs-mailbox.md
       - Notation: addendums/matryoshka-io-notation.md
-  - API Docs: api_reference.md
+      - API Docs: api_reference.md
 
 plugins:
   - search
