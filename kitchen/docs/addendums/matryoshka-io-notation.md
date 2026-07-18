@@ -6,28 +6,34 @@
 
 # Why
 
-Matryoshka-Io is built around four architectural building blocks:
+Matryoshka-Io defines four architectural building blocks.
 
-- Master
-- Item
-- Mailbox
-- Pool
+* Master
+* Item
+* Mailbox
+* Pool
 
-The same architecture deserves a simple visual language.
+The notation gives them a common visual language.
 
-The notation is intentionally small.
+It is intentionally small.
 
 It should work equally well in
 
-- README files
-- Markdown
-- whiteboards
-- presentations
-- code comments
+* README files
+* Markdown
+* whiteboards
+* presentations
+* code comments
 
-The goal is simple:
+The goal is simple.
 
 > Someone should understand the architecture before reading the explanation.
+
+This notation is not a diagram format.
+
+It is a vocabulary.
+
+Diagrams are sentences written using that vocabulary.
 
 ---
 
@@ -43,20 +49,41 @@ Never implementation.
 
 ## One symbol. One meaning.
 
-Every primitive has exactly one responsibility.
-
-Never overload symbols.
+Each symbol has exactly one responsibility.
 
 ---
 
-## Symbols represent behavior
+## Infrastructure uses symbols
 
-| Symbol | Represents |
-|---------|------------|
-| Master | execution |
-| Item | movable object |
-| Mailbox | communication |
-| Pool | reusable storage |
+Infrastructure is represented by symbols.
+
+* Master
+* Mailbox
+* Pool
+
+---
+
+## Application uses names
+
+Application objects are represented by their names.
+
+Examples
+
+```
+Chunk
+Chunk!
+Request
+Response
+Connection
+Shutdown!
+Timer
+```
+
+The notation does not define application object names.
+
+That is the responsibility of the application.
+
+An object name ending with `!` denotes an Out-of-Band (OOB) Item.
 
 ---
 
@@ -64,16 +91,29 @@ Never overload symbols.
 
 Everything should be drawable using plain text.
 
-If a symbol cannot be drawn in ASCII,  
+If it cannot be drawn in ASCII,  
 it is probably too complicated.
 
 ---
 
-## Composition instead of complexity
+## Orientation independent
 
-Only four primitive symbols exist.
+A diagram may be drawn
 
-Everything else is built from them.
+* left to right
+* right to left
+* top to bottom
+* bottom to top
+
+Orientation has no meaning.
+
+Only the notation carries meaning.
+
+---
+
+## Composition
+
+Complex systems are built by composing a few simple symbols.
 
 ---
 
@@ -81,323 +121,345 @@ Everything else is built from them.
 
 ## Master
 
-A Master is the only active building block.
-
-It executes.
-
-It owns state.
-
-It makes decisions.
-
 ```
-+-----------+
-|    --     |
-|   /  \    |
-|  |----|   |
-|   \  /    |
-|    --     |
-+-----------+
-|  Master   |
-+-----------+
+{ Worker }
 ```
 
-The loop means
+A Master executes.
 
-> execution.
+The text identifies the Master.
 
-It does **not** imply
-
-- thread
-- coroutine
-- actor
-- event loop
-
-Those are implementation details.
-
----
-
-## Item
-
-An Item is the object that moves through the architecture.
+Examples
 
 ```
-+------+
-| Item |
-+------+
+{ HTTP Listener }
+
+{ JPG Compressor }
+
+{ Logger }
+
+{ Database }
+
+{ Recycler }
 ```
-
-Examples:
-
-- Request
-- Connection
-- Buffer
-- Session
-- Job
-
-Architecturally they are identical.
-
----
-
-## Mailbox
-
-A Mailbox represents communication.
-
-```
-======
-```
-
-Unlike queues in UML,  
-the notation emphasizes communication,  
-not the container.
 
 ---
 
 ## Pool
 
-A Pool stores reusable Items.
-
 ```
- _________
-/         \
-|  Pool   |
-\_________/
+[ Chunk ]
+
+[ Chunk|Job ]
+
+[ Connection|Buffer ]
 ```
 
-Pools retain.
+A Pool owns reusable Items.
 
-They never execute.
+The names declare which Item types the Pool owns.
+
+Masters temporarily borrow Items from a Pool and return them later.
+
+Pools never execute.
 
 ---
 
-# Mailbox variants
+## Mailbox
+
+Horizontal
+
+```
+==========
+```
+
+Vertical
+
+```
+||
+||
+||
+||
+```
+
+A Mailbox transports Items.
+
+A Mailbox may temporarily retain waiting Items.
+
+Its orientation has no meaning.
+
+---
+
+## Movement
+
+Movement is independent from the Mailbox.
+
+Horizontal
+
+```
+>>>
+
+<<<
+```
+
+Vertical
+
+```
+VVV
+
+^^^
+```
+
+Movement symbols describe Item movement.
+
+They do not describe the Mailbox.
+
+---
+
+# Application objects
+
+Application objects are represented by their names.
+
+```
+Chunk
+
+Chunk!
+
+Request
+
+Response
+
+Shutdown!
+
+Connection
+
+Timer
+```
+
+The notation intentionally does not distinguish between ordinary and Out-of-Band Items.
+
+The application does.
+
+---
+
+# Mailbox contract
+
+Text attached to a Mailbox declares the Item types that may traverse it.
+
+Example
+
+```
+Chunk|Job|Shutdown!
+
+>>>==========
+```
+
+This means the Mailbox accepts
+
+* Chunk
+* Job
+* Shutdown!
+
+It describes the communication contract.
+
+Not the current mailbox contents.
+
+---
+
+# Mailbox sharing
 
 Sharing belongs to the Mailbox.
 
 Not to the Master.
+
+The notation is qualitative.
+
+`>>>` means "many".
+
+It does not indicate an exact number.
 
 ---
 
 ## One producer
 
 ```
->======
+>==========
 ```
-
-One Master sends.
-
-One Master receives.
 
 ---
 
 ## Many producers
 
 ```
->>>======
+>>>==========
 ```
 
 Several Masters send to the same Mailbox.
 
-Only one Master receives.
+Typical examples
 
-Typical examples:
+* logging
+* event aggregation
+* request collection
 
-- logging
-- event aggregation
-- request collection
+---
+
+## One consumer
+
+```
+==========>
+```
 
 ---
 
 ## Many consumers
 
 ```
-======>>>
+==========>>>
 ```
-
-One Master sends.
 
 Several Masters receive from the same Mailbox.
 
-Typical examples:
+Typical examples
 
-- worker pools
-- job distribution
+* worker pools
+* parallel processing
 
 ---
 
 ## Many producers and many consumers
 
 ```
->>>======>>>
+>>>==========>>>
 ```
-
-Shared communication on both sides.
 
 ---
 
-# Composition
+# Layout
 
-## Communication
+The notation does not prescribe layout.
+
+Masters, Mailboxes and Pools may be positioned wherever they make the architecture easiest to understand.
+
+Only the symbols carry meaning.
+
+The page layout does not.
+
+---
+
+# Examples
+
+## Worker
 
 ```
-+-----------+
+Chunk|Shutdown!
 
-  Master
+>>>================
+
+{ Worker }
 
      |
 
->======
+[ Chunk ]
+```
+
+---
+
+## Worker pool
+
+```
+Chunk|Shutdown!
+
+==========>>>
+
+{ Worker #1 }
+
+{ Worker #2 }
+
+{ Worker #3 }
+```
+
+---
+
+## Logger
+
+```
+LogRecord
+
+>>>============
+
+{ Logger }
 
      |
 
-+-----------+
-
-  Master
+[ LogRecord ]
 ```
-
-An Item moves through the Mailbox.
-
-The Mailbox transports.
-
-It never owns application logic.
 
 ---
 
-## Shared input mailbox
-
-Several Masters send to one Mailbox.
+## Request processing
 
 ```
-Master
+Request|Shutdown!
 
-   |
+>>>================
 
-\
- \
-  >>>======
+{ HTTP Server }
 
-            |
+      |
 
-      +-----------+
-      |  Master   |
-      +-----------+
+Response
+
+>>>================
+
+{ Socket Writer }
 ```
-
-The sharing belongs to the Mailbox.
-
-Not to the receiving Master.
-
----
-
-## Shared worker mailbox
-
-One Master distributes work.
-
-```
-      +-----------+
-      |  Master   |
-      +-----------+
-
-            |
-
-      ======>>>
-
-           / \
-          /   \
-
-      Master  Master
-```
-
-Again,
-
-the Mailbox is shared.
-
-Not the sender.
-
----
-
-## Pool
-
-```
-        _________
-       /         \
-      |   Pool   |
-       \_________/
-
-          ▲
-          │
-
-      +-----------+
-      |  Master   |
-      +-----------+
-```
-
-Masters borrow Items.
-
-Masters return Items.
-
-Pools simply retain them.
-
----
-
-## Item movement
-
-```
-+------+
-| Item |
-+------+
-
-    │
-
->======
-
-    │
-
-+-----------+
-|  Master   |
-+-----------+
-```
-
-An Item always has exactly one owner.
-
-Either
-
-- a Master
-- a Mailbox
-- a Pool
-
-Never more than one.
 
 ---
 
 # Reading diagrams
 
-Readers should gradually stop reading labels.
+The notation separates four independent concepts.
 
-Instead they should recognize
+Infrastructure
 
-Loop
+```
+{ Master }
 
-→ execution
+========== (mailbox)
 
-Rectangle
+[ Pool ]
+```
 
-→ Item
+Application objects
 
-Channel
+```
+Chunk
 
-→ Mailbox
+Request
 
-Container
+Shutdown!
+```
 
-→ Pool
+Movement
 
-The notation becomes another language,  
-alongside the words
+```
+>>>
 
-- Master
-- Item
-- Mailbox
-- Pool
+<<<
+
+VVV
+
+^^^
+```
+
+Contract
+
+```
+Chunk|Request|Shutdown!
+```
+
+Together they describe the architecture.
 
 ---
 
@@ -405,13 +467,13 @@ alongside the words
 
 The notation does not describe
 
-- scheduling
-- async implementation
-- mutexes
-- futures
-- synchronization primitives
-- memory allocation
-- Zig APIs
+* scheduling
+* async implementation
+* mutexes
+* queues
+* synchronization primitives
+* memory allocation
+* Zig APIs
 
 Those belong to implementation.
 
@@ -419,18 +481,19 @@ Those belong to implementation.
 
 # Future extensions
 
-Future documents may define notation for
+Possible extensions include
 
-- request pipelines
-- cancellation
-- recycler
-- timers
-- master hierarchy
-- system boundaries
-- ownership transfer
+* master hierarchy
+* recycler
+* timers
+* cancellation
+* ownership transfer
+* system boundaries
+* external systems
 
-These should be expressed by composing the existing symbols,  
-not by introducing many new ones.
+New concepts should reuse the existing notation whenever possible.
+
+New symbols should be introduced only when absolutely necessary.
 
 ---
 
@@ -438,5 +501,8 @@ not by introducing many new ones.
 
 The notation should be learnable in five minutes.
 
-Someone should be able to sketch a Matryoshka system on a whiteboard,  
-and another Matryoshka user should immediately understand it.
+A developer should be able to sketch a Matryoshka architecture on a whiteboard.
+
+Another Matryoshka developer should immediately understand it.
+
+The notation should become the common language for discussing Matryoshka-Io systems.

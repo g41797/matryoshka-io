@@ -1,8 +1,7 @@
-# Matryoshka-Io
-
-*A practical way to build concurrent software systems with Zig Io.*
+# Matryoshka-Io - A practical way to build concurrent software systems with Zig Io
 
 ---
+
 ## First rule
 
 > If you want to build a great software system,
@@ -18,7 +17,7 @@ Especially after the introduction of `std.Io`.
 
 ## Promise
 
-*They say,*
+*They say,*  
 
 > "Give someone a fish, and you feed them for a day.    
 > Teach them to fish, and you feed them for a lifetime."
@@ -27,7 +26,13 @@ I can't teach you to fish.
 
 But I can give you a fishing rod.  
 
-**Matryoshka-Io is that *fishing rod* for *building software systems*.**
+Matryoshka-Io is that *fishing rod* for *building software systems*.
+
+- It does not think for you.    
+- You still design the system.    
+- You still solve the hard problems.  
+
+It simply brings a *little more order* to your thinking.
 
 ---
 
@@ -48,173 +53,166 @@ There are many ways to combine them.
 
 Matryoshka-Io takes a different approach.  
 
-It removes choices:
+It _removes choices_:
 
-- a small subset of Io
+- a small subset of Threaded Io functionality
+- restricted cancellation points
 - a few building blocks
 - a few rules
 - clear communication
 - manageable resource reuse
 
-The hard problems do not disappear.  
+The hard problems do not disappear.      
 
 But they become easier to discuss.  
 
-Because the system becomes **_visible_**.  
-
+Because the system becomes **_visible_**.      
 
 ---
 
-## Four building blocks. One principle. Common language.
+## Four building blocks. One principle. Common language.  
 
-Every Matryoshka system is built from four building blocks:  
+Every Matryoshka-Io system is built from _four building blocks_:
 
 - **Master** — execution
-- **Item** — state
+- **Item** — state/data/command/...
 - **Mailbox** — communication
 - **Pool** — resource reuse
 
-They all follow one principle:
+They all follow one _principle_:
 
 > **Share by communicating.**
 
-You stop talking about: 
+You stop talking about:
 
 - tasks
 - futures
 - mutexes
 - queues
 
-You start talking about: 
+You start talking on Matryoshka-Io language:
 
 - Masters
 - Items
 - Mailboxes
 - Pools
 
+
 ### Master
 
-A **Master** is 
+A **Master** is
 
 - an _Threaded_ Io _task_
 - created by `_concurrent()_`
-- follows the Matryoshka rules
+- follows the Matryoshka-Io rules
 - holds its own state
 - works with Items
 - communicate with another Masters and/or application
+
+Master ASCII notation:  
+```text
+{ Master }
+```
+e.g.:  
+```text
+
+{ JPG Compressor } 
+
+{ Worker}
+
+{ Logger }
+```
 
 
 
 ### Item
 
-An **Item** is a movable application object — a Request, a Connection, a Session, a Buffer, a Job, a Timer.
+An **Item** is 
 
-Items are allocated.
-
-They are designed to outlive the function that created them.
+- movable application object 
+  - Request
+  - Connection
+  - Session
+  - Buffer
+  - Job
+  - ...
+- **allocated** (as all building blocks)
+- outlive the function that created them
 
 The one rule that matters:
 
 > An Item is in exactly one place at any moment.
 
-A Master uses it, or a Mailbox holds it, or a Pool holds it. Never several at once.
+**ONE PLACE**:
 
-**Item and ItemHandle.** The documentation talks about Items. The API works with an **ItemHandle** — the same way a file API works with a file handle even though you think in terms of "create a file, open a file, close a file." In most places you can simply read Item as ItemHandle.
+- or Master uses it
+- or a Mailbox holds it
+- or a Pool holds it
+
+> **Never several at once**.
+
+Item ASCII notation:  
+```text
+Job
+Shunk
+Shutdown
+Blob
+```
+
+### Item and ItemHandle. 
+
+The documentation talks about _Item(s)_.    
+The API works with an **ItemHandle**.    
+
+You are thinking in terms of:
+
+- read _file_
+- write _file_
+- close _file_
+
+on API level one of the arguments is _file handle_.  
+
+The same is for Matryoshka-Io API
+
+- you are thinking in terms of _Item_ - Application entity    
+- API is working with _ItemHandle_ - Matryoshka-Io entity
+
 
 ### Mailbox
 
-A **Mailbox** moves an Item from one Master to another.
+A **Mailbox** moves an Item from one Master to another:
 
-One Master places an Item in. Another Master later receives it.
-
-It transfers the Item — not a copy, not a reference. Nothing more.
+- One Master places an Item in
+  - Mailbox ensures that it's only owner of Item 
+- Another Master later receives it
+  - Mailbox ensures that receiver is only owner of Item 
 
 ### Pool
 
-A **Pool** holds reusable Items.
+A **Pool** 
 
-Instead of destroying an Item after use, a Master may return it to a Pool for another Master to reuse.
+- create new Items
+- holds reusable Items
 
-A Pool is not storage. An empty Pool is a signal, not an error — it is backpressure. Backpressure appears naturally.
+Usually Master
 
----
+- gets Item from Pool
+- process Item
+- on finish
+  - send Item to another Master for further processing
+  - returns Item to Pool
 
-## One style
+A Pool is not storage.  
+An empty Pool is 
 
-Matryoshka encourages one style.
+- not an error 
+- it is backpressure. 
 
-Do not share Items.
-
-Pass Items.
-
-Reuse Items.
-
-Communication is the default.
-
-Sharing is the exception.
-
----
-
-## What this is not
-
-Matryoshka is intentionally small. It does not introduce:
-
-- a framework
-- a runtime
-- interfaces
-- inheritance
-- virtual dispatch
-
-The goal is not an easy system.  
-It never was.
-
-The goal is a system with:
-
-- a common frame
-- common rules
-- a common way of thinking
-
-That makes the system:
-
-- easier to explain
-- easier to discuss
-- easier to draw on a whiteboard
-- easier to change
-- easier to maintain
-
-Matryoshka does not think for you.  
-You still design the system.  
-You still solve the hard problems.  
-
-It simply brings a *little more order* to your thinking.
-
-One implementation detail, mentioned once and then left alone: every Item embeds a `PolyNode`. That is how a type-erased Item moves safely without base classes or virtual dispatch. You rarely need to think about it. The building-blocks docs cover it when you do.
+Matryoshka-Io supports backpressure 'naturally'
 
 ---
 
-## The library
-
-The repository provides small building blocks.
-
-- Item
-- Mailbox
-- Pool
-
-They are independent.
-
-Use one.
-
-Use all three.
-
-Or build your own.
-
-The concepts matter more than the implementation.
-
----
-
-## Start without fear
-
-There is no big-bang migration.
+## You can’t win the lottery if you don’t buy a ticket.
 
 Start with Items.
 
@@ -222,16 +220,39 @@ Add a Pool when reuse becomes useful.
 
 Add a Mailbox when communication becomes useful.
 
-Organize long-running Io tasks as Masters.
+Organize long-running tasks as Masters.
 
 Each step is useful right away.
 
 Each step stays useful after the next one.
 
-A simple question: can you describe your application using only Masters, Mailboxes, and Pools?
+Can you describe your application using only 
 
-If yes, you are already thinking in Matryoshka.
+- Masters
+- Items
+- Mailboxes
+- Pools
+
+If 
+- **yes** - you are on the right way
+- no - [you still have the chance](https://github.com/g41797/matryoshka-io)   
 
 ---
 
-**Be Master of your systems.**
+## Master is King
+
+Only Master(_your code_)
+
+- makes decisions
+- owns application state
+- talks to building blocks
+
+Another building blocks are "slaves":
+
+- Mailbox - communication
+- Pool - storage/reuse
+- Item - "data"
+
+---
+
+Be Master **of your** systems.

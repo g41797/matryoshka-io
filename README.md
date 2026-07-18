@@ -15,213 +15,254 @@
 ---
 
 
+## First rule
 
-## First rule of building great software systems
-
-> If you want to build a great software system, start by building a software system.
-
----
-
-## Intent
+> If you want to build a great software system,
+> start by building a software system.
 
 We know how to write Zig libraries.
 
 We are still learning how to build Zig systems.
 
-Zig Io makes developers' lives even more interesting.
-
-Matryoshka is an attempt to make them a little more ***boring***.
+Especially after the introduction of `std.Io`.
 
 ---
 
-## Main concept
+## Promise
 
-Zig creates tasks through `io.concurrent()`.
+*They say,*
 
-Matryoshka introduces one main concept: **Master**.
+> "Give someone a fish, and you feed them for a day.    
+> Teach them to fish, and you feed them for a lifetime."
 
-* A Master is an Io task.
-* Created by `io.concurrent()`.
-* Follows the Matryoshka rules.
+I can't teach you to fish.
 
-Master is **not**:
+But I can give you a fishing rod.
 
-* a type
-* an interface
-* a runtime
+Matryoshka-Io is that *fishing rod* for *building software systems*.
 
-A task becomes a Master when it:
+- It does not think for you.
+- You still design the system.
+- You still solve the hard problems.
 
-* typically has a long lifetime
-* owns application state
-* owns Matryoshka building blocks
-
-Some Masters also:
-
-* coordinate other Masters
-* own shared resources
-
-A *worker* is simply a Master with a single dedicated responsibility.
-
-* Not every task is a Master.
-* Every Master is a task.
+It simply brings a *little more order* to your thinking.
 
 ---
 
-## Matryoshka-based system
+## The problem
 
-A Matryoshka-based system is built from Masters.
+Zig Io gives you excellent tools:
 
-Masters:
+- Tasks.
+- Groups.
+- Futures.
+- Synchronization.
+- Cancellation.
+- Concurrency.
+- Async...
+- And much more.
 
-* own state
-* communicate through Mailboxes
-* share reusable items through Pools
+There are many ways to combine them.
 
-Matryoshka does not dictate the implementation.
+Matryoshka-Io takes a different approach.
+
+It _removes choices_:
+
+- a small subset of Threaded Io functionality
+- restricted cancellation points
+- a few building blocks
+- a few rules
+- clear communication
+- manageable resource reuse
+
+The hard problems do not disappear.
+
+But they become easier to discuss.
+
+Because the system becomes **_visible_**.
 
 ---
 
-## Three small building blocks
+## Four building blocks. One principle. Common language.
 
-A Master uses only three small building blocks.
+Every Matryoshka-Io system is built from _four building blocks_:
 
-### PolyNode
+- **Master** — execution
+- **Item** — state/data/command/...
+- **Mailbox** — communication
+- **Pool** — resource reuse
 
-`PolyNode` is the bigger brother of Zig's intrusive `Node`.
+They all follow one _principle_:
 
-Like `Node`, it is:
+> **Share by communicating.**
 
-* embedded into application items
-* suitable for:
+You stop talking about:
 
-  * intrusive lists
-  * intrusive queues
-  * other intrusive containers
+- tasks
+- futures
+- mutexes
+- queues
 
-In addition, it:
+You start talking on Matryoshka-Io language:
 
-* provides simple run-time type identification
+- Masters
+- Items
+- Mailboxes
+- Pools
 
-Given a `PolyNode`, you can:
 
-* without interfaces
-* without virtual dispatch
-* safely identify the containing item
+---
+
+
+### Master
+
+A **Master** is
+
+- an _Threaded_ Io _task_
+- created by `_concurrent()_`
+- follows the Matryoshka-Io rules
+- holds its own state
+- works with Items
+- communicate with another Masters and/or application
+
+
+---
+
+
+### Item
+
+An **Item** is
+
+- movable application object
+  - Request
+  - Connection
+  - Session
+  - Buffer
+  - Job
+  - ...
+- **allocated** (as all building blocks)
+- outlive the function that created them
+
+The one rule that matters:
+
+> An Item is in exactly one place at any moment.
+
+**ONE PLACE**:
+
+- or Master uses it
+- or a Mailbox holds it
+- or a Pool holds it
+
+> **Never several at once**.
+
+Item ASCII notation:  
+```text
+Job
+Shunk
+Shutdown
+Blob
+```
+
+### Item and ItemHandle.
+
+The documentation talks about _Item(s)_.    
+The API works with an **ItemHandle**.
+
+You are thinking in terms of:
+
+- read _file_
+- write _file_
+- close _file_
+
+on API level one of the arguments is _file handle_.
+
+The same is for Matryoshka-Io API
+
+- you are thinking in terms of _Item_ - Application entity
+- API is working with _ItemHandle_ - Matryoshka-Io entity
+
+
+---
+
 
 ### Mailbox
 
-`Mailbox`:
+A **Mailbox** moves an Item from one Master to another:
 
-* transfers `PolyNode` items between Masters
-* transfers the item, not a reference to it
-* does not know or care about the concrete item type
+- One Master places an Item in
+  - Mailbox ensures that it's only owner of Item
+- Another Master later receives it
+  - Mailbox ensures that receiver is only owner of Item
+
+---
+
 
 ### Pool
 
-`Pool`:
+A **Pool**
 
-* reuses `PolyNode`-based items
-* does not know or care about the concrete item type
-* returns items for reuse instead of destroying them
+- create new Items
+- holds reusable Items
 
-### Together
+Usually Master
 
-Just three small building blocks.
+- gets Item from Pool
+- process Item
+- on finish
+  - send Item to another Master for further processing
+  - returns Item to Pool
 
-> Together, this troika allows you to:
->
-> * transfer items
-> * reuse items
-> * stay type-agnostic
+A Pool is not storage.  
+An empty Pool is
 
-Exactly what the doctor ordered.
+- not an error
+- it is backpressure.
 
-### Containers on steroids
-
-If it's still hard to grasp, think of them this way.
-
-`PolyNode` is the bigger brother of Zig's intrusive `Node`.
-
-`Mailbox` and `Pool` are containers on steroids.
-
-The steroids are simple:
-
-* intrusion
-* type erasure
-* item transfer
-* item reuse
-
-Nothing else.
-
-* No interfaces.
-* No framework.
+Matryoshka-Io supports backpressure 'naturally'
 
 ---
 
-## The role of Zig Io
+## You can’t win the lottery if you don’t buy a ticket.
 
-Io creates every task through `io.concurrent()`.
+Start with Items.
 
-Matryoshka lives inside that task world. Not beside it.
+Add a Pool when reuse becomes useful.
 
-A Master is one of those tasks. It follows the Matryoshka rules.
+Add a Mailbox when communication becomes useful.
 
-Io still does the rest:
+Organize long-running tasks as Masters.
 
-* waiting for multiple event sources
-* timers
-* cancellation
-* integration with other Io-based libraries
+Each step is useful right away.
 
-Matryoshka does not compete with these.
+Each step stays useful after the next one.
 
-* Io answers: how do tasks run?
-* Matryoshka answers: how do tasks cooperate?
+Can you describe your application using only
 
----
+- Masters
+- Items
+- Mailboxes
+- Pools
 
-## Why Matryoshka-Io?
-
-Io is large. Io does a lot.
-
-Matryoshka is small on purpose:
-
-* a handful of rules
-* a few hundred lines of code
-
-It gives your Io tasks a simple, repeatable shape.
-
-* keeps the architecture simple
-* one way to create a task: `io.concurrent()`
-* one small set of rules for Masters to follow
-
-Start building today.
-
-If Zig Io changes tomorrow—and it will—Matryoshka's rules stay the same.
+If
+- **yes** - you are on the right way
+- no - [you still have the chance](https://github.com/g41797/matryoshka-io)
 
 ---
 
-## Try Matryoshka without fear
+## Master is King
 
-There is no big-bang commitment.
+Only Master(_your code_)
 
-Start your first Master with the simplest building block: `PolyNode`.
+- makes decisions
+- owns application state
+- talks to building blocks
 
-Add `Pool` when item reuse becomes useful.
+Another building blocks are "slaves":
 
-Add `Mailbox` when you need message passing.
+- Mailbox - communication
+- Pool - storage/reuse
+- Item - "data"
 
-Or use your own type-erased queue.
+---
 
-It's up to you.
-
-Each step provides immediate value.
-
-Each step remains useful after the next one.
-
-Don't be afraid.
-
-Go ahead.
-
-**Be Master of your systems.**
+Be Master **of your** systems.

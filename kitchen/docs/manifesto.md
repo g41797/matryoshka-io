@@ -6,31 +6,38 @@
 
 ---
 
+
 ## The problem
 
-We know how to write Zig libraries.
+Zig Io gives you excellent tools:
 
-We are still learning how to build Zig systems.
+- Tasks.
+- Groups.
+- Futures.
+- Synchronization.
+- Cancellation.
+- Concurrency.
+- Async...
+- And much more.
 
-Zig Io answers one question well: *when does work run?*
+There are many ways to combine them.
 
-It does not answer:
+Matryoshka-Io takes a different approach.
 
-* Where are the system boundaries?
-* Who owns which state?
-* How do parts talk to each other?
-* Who controls shared resources?
-* How do parts combine into a system?
+It _removes choices_:
 
-Without answers, async systems drift:
+- a small subset of Threaded Io functionality
+- restricted cancellation points
+- a few building blocks
+- a few rules
+- clear communication
+- manageable resource reuse
 
-* nobody knows which code runs in parallel
-* parts depend on each other in hidden ways
-* the structure just happens — nobody chose it
+The hard problems do not disappear.
 
-Io does not prevent any of that. It just runs it faster.
+But they become easier to discuss.
 
-Matryoshka's promise: make building Zig systems a little more ***boring***.
+Because the system becomes **_visible_**.
 
 ---
 
@@ -46,8 +53,8 @@ Pools add a second one.
 
 Two constraints. In return you get:
 
-* you always know who owns what
-* parts talk in one way only: messages
+* parts talk in one way only: messages(items)
+* you always sure that item is in one place
 * you know what runs in parallel
 * you can swap one Master for another
 * you can understand one Master without reading the whole system
@@ -58,7 +65,7 @@ Two constraints. In return you get:
 
 Master is the main concept of Matryoshka.
 
-* Io creates tasks through `io.concurrent()`.
+* Io creates tasks through `*.concurrent()`.
 * A Master is an Io task that follows the Matryoshka rules.
 
 Master is **not**:
@@ -80,7 +87,7 @@ Io tasks
     ├── ordinary task
     └── Master
              │
-    ┌────────┼────────┐
+    ┌────────┼────────-┐
     │        │         │
 Single-job Coordinator Resource owner
  Master      Master       Master
@@ -89,8 +96,6 @@ Single-job Coordinator Resource owner
 * Some Masters do one job.
 * Some Masters coordinate other Masters.
 * Some Masters own shared resources.
-
-A *worker* is simply a Master with one job.
 
 Every part runs on its own. Some parts grow into coordinators.
 
@@ -102,14 +107,15 @@ That is how real systems are built.
 
 The whole model fits in a few lines.
 
-* A Master has one input mailbox.
-* A Master processes one message at a time.
+* A Master usually has one input mailbox.
+* A Master processes one message at a time
+    * Most of Masters has internal loop
 * A Master may send a message to any mailbox.
-* Including its own.
+    * Including its own.
 * Multiple Masters may share one mailbox.
-* A Master may borrow items from one or more pools.
+* A Master may borrow items from one or more Pools.
 * Pools may be shared by many Masters.
-* Mailboxes and Pools may hold typed or type-erased items.
+* Mailboxes and Pools hold type-erased items.
 
 Nothing else is required.
 
@@ -157,13 +163,36 @@ The one-line summary below is all this page gives you — see
 [Building Blocks](building-blocks/index.md) for a full page per concept, still no Zig  
 syntax, and [API Reference](api/polynode.md) once you're ready to write code.
 
-### PolyNode
+### Item vs ItemHandle and PolyNode
 
-`PolyNode` is the bigger brother of Zig's intrusive `Node`.
+Now it's time to talk about implementation:
 
-* embedded into application items
-* works in intrusive lists, queues, and other intrusive containers
-* adds simple run-time type identification
+- Item is allocatable application object.  
+- Matryoshka-Io does not work with Items.  
+- It works with ItemHandles:  
+```zig
+pub const ItemHandle = *PolyNode;
+```
+
+where PolyNode:   
+```zig
+pub const PolyNode = struct {
+    node: std.DoublyLinkedList.Node = .{},
+    tag: *const anyopaque = undefined,
+};
+```
+
+PolyNode allows:
+
+- participation in intrusive containers - via node
+- simple run-time type identification - via tag
+
+Zig doesn't support _inheritance_, it support _composition_.
+
+Application object
+
+- in order to be Matryoshka-Io' Item  
+- should embed PolyNode within
 
 Given a `PolyNode`, you can identify the containing object:
 
@@ -174,23 +203,25 @@ Given a `PolyNode`, you can identify the containing object:
 
 `Mailbox`:
 
-* transfers `PolyNode` items between Masters
-* transfers the object, not a reference to it
+* transfers `ItemHandles`  between Masters
 * does not know or care about the concrete object type
 
 ### Pool
 
 `Pool`:
 
-* reuses `PolyNode`-based items
+* creates new Items or gets them from available 
 * returns items for reuse instead of destroying them
 * does not know or care about the concrete object type
 
 ### Together
 
-Just three small building blocks.
+`PolyNode` is 
 
-`Mailbox` and `Pool` are containers on steroids.
+- small struct within any Item
+- used for Item handling
+
+`Mailbox` and `Pool` are ItemHandles containers on steroids.
 
 The steroids are simple:
 
@@ -204,95 +235,25 @@ Nothing else.
 * No interfaces.
 * No framework.
 
-The whole troika is only 582 lines of code.
+The whole _troika_ is only several hundreds LOC.
 
 ---
 
-## Where Io fits
-
-Matryoshka and Io solve different problems.
-
-* Matryoshka answers: what is my system made of?
-* Io answers: when does my code run?
-
-The bridge between them is one idea:
-
-> Everything that happens in the system becomes a message in a Master's mailbox.
-
-A timer expired. A socket became readable. A background job finished. Another  
-Master sent a job.
-
-Inside the system, all of these are the same thing: a message in a mailbox.
-
-```text
-           +----------------+
-           |   Io runtime   |
-           +----------------+
-                  │
-            wait for events
-                  │
-                  ▼
-          +---------------+
-          | Bridge        |
-          | (a Master)    |
-          +---------------+
-                  │
-             send message
-                  │
-                  ▼
-             Master Mailbox
-                  │
-                  ▼
-               Master
-```
-
-The bridge is just another Master. It waits on Io events and turns them into  
-ordinary messages.
-
-So for application developers:
-
-* Io is not a concept.
-* You do not think about Io while designing.
-* Io just moves messages behind Mailboxes. You never see it.
-
-A good design test:
-
-> If you have to mention Io while designing your system, it is already too visible.
-
-Io creates every task through `io.concurrent()`.
-
-Matryoshka does not compete with Io. It lives inside the same task world.
-
-* Io answers: how do tasks run?
-* Matryoshka answers: how do tasks cooperate?
-
-Start building today.
-
-If Zig Io changes tomorrow—and it will—Matryoshka's rules stay the same.
-
-See [Addendums — Io 101](addendums/io-101.md) for a deeper primer on Io concepts  
-(Future, Select, Group, cancellation) once you're building for real.
-
----
 
 ## Start small and where to go next
 
 There is no big-bang adoption.
 
-* Start your first Master with the simplest building block: `PolyNode`.
+* Start your first Master with the simplest Item
+    * don' t forget embed  `PolyNode`
 * Add `Pool` when object reuse becomes useful.
 * Add `Mailbox` when you need message passing.
-* Or use your own type-erased queue.
+* Or use your own type-erased queue. It's up to you.
 
-It's up to you. Each step is useful right away, and remains useful after the next one.
+Each step is useful right away.      
+Each step remains useful after the next one.  
 
 Keep reading:
-
-<!-- Temporarily hidden — Story section commented out of mkdocs.yml nav.
-
-* [Story — Print Server](story/print-server/discussion.md) — the constraint solving a
-  real problem, no Zig required.  
--->
 
 * [Building Blocks](building-blocks/index.md) — PolyNode, Mailbox, Pool, Master, named
   and diagrammed.
@@ -306,13 +267,11 @@ Keep reading:
 Can you describe your application using only:
 
 * Masters
+* Items
 * Mailboxes
 * Pools
 
 If the answer is **yes**, you're already thinking in Matryoshka.
 
-Don't be afraid.
+Don't be afraid. Go ahead.
 
-Go ahead.
-
-**Be Master of your systems.**
