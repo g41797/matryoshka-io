@@ -30,8 +30,8 @@ echo "--- Building MkDocs site ---"
 cd "$KITCHEN_DIR"
 mkdocs build -f mkdocs.yml
 
-echo "--- Replacing Material default favicon with ours ---"
-cp "$(dirname "$KITCHEN_DIR")/docs/assets/favicon.png" "$(dirname "$KITCHEN_DIR")/docs/assets/images/favicon.png"
+echo "--- Removing unused Material default favicon ---"
+rm -f "$(dirname "$KITCHEN_DIR")/docs/assets/images/favicon.png"
 
 echo "--- Done ---"
 echo "Output: $(dirname "$KITCHEN_DIR")/docs/"

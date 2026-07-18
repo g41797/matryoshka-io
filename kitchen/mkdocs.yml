@@ -7,7 +7,8 @@ repo_name: Matryoshka-Io on GitHub
 
 theme:
   name: material
-  favicon: assets/favicon.png
+  logo: assets/images/favicon.ico
+  favicon: assets/images/favicon.ico
   icon:
     repo: fontawesome/brands/github
   palette:

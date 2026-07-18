@@ -42,8 +42,8 @@ jobs:
           pip install mkdocs-material
           cd kitchen && mkdocs build -f mkdocs.yml
 
-      - name: Replace Material Default Favicon With Ours
-        run: cp docs/assets/favicon.png docs/assets/images/favicon.png
+      - name: Remove Unused Material Default Favicon
+        run: rm -f docs/assets/images/favicon.png
 
       - uses: actions/upload-pages-artifact@v3
         with:
