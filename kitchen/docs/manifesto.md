@@ -204,8 +204,8 @@ The steroids are simple:
 
 * intrusion
 * type erasure
-* object transfer
-* object reuse
+* item transfer
+* item reuse
 
 Nothing else.
 
@@ -223,7 +223,7 @@ There is no big-bang adoption.
 
 * Start your first Master with the simplest Item
     * don' t forget embed  `PolyNode`
-* Add `Pool` when object reuse becomes useful.
+* Add `Pool` when item reuse becomes useful.
 * Add `Mailbox` when you need message passing.
 * Or use your own type-erased queue. It's up to you.
 
