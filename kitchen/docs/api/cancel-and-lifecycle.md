@@ -1,4 +1,4 @@
-# API Reference — Cancel Model and Object Lifecycle
+# API Reference — Cancel Model and Item Lifecycle
 
 ## Cancel model
 
@@ -43,7 +43,7 @@ Cancellation never closes the mailbox or pool. Closing is the caller's responsib
 
 ---
 
-## Object lifecycle
+## Item lifecycle
 
 ```
 FREE       — allocated, not in any system

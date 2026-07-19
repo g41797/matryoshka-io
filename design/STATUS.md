@@ -33,7 +33,7 @@
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
 - Plan: matryoshka-io-implementation-plan-041.md (slim, state-only)
-- Rules: rules-025.md
+- Rules: rules-026.md
 - New Mindset reference: matryoshka-new-mindset-001.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-015.md
@@ -41,7 +41,7 @@
 - Manifesto: matryoshka-manifesto-005.md
 - Latest context: collected-context-005.md
 - CANDIDATES (composed docs, pending owner review before promotion): design/candidates/readme-004.md, design/candidates/landing-short-002.md, design/candidates/landing-long-003.md
-- Markdown hard-break tooling: kitchen/tools/fix_md_hardbreaks.sh, rule documented in rules-025.md
+- Markdown hard-break tooling: kitchen/tools/fix_md_hardbreaks.sh, rule documented in rules-026.md
 
 ## Participants
 - Owner(g41797-human): design, decision-making
@@ -256,6 +256,199 @@ diagram-notation sweep, mailbox-focused pool-audit equivalent, showcase-post
 variants (Ziggit/Discord/Reddit) — all owner's call on order.
 
 ## Session Log
+
+### 2026-07-19 — DOCS-HUMANIZE correction: manual micro-audit + final addendums sweep
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner rejected the original DOCS-HUMANIZE pass below as bad style: templated  
+boilerplate ("reach for this when") repeated verbatim across files, AI-sh in  
+structure as well as wording. Owner rewrote `README.md` and  
+`kitchen/docs/manifesto.md` by hand as the voice reference (fragments over  
+sentences, heavy bullets, no fixed opener template, plain words, "less is  
+better"). Executor switched to Fable for corrective rewrite work.
+
+Owner then ran a manual, message-by-message micro-audit over the corrected  
+Building Blocks, API Reference, and Patterns files, catching what the  
+automated correction missed: a shortened but still-templated opener pattern  
+("[Scenario]? That's a [X].") in `building-blocks/{pool,mailbox}.md`; a  
+factual error in `building-blocks/mailbox.md` claiming "no shared locks" when  
+`src/mailbox.zig` has an internal `Io.Mutex` (fixed, then simplified further  
+per "less is better" — cut the lock detail entirely, wrong tier for a  
+Building Blocks reader); an opener/heading mismatch in  
+`building-blocks/polynode.md` ("Everything is marked." opener left under a  
+stale "## What is exchanged?" heading) plus the same stale phrase in  
+`building-blocks/index.md`'s cross-reference line; and two "object"-for-Item  
+banned-word violations in `api/cancel-and-lifecycle.md` and  
+`api/invariants.md` (not in `nav:`, but live on disk — fixed anyway).
+
+Final pass: swept the remaining untouched nav sections. Examples Catalog  
+confirmed out of scope (every file under `kitchen/docs/examples/**`,  
+including `items/items.md`, `helpers/helpers.md`, `hooks/*.md`, is generated  
+by `kitchen/tools/gen_examples_docs.sh` — same exclusion class as the  
+per-example mirror tree). Addendums (7 files) and top-level `index.md`  
+checked; `index.md` is a pure hero-image template, no prose to touch. Found  
+and fixed the "object"-for-Item violation across five addendums files:  
+`slot-vs-ref-counting.md`, `tag-vs-tagged-union.md`,  
+`typeErasedQueue-vs-mailbox.md`, `matryoshka-io-notation.md` — all now say  
+"item"/"Item" consistently. Confirmed two legitimate non-Item exceptions  
+stand as-is: `building-blocks/master.md:13` ("Not a special runtime  
+object" — refers to Master) and `patterns/slot-and-polynode.md:218` ("No  
+separate link object" — hypothetical link node, not an Item).
+
+**Changes**
+- `building-blocks/{pool,mailbox,polynode,index}.md` — template opener  
+  removal, factual/lock-detail fix, opener/heading consistency
+- `api/{cancel-and-lifecycle,invariants}.md` — "object" → "item" for Item  
+  lifecycle references
+- `addendums/{slot-vs-ref-counting,tag-vs-tagged-union,typeErasedQueue-vs-mailbox,matryoshka-io-notation}.md`  
+  — "object"/"objects" → "item"/"items" for Item references (6 headings/lines)
+
+**Verification**
+
+| Check | Result |
+| :---- | :----- |
+| `kitchen/tools/build_site.sh` (logged to `zig-out/build_site.log`) | pass, no new warnings |
+| `grep -rn '\bobject\b'` across `kitchen/docs/**` (excluding examples/ and the explicitly out-of-scope files) | clean — only the two confirmed legitimate exceptions remain |
+| `grep -rn "That's a\|exchang"` across addendums + index.md | clean |
+
+**Next**: none pending — this closes out the DOCS-HUMANIZE pass.
+
+### 2026-07-19 — DOCS-HUMANIZE: field-developer framing pass over kitchen/docs
+
+**Participants**: human (owner), Claude (agent), 1 Opus subagent (pilot pages).
+
+**Summary**
+
+Owner's read: exhaustive docs don't automatically produce understanding for  
+a field developer skimming the published site. Added a guiding line to the  
+docs: "The law of documentation — When documentation is minimal,  
+understanding is minimal; When documentation is maximal, understanding is  
+minimal." Passed over every hand-authored page reachable from  
+`kitchen/mkdocs.yml`'s `nav:`, adding short "reach for this when" openers  
+(the concrete situation before the abstract definition) and one new  
+diagram, without rewriting what already worked.
+
+Pilot (Opus subagent): `api/polynode.md` + `building-blocks/pool.md`. First  
+attempt added a Mermaid flowchart to `pool.md` — owner corrected: use the  
+project's own ASCII notation vocabulary (`design/matryoshka-io-notation.md`  
+— `{ Master }`, `[ Pool ]`, `>>>`/`<<<` movement, `====`/`||` Mailbox)  
+instead of Mermaid wherever a diagram is warranted. Replaced with a  
+notation-based diagram; confirmed via `mkdocs build`.
+
+Batches after pilot approval: Building Blocks (3 remaining), Patterns (5,  
+page-level "lookup table, not a narrative" orientation lines only — entries  
+already use a When-to-use/Code-shape/Why cookbook format), API Reference (6  
+remaining, openers only, structure/signatures untouched per owner's call),  
+Examples Catalog overview pages (no changes — already terse link-list  
+indexes; discovered `examples/items/`, `examples/hooks/`, `examples/helpers/`  
+pages are generated by `kitchen/tools/gen_examples_docs.sh`, not  
+hand-authored despite being listed in `nav:` — corrected scope  
+understanding mid-pass, left untouched), Addendums (no changes — already  
+strong voice/framing, e.g. `io-101.md` already opens with its own "reach for  
+this" line; touching `why-boring.md`/`matryoshka-io-notation.md` would have  
+flattened owner voice), `index.md` (pure hero image, no prose),  
+`manifesto.md` (owner's own voice piece, left untouched).
+
+**Changes** (16 files, `kitchen/docs/**` only):
+- `api/{polynode,polyhelper,mailbox,pool,tags-and-slots,cleanup,root-and-master}.md`
+- `building-blocks/{polynode,mailbox,master,pool}.md` (pool.md also gets the
+  notation diagram)
+- `patterns/{pool,slot-and-polynode,mailbox-and-topology,async,master-and-shutdown}.md`
+- `design/STATUS.md` — this session log entry.
+
+**Verified**: `kitchen/tools/build_site.sh` clean after every batch (log  
+file, not stdout); no new mkdocs nav warnings; Debug test suite still  
+167/167 (docs-only change, `src/` untouched by this pass).
+
+**Not done this pass**: the 3 orphan API/Addendum files not in  
+`nav:` (`api/invariants.md`, `api/cancel-and-lifecycle.md`,  
+`addendums/matryoshka-and-rethinking.md`) — left untouched, owner's call.
+
+### 2026-07-19 — Rules: "wire"/"wired"/"wires"/"wiring" added to banned words
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Owner added "wire" and its variations to the AI-sh/banned word list, then  
+had the DOCS-HUMANIZE changes checked against it. New version:  
+`rules-025.md` → `rules-026.md` (banned word list only, no other change).  
+`design/context.md` and `design/STATUS.md` Sources of Truth updated to  
+point at `rules-026.md`.
+
+Live grep of the 16 files touched by the DOCS-HUMANIZE pass found 3 hits —  
+all self-introduced this session, in the openers just added:  
+`api/mailbox.md`, `api/pool.md` ("wiring a Mailbox/Pool into an  
+`Io.Select` loop"), `api/root-and-master.md` ("wiring up the `std.Io`  
+backend"). Reworded to "hooking"/"setting up". Re-scanned clean.
+
+One pre-existing hit found and left alone, not introduced this session:  
+`patterns/mailbox-and-topology.md`'s "Recurring shapes for wiring  
+mailboxes and workers together" (predates this pass). Also surfaced,  
+unrelated to the new word: pre-existing "ownership" language in  
+`building-blocks/polynode.md` and `patterns/{slot-and-polynode,async,  
+master-and-shutdown}.md` — already flagged in the 2026-07-15 CANDIDATES  
+Pass 1 audit as mixed-language pages needing care, out of scope for this  
+check.
+
+**Changes**:
+- `design/rules-025.md` → `design/rules-026.md` (new version).
+- `design/context.md`, `design/STATUS.md` — Rules pointer updated.
+- `kitchen/docs/api/{mailbox,pool,root-and-master}.md` — reworded 3  
+  self-introduced "wiring" hits.
+
+**Verified**: `mkdocs build` clean; live re-grep of the 16 changed files  
+for the full banned-word list shows zero hits introduced by this or the  
+prior session, beyond the pre-existing ones noted above.
+
+### 2026-07-19 — DOCS-HUMANIZE correction: drop templated openers, match owner voice
+
+**Participants**: human (owner), Claude (agent), 3 Fable subagents (per batch).
+
+**Summary**
+
+Owner rejected the DOCS-HUMANIZE pass's "Reach for this when:" openers and  
+the Patterns "lookup table" line as AI-sh: a fixed template repeated  
+verbatim across files, written without first checking what each page  
+already said. Owner hand-rewrote `README.md` and `manifesto.md` as the  
+voice reference: short fragments over sentences, heavy bullets, no fixed  
+opener formula, plain words over abstract ones, less over more.
+
+Redid all 14 previously-templated files (the 2 pilot files were already  
+fixed and approved earlier this session) via Fable subagents, one batch  
+each: Building Blocks (3), Patterns (5), API Reference (6). Each agent  
+read the reference files plus the target file fully before editing,  
+deleted the template, and only added page-specific framing where the page  
+genuinely needed one after the template's removal — most did not.
+
+Along the way the Patterns batch also found and fixed pre-existing  
+"ownership" violations that predated this pass (in `pool.md`,  
+`slot-and-polynode.md`, `async.md`, `master-and-shutdown.md`,  
+`mailbox-and-topology.md`) — previously flagged as out of scope, now  
+cleaned up as part of the same voice pass.
+
+New scoped rule: never use "object" when referring to an Item/ItemHandle —  
+use "item" instead. Added to `rules-026.md`'s banned-word section, scoped  
+to Item-references only. Found and fixed several self-introduced "object"  
+uses across the batch (`polynode.md`, `mailbox.md`, `root-and-master.md`,  
+`pool.md` patterns page).
+
+**Changes**:
+- `design/rules-026.md` — added the scoped "object"-for-Item ban.
+- `building-blocks/{polynode,mailbox,master,pool}.md`
+- `patterns/{pool,slot-and-polynode,mailbox-and-topology,async,master-and-shutdown}.md`
+- `api/{polynode,mailbox,pool,tags-and-slots,cleanup,root-and-master}.md`
+- `design/STATUS.md` — this session log entry.
+
+**Verified**: live grep of all 17 touched `kitchen/docs/**` files for the  
+full banned-word list plus "reach for" — one hit (`unlock()`, a literal  
+mutex API call, not prose) and two legitimate non-Item "object" uses  
+(Master, a hypothetical link node) left alone. `kitchen/tools/build_site.sh`  
+clean, no new nav warnings. `kitchen/build_and_test_debug.sh` still  
+167/167 (docs-only pass, `src/` untouched).
 
 ### 2026-07-18 — Landing page: hero image sizing + favicon debugging
 

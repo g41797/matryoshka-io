@@ -2,18 +2,18 @@
 
 ---
 
-Everything exchanged.
+Everything is marked.
 
 ---
 
-## What is exchanged?
+## Who holds it?
 
-Every Matryoshka design starts with one question: **who owns this item right now?**
+Every Matryoshka design starts with one question: **who holds this item right now?**
 
-Not what data it holds, not which thread touches it — just who owns it.
+Not what data it holds. Not which thread touches it. Just who holds it.
 
-Ownership must be visible at the call site. If you need to read the implementation to  
-know who owns an item, the design is wrong.
+The answer must be visible at the call site. If you need to read the implementation to  
+know who holds an item, the design is wrong.
 
 ```text
 Slot (holds a handle)            Empty Slot
@@ -25,16 +25,16 @@ Slot (holds a handle)            Empty Slot
 +-------------------+            +-------------------+
 ```
 
-## PolyNode — the ownership atom
+## PolyNode — the marker inside every Item
 
-`PolyNode` is a small marker every exchangeable object carries.
+`PolyNode` is a small marker every exchangeable Item carries.
 
 - Every user type embeds one `PolyNode`.
 - Matryoshka never sees the user type — only the `PolyNode` inside it.
-- The `PolyNode` is what lets Matryoshka move the object, without knowing what it is.
+- The `PolyNode` is what lets Matryoshka move the Item, without knowing what it is.
 
 ```text
-User object                      Infrastructure sees
+User Item                        Infrastructure sees
 +------------------+
 |      Event       |             a handle to the
 |------------------|      →      embedded PolyNode
@@ -46,9 +46,9 @@ User object                      Infrastructure sees
 ## Handle — a pointer to the marker
 
 A handle is what Matryoshka actually moves: a pointer to the embedded `PolyNode`, never  
-the object itself.
+the Item itself.
 
-- One handle, one object.
+- One handle, one Item.
 - Specialized names exist for handles to specific infrastructure items — a mailbox
   handle, a pool handle — but they are all the same kind of pointer underneath.
 
@@ -56,14 +56,14 @@ the object itself.
 
 A Slot is a place that either holds a handle or is empty.
 
-- An item has exactly one owner at any moment.
-- Owners: user code (in flight), a mailbox (held), a pool (held).
-- When ownership transfers, the slot becomes empty — that's the proof the transfer
+- An item has exactly one holder at any moment.
+- Holders: user code (in flight), a mailbox (held), a pool (held).
+- When the item moves, the slot becomes empty — that's the proof the move
   happened, not just bookkeeping.
 
 ## Why this matters
 
-Given a handle, you can identify the object it came from and cast back to it:
+Given a handle, you can identify the Item it came from and cast back to it:
 
 - without interfaces
 - without virtual dispatch

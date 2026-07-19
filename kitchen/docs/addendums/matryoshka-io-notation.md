@@ -65,7 +65,7 @@ Infrastructure is represented by symbols.
 
 ## Application uses names
 
-Application objects are represented by their names.
+Application items are represented by their names.
 
 Examples
 
@@ -79,11 +79,11 @@ Shutdown!
 Timer
 ```
 
-The notation does not define application object names.
+The notation does not define application item names.
 
 That is the responsibility of the application.
 
-An object name ending with `!` denotes an Out-of-Band (OOB) Item.
+An item name ending with `!` denotes an Out-of-Band (OOB) Item.
 
 ---
 
@@ -216,9 +216,9 @@ They do not describe the Mailbox.
 
 ---
 
-# Application objects
+# Application items
 
-Application objects are represented by their names.
+Application items are represented by their names.
 
 ```
 Chunk
@@ -431,7 +431,7 @@ Infrastructure
 [ Pool ]
 ```
 
-Application objects
+Application items
 
 ```
 Chunk

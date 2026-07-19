@@ -327,7 +327,7 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
 
 ## Starting point
 
-Hooks are very powerful mechanism.  
+Hooks can do a lot.  
 
 Start from simplest - [Always Create](../examples/layer3/089-basic_recycler.md)
 

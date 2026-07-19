@@ -102,6 +102,6 @@ Adding `DatabaseConnection` next year:
   intrusive queue otherwise.
 
 Tagged unions answer *"which variant is this value?"*.  
-PolyNode tags answer *"which concrete object sits behind this type-erased pointer?"*  
+PolyNode tags answer *"which concrete item sits behind this type-erased pointer?"*  
 
 Different questions — both useful, in different places.

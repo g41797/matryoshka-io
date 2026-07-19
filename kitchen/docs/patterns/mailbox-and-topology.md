@@ -59,7 +59,7 @@ Why.
 
 When to use.
 
-- Shutdown. Recover every queued object.
+- Shutdown. Recover every queued item.
 
 Code shape.  
 ```zig
@@ -112,7 +112,7 @@ Example: `examples/layer2/097-wake_up_all.zig`.
 
 ## Topology patterns
 
-Recurring shapes for wiring mailboxes and workers together. Each is a composition of the  
+Recurring shapes for connecting mailboxes and workers. Each is a composition of the  
 Mailbox patterns above, not a new mechanism.
 
 ### Request-Response

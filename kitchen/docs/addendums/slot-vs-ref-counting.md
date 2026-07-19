@@ -6,7 +6,7 @@
 
 A Slot answers one question:
 
-> Who holds this object right now?
+> Who holds this item right now?
 
 Reference counting answers a different question:
 
@@ -53,7 +53,7 @@ after the move:
 ## What reference counting guarantees
 
 - Multiple holders can exist at the same time.
-- The object is freed only when the count reaches zero.
+- The item is freed only when the count reaches zero.
 - The count tells you *how many* — never *who*, *why*, or *for how long*.
 
 ```text
@@ -72,7 +72,7 @@ who is actually responsible.
 
 ## Why Matryoshka uses Slots
 
-Matryoshka is built around one thing: an object moving from place to place.
+Matryoshka is built around one thing: an item moving from place to place.
 
 ```text
 Producer → Mailbox → Worker → Pool
@@ -80,7 +80,7 @@ Producer → Mailbox → Worker → Pool
 
 Every step is a move, never a share.
 
-- No count field on the object.
+- No count field on the item.
 - No atomic increment or decrement.
 - No cycles — a cycle needs two holders pointing at each other; a Slot only ever holds one.
 - The current holder is always visible by inspecting one Slot, not by auditing the

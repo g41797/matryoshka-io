@@ -5,13 +5,13 @@ API: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md).
 
 The slot rule in full: [API Reference — Tag Identity and Slot Programming](../api/tags-and-slots.md).
 
-## Slot and ownership idioms
+## Slot idioms
 
 ### Empty Slot initialization
 
 When to use.
 
-- Every ownership acquisition.
+- Every acquisition.
 
 Code shape.  
 ```zig
@@ -36,15 +36,15 @@ std.debug.assert(slot.* == null);
 
 Why.
 
-- A slot always owns exactly one object.
-- Overwriting a non-null slot loses ownership.
+- A slot always owns exactly one item.
+- Overwriting a non-null slot loses the item it holds.
 - Every acquisition API contains this assert. Wrong use panics immediately.
 
-### Transfer clears ownership
+### Transfer clears the slot
 
 When to use.
 
-- Every ownership transfer.
+- Every transfer.
 
 Code shape.  
 ```zig
@@ -61,7 +61,7 @@ pool.put(ph, &slot);
 
 Why.
 
-- Sender no longer owns the object.
+- Sender no longer owns the item.
 - Cleanup code becomes naturally safe.
 - Transfer pre-empts cleanup: a later `defer` sees null and does nothing.
 
@@ -161,8 +161,8 @@ defer pool.put(ph, &slot);                          // primary: recycles to pool
 Why.
 
 - Pool receives the item if open.
-- A closed pool leaves the slot non-null — the caller keeps ownership.
-- Destroy executes only if ownership remained with the caller.
+- A closed pool leaves the slot non-null — the caller keeps the item.
+- Destroy executes only if the item stayed with the caller.
 
 Example: `stories/video_transcoder/video_transcoder.zig`.
 
@@ -186,7 +186,7 @@ try EventPolyHelper.create(alloc, &slot);
 Why.
 
 - `PolyHelper.create` sets the tag and initializes the node.
-- Raw `allocator.create` skips both. The object is unusable for dispatch.
+- Raw `allocator.create` skips both. The item is unusable for dispatch.
 
 Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.  
 Full list: [API Reference — Cooperative Cleanup](../api/cleanup.md).
@@ -356,7 +356,7 @@ Why.
 
 When to use.
 
-- Returning ownership of communication endpoints.
+- Handing a communication endpoint to another Master.
 
 Pattern.  
 ```
@@ -390,7 +390,7 @@ Pattern.
 
 Why.
 
-- Replaces relying on the future await as a completion signal, or a separate shutdown message, with ownership transfer.
+- Replaces relying on the future await as a completion signal, or a separate shutdown message, with handing the mailbox back.
 
 Details: [API Reference — Transporting infra handles](../api/tags-and-slots.md).
 

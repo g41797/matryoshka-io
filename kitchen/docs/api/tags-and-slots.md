@@ -1,5 +1,7 @@
 # API Reference — Tag Identity and Slot Programming
 
+Two rules run through the whole API. Tag identity: what a handle is. Slot rule: where it lives.
+
 ## Tag identity — class, not instance
 
 `PolyHelper(T)` generates one static `_tag: PolyTag` per type `T` at comptime.  

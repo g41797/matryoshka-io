@@ -2,7 +2,6 @@
 
 ---
 
-
 These patterns follow from the slot rule.  
 Place cleanup before acquisition.  
 The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.

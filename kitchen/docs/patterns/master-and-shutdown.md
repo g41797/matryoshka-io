@@ -419,7 +419,7 @@ Purpose.
 
 - Event-driven coordination.
 - Worker parallelism.
-- Ownership-safe transport.
+- Safe item transport.
 - Automatic backpressure.
 
 ---

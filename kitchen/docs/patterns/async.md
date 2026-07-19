@@ -32,7 +32,7 @@ try future.cancel(io);
 
 Why.
 
-- Ownership stays in mailbox/pool.
+- The item stays in the mailbox/pool.
 - Only the wait is canceled.
 
 ---
@@ -320,7 +320,7 @@ Examples.
 
 Everything else completes normally.
 
-### Cancellation preserves ownership
+### Cancellation keeps items in place
 
 When to use.
 

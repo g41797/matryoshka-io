@@ -97,7 +97,7 @@ Valid combinations:
 
 - Layer 1 only — type identity without infrastructure
 - Layer 1 + Layer 2 — type identity + message passing, no lifecycle
-- Layer 1 + Layer 3 — type identity + object lifecycle, no message passing
+- Layer 1 + Layer 3 — type identity + item lifecycle, no message passing
 - Layer 1 + Layer 2 + Layer 3 + Io — full stack (Master)
 
 ---

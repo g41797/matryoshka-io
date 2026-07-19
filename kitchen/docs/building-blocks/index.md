@@ -12,7 +12,7 @@
 
 # Further reading
 
-- [Item](polynode.md) — everything exchanged.
+- [Item](polynode.md) — everything is marked.
 - [Mailbox](mailbox.md) — everything communicates.
 - [Pool](pool.md) — everything reusable lives here.
 - [Master](master.md) — everything runs inside one. An Io task, not a type.

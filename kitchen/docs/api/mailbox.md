@@ -2,7 +2,7 @@
 
 New to the concept? See [Building Blocks — Mailbox](../building-blocks/mailbox.md) first.
 
-Sends handles between execution contexts.
+Moves handles between Masters.
 
 ```zig
 const mailbox = @import("matryoshka").mailbox;

@@ -2,7 +2,7 @@
 
 Everything communicates.
 
----
+A Mailbox moves an Item from one Master to another.
 
 ## What a Mailbox does
 
@@ -31,8 +31,8 @@ receive   ◄──────────────────    Receiver 
 ```
 
 - Send moves a handle in. Receive moves a handle out.
-- The Mailbox never copies the object — it moves the handle to it.
-- The Mailbox never inspects what the handle points to. Any PolyNode-based object
+- The Mailbox never copies the Item — it moves the handle to it.
+- The Mailbox never inspects what the handle points to. Any PolyNode-based Item
   can travel through any Mailbox.
 
 ## One owner at a time
@@ -47,7 +47,7 @@ receive   ◄──────────────────    Receiver 
 
 ## Mailboxes are themselves exchangeable
 
-A Mailbox is built from a `PolyNode`, same as any application object.
+A Mailbox is built from a `PolyNode`, same as any application Item.
 
 - A Mailbox can be sent through another Mailbox.
 - A Mailbox can be stored in a Pool.

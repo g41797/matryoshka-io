@@ -11,7 +11,7 @@
 | Capacity | Bounded | Unbounded |
 | Backpressure | Inside the queue | Outside — Pool, or the application |
 | A producer that's full | Waits for a free slot | Never waits for capacity — only for a receiver |
-| A consumer receives | A copied value | The object itself |
+| A consumer receives | A copied value | The item itself |
 
 ```text
 TypeErasedQueue                     Mailbox
@@ -34,7 +34,7 @@ Slots are the center of the design. The items passing through are secondary.
 
 ## Mailbox is a transport primitive
 
-Matryoshka's premise: the object already exists somewhere.
+Matryoshka's premise: the item already exists somewhere.
 
 ```text
 create it → send it → receive it → reuse it or free it
@@ -50,7 +50,7 @@ Bounded-queue design:              Matryoshka design:
 
 Producer                           Producer
    ↓                                  ↓
-bounded queue                      Pool → object
+bounded queue                      Pool → item
    ↓                                  ↓
 Consumer                           Mailbox
                                        ↓
@@ -98,7 +98,7 @@ A queue stores values.
 
 A Mailbox 
 
-- moves the object 
+- moves the item 
 - that already exists 
 - from one holder
 - to the next.

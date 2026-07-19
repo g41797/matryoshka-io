@@ -154,7 +154,7 @@ Example: `examples/layer3/pool_teardown.zig`, `stories/video_transcoder/video_tr
 
 When to use.
 
-- Pool stores multiple object types.
+- Pool stores multiple item types.
 
 Pattern.  
 ```

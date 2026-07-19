@@ -71,7 +71,7 @@ Mailbox and Pool
 - are participants in Io Cancellation flow
 - may be closed
 
-But they newer close themselves on Cancel.
+But they never close themselves on Cancel.
 
 It's Master decision.
 

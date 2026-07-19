@@ -39,7 +39,7 @@ Both mailbox and pool are optional. Valid combinations:
 ```text
 PolyNode only                        type identity without infrastructure
 PolyNode + Mailbox                   type identity + message passing
-PolyNode + Pool                      type identity + object lifecycle
+PolyNode + Pool                      type identity + item lifecycle
 PolyNode + Pool + Io.Select          lifecycle + event sources (no mailbox)
 PolyNode + Mailbox + Pool            transport + lifecycle
 PolyNode + Mailbox + Pool + Io.Select   full stack

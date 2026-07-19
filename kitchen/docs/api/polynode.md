@@ -27,7 +27,9 @@ pub const ItemHandle = *PolyNode;
 pub const Slot = ?ItemHandle;
 ```
 
-- `PolyNode` is the type every application object embeds.
+- `PolyNode` is the type every Item embeds. Its `tag` is a unique
+  address that identifies which type a node lives inside (see Step 2).
+
 - `ItemHandle` is a pointer to that embedded field — the only thing Matryoshka moves.
 - `Slot` is where a handle lives while it is yours.
 
@@ -37,7 +39,8 @@ pub const Slot = ?ItemHandle;
 pub fn reset(n: *PolyNode) void
 ```
 
-- Clears intrusive link pointers (`prev`, `next` to null).
+- Clears intrusive link pointers (`prev`, `next` to null). Intrusive means the
+  list pointers live inside your struct, not in a separate list node.
 
 ```zig
 pub fn is_linked(n: *PolyNode) bool
@@ -66,8 +69,7 @@ Every PolyNode-based type needs four things:
 - A way to check the tag before casting.
 - A way to cast from `*PolyNode` back to `*YourType`.
 
-This section builds each piece manually. Understanding this is the foundation  
-for everything in Matryoshka.
+This section builds each piece manually. It is the foundation of Matryoshka.
 
 Don't care about the manual steps? See [PolyHelper](polyhelper.md) — it generates all  
 four pieces for you. Come back here when you want to know what it generates and why.
