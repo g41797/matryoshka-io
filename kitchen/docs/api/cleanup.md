@@ -1,8 +1,14 @@
 # API Reference — Cooperative Cleanup
 
+---
+
+
 These patterns follow from the slot rule.  
 Place cleanup before acquisition.  
 The defer becomes a no-op when the slot is null — either because acquisition failed, or because the item was transferred.
+
+---
+
 
 ## Pattern 1 — defer-put-early (pool item)
 
@@ -27,6 +33,9 @@ defer pool.put(ph, &slot);                   // primary: recycles to pool (clear
 // defers run LIFO: pool.put first, then destroy (no-op if pool.put cleared slot)
 ```
 
+---
+
+
 ## Pattern 2 — defer-destroy-early (heap item via PolyHelper)
 
 ```zig
@@ -40,6 +49,9 @@ try EventPolyHelper.create(allocator, &slot);
 
 Destroy before create — safe because PolyHelper.destroy is a no-op on null.
 
+---
+
+
 ## Pattern 3 — defer for received mailbox item
 
 ```zig
@@ -51,6 +63,9 @@ try mailbox.receive(mbh, &slot, null);
 ```
 
 Cleanup covers both the error path (receive failed) and the normal path (item processed and freed).
+
+---
+
 
 ## Pattern 4 — transfer clears the slot
 
@@ -65,6 +80,9 @@ try mailbox.send(mbh, &slot);   // send sets slot.* = null
 ```
 
 Transfer and cleanup are not in conflict — transfer pre-empts cleanup by clearing the slot.
+
+---
+
 
 ## Pattern summary
 

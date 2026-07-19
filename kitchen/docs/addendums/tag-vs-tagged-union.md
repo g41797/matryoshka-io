@@ -101,6 +101,7 @@ Adding `DatabaseConnection` next year:
   is no compile-time way to recover `*Event` / `*Sensor` / `*MailboxHandle` from the same  
   intrusive queue otherwise.
 
-Tagged unions answer *"which variant is this value?"* PolyNode tags answer *"which  
-concrete object sits behind this type-erased pointer?"* Different questions — both  
-useful, in different places.
+Tagged unions answer *"which variant is this value?"*.  
+PolyNode tags answer *"which concrete object sits behind this type-erased pointer?"*  
+
+Different questions — both useful, in different places.

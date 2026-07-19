@@ -63,4 +63,5 @@ HELD       — with infrastructure (in mailbox queue or pool free-list)
 
 ---
 
-Next: [API Reference — Invariants and Contracts](invariants.md).
+Go to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on  
+these contracts.

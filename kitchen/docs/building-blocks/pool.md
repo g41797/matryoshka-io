@@ -1,5 +1,7 @@
 # Building Blocks — Pool
 
+---
+
 Everything reusable lives here.
 
 ---
@@ -52,11 +54,6 @@ A Pool is not storage.
 - No separate rate limiter, no manual throttling code.
 - One event loop can watch "a Mailbox message arrived" and "a Pool item became free"
   side by side. When a worker returns an item, whoever was waiting resumes.
-
-## Why this matters
-
-- Reuse and backpressure come from the same mechanism: a fixed number of slots.
-- The constraint is structural — nobody has to remember to check capacity.
 
 ---
 

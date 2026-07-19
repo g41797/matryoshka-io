@@ -36,8 +36,8 @@ nav:
   - Home: index.md
   - The Manifesto: manifesto.md
   - Building Blocks:
-      - Overview: building-blocks/index.md
-      - PolyNode: building-blocks/polynode.md
+      - Introduction: building-blocks/index.md
+      - Item: building-blocks/polynode.md
       - Mailbox: building-blocks/mailbox.md
       - Pool: building-blocks/pool.md
       - Master: building-blocks/master.md
@@ -49,10 +49,7 @@ nav:
       - Tag Identity & Slot Programming: api/tags-and-slots.md
       - Cooperative Cleanup: api/cleanup.md
       - Matryoshka & Master: api/root-and-master.md
-      - Cancel Model & Object Lifecycle: api/cancel-and-lifecycle.md
-      - Invariants & Contracts: api/invariants.md
   - Patterns & Cookbook:
-      - Overview: patterns/index.md
       - Slot & PolyNode Idioms: patterns/slot-and-polynode.md
       - Mailbox & Topology Patterns: patterns/mailbox-and-topology.md
       - Pool Patterns: patterns/pool.md
@@ -146,14 +143,14 @@ nav:
           - "Master shutdown: close → stdlib walk → free": examples/layer4/039-master_shutdown_stdlib_cleanup.md
           - "Master batch collect: receive_batch → put_all": examples/layer4/040-master_batch_collect_receive_to_pool.md
           - Master pre-shutdown collect: examples/layer4/041-master_multi_mailbox_collect.md
-  - Addendums(former addenda):
+  - Addendums:
       - Why Boring: addendums/why-boring.md
       - Io 101: addendums/io-101.md
       - Slot vs Ref-Counting: addendums/slot-vs-ref-counting.md
       - Tag vs Tagged Union: addendums/tag-vs-tagged-union.md
       - Mailbox vs TypeErasedQueue: addendums/typeErasedQueue-vs-mailbox.md
       - Notation: addendums/matryoshka-io-notation.md
-      - API Docs: api_reference.md
+      - Installation: addendums/installation.md
 
 plugins:
   - search

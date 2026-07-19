@@ -108,9 +108,5 @@ Reference counting answers:
 
 Slot answers:
 
-    "Who has it?"
+    "Do I have it?"
 ```
-
-Matryoshka's model is closer to passing a parcel from hand to hand than to a shared  
-object graph everyone can see at once. At every step, the current holder is a fact you  
-can point to — not a number you have to interpret.

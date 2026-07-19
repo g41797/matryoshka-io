@@ -1,4 +1,6 @@
-# Building Blocks — PolyNode
+# Item/ItemHandle/PolyNode
+
+---
 
 Everything exchanged.
 
@@ -66,9 +68,6 @@ Given a handle, you can identify the object it came from and cast back to it:
 - without interfaces
 - without virtual dispatch
 - with one runtime check (a tag comparison), not a chain of them
-
-That is the whole ownership atom. Everything else in Matryoshka — Mailbox, Pool,  
-Master — moves handles like this one, never the items directly.
 
 ---
 

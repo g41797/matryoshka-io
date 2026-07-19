@@ -257,6 +257,63 @@ variants (Ziggit/Discord/Reddit) — all owner's call on order.
 
 ## Session Log
 
+### 2026-07-18 — Landing page: hero image sizing + favicon debugging
+
+**Participants**: human (owner), Claude (agent).
+
+**Summary**
+
+Finished the mkdocs landing page (`kitchen/docs/index.md`) started in a prior  
+session. Made the logo image itself the primary "Start Building" action  
+(wrapped in `<a href="manifesto/">`, dropped the separate text button),  
+enlarged it (`max-width` 360px → 480px in `kitchen/docs/stylesheets/extra.css`),  
+and added a hover lift/shadow effect matching the existing button hover  
+language, for both light and dark palettes.
+
+Long favicon debugging thread, three real, separate causes layered together:
+
+1. **Illegible crop** — the first favicon was a naive center-crop of the wide  
+   1536×1024 hero illustration, landing on an indistinct blurry region.  
+   Fixed iteratively via manual crop selection previewed in scratch files  
+   before writing to the real asset.
+2. **`file://` testing** — owner was partly testing by opening the built  
+   `docs/index.html` directly; browsers commonly suppress custom favicons for  
+   `file://` pages, falling back to a generic icon. Real testing must go  
+   through `mkdocs serve` (localhost HTTP) or GitHub Pages.
+3. **Material's bundled default icon** — `mkdocs-material` always copies its  
+   own default `assets/images/favicon.png` (an unused book icon) into every  
+   build regardless of `theme.favicon`. Not the cause of any bug, but  
+   confusing clutter — added a post-build cleanup step (`rm -f  
+   docs/assets/images/favicon.png`) to both `kitchen/tools/build_site.sh` and  
+   `.github/workflows/docs.yml`, run after `mkdocs build` / before  
+   `upload-pages-artifact`.
+
+Also explored and reverted a dead end: briefly tried a flat vector-style  
+icon (SVG-generated, indigo circle + white doll silhouette) for tab-size  
+legibility, and a template-override approach (`theme.custom_dir: overrides`  
++ `kitchen/overrides/main.html` extending Material's `base.html`, blanking  
+the `site_meta` block's `<link rel="icon">` line) to fully suppress the  
+favicon link when experimenting with "no icon at all." Both were reverted  
+per owner direction back to a real photo-crop favicon; the override file and  
+`custom_dir` config were deleted.
+
+**Final state**: `theme.logo` and `theme.favicon` in `kitchen/mkdocs.yml`  
+both point at `assets/images/favicon.ico` — a single 48×48 `.ico` doubling  
+as the nav-header logo and the browser tab icon, cropped from an  
+owner-supplied screenshot (`~/Pictures/Screenshots/Screenshot_20260718_122338.png`,  
+a clean, well-centered close-up of the doll's face — better source material  
+than the wide hero illustration). Same crop applied to the root-level  
+`kitchen/docs/favicon.ico` (covers browsers that auto-probe `/favicon.ico`  
+independent of the `<link>` tag). Verified end-to-end: local `mkdocs build`,  
+local `mkdocs serve` (curled the served HTML/icon bytes directly), and the  
+live GitHub Pages deployment (curled `https://g41797.github.io/matryoshka-io/`  
+and its favicon URL directly) at various points in the investigation.
+
+All changes left uncommitted per owner instruction ("git nono") — `git  
+status` audited at the end to confirm no stale/orphaned files remained  
+(old `kitchen/docs/assets/favicon.png` and `assets/favicon.ico` locations  
+correctly gone, nothing still referencing them).
+
 ### 2026-07-15 — MDFIX: `fix_md_hardbreaks.sh` script created and wired in
 
 **Participants**: human (owner), Claude (agent).

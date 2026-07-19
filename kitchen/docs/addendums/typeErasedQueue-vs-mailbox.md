@@ -1,4 +1,4 @@
-# TypeErasedQueue vs Mailbox
+# Mailbox vs TypeErasedQueue 
 
 ---
 
@@ -71,26 +71,16 @@ Master      scheduling, application policy
 ```
 
 A `TypeErasedQueue` bundles synchronization, storage, capacity, and allocation policy  
-into one type. Matryoshka splits them — each piece has exactly one job.
+into one type. 
 
-## What's still worth borrowing
-
-Implementation techniques, not architecture:
-
-- minimizing time held under a lock
-- avoiding unnecessary broadcasts
-- careful wake-up ordering
-- cancellation-safe waiter handling
-- fairness under heavy contention
-
-None of these require adopting bounded capacity, waiting-producer lists, or embedded  
-storage — the parts of `TypeErasedQueue`'s design that solve a different problem than  
-Mailbox solves.
+Matryoshka splits them — each piece has exactly one job.
 
 ## Mailbox is not really a queue
 
 Internally, a Mailbox uses `std.DoublyLinkedList` — an implementation detail, not the  
-architecture. The API reflects the real job:
+architecture. 
+
+The API reflects the real job:
 
 ```zig
 mailbox.send(...)
@@ -104,5 +94,11 @@ enqueue(...)
 dequeue(...)
 ```
 
-A queue stores values. A Mailbox moves the object that already exists from one holder to  
-the next.
+A queue stores values.  
+
+A Mailbox 
+
+- moves the object 
+- that already exists 
+- from one holder
+- to the next.

@@ -1,4 +1,4 @@
-# Building Blocks — Mailbox
+# Mailbox
 
 Everything communicates.
 
@@ -53,16 +53,11 @@ A Mailbox is built from a `PolyNode`, same as any application object.
 - A Mailbox can be stored in a Pool.
 - A Mailbox can be embedded into a larger structure.
 
-This is how a worker signals "I'm done": it sends its own Mailbox back to whoever is  
-coordinating it, instead of a separate finished-message.
+e.g. Worker 
 
-## Why this matters
-
-- Mailbox and Pool are containers on steroids — the steroid here is ownership
-  transfer without copying.
-
-- A design that routes every cross-boundary interaction through Mailboxes never
-  needs a shared status table. Whoever holds the handle owns the problem right now.
+- can signal "I'm done" 
+- via sending its own Mailbox
+- back to coordinator
 
 ---
 

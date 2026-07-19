@@ -1,8 +1,18 @@
 # API Reference — Pool
 
+
+---
+
+**HARDEST PART OF MATRYOSHKA** 
+
+- not because Pool per-se
+- because your code will be part of ... 
+
+---
+
 New to the concept? See [Building Blocks — Pool](../building-blocks/pool.md) first.
 
-Lifecycle management with user supplied hooks.
+Lifecycle management with _user supplied hooks_.
 
 Pool is not storage.
 
@@ -30,9 +40,9 @@ get() [available_or_new, pool empty]     get() [available_or_new, pool has items
   ↓ on_get creates item                    ↓ item moved from free-list
 IN_FLIGHT (with caller)                  IN_FLIGHT (with caller)
 
-put() [on_put keeps]      put() [on_put destroys]
-  ↓                         ↓
-HELD (pool free-list)     FREE (caller frees)
+put() [on_put keeps]                     put() [on_put destroys]
+  ↓                                             ↓
+HELD (pool free-list)                    FREE (caller frees)
 
 get() [available_only or available_or_new]
   ↓
@@ -312,6 +322,18 @@ pub fn get_wait_future(ph: PoolHandle, tag: *const anyopaque, timeout_ns: ?u64) 
   - allocate in a way that could recursively trigger pool operations
   - Not a deadlock — hooks run outside the lock.
   - Contract violation — the pool cannot manage what it holds if hooks change it concurrently.
+
+---
+
+## Starting point
+
+Hooks are very powerful mechanism.  
+
+Start from simplest - [Always Create](../examples/layer3/089-basic_recycler.md)
+
+Next - [Limited capacity](../examples/layer3/090-capped_pool.md) 
+
+Be careful - you inject your code to the heart of Matryoshka.
 
 ---
 

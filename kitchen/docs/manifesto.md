@@ -41,7 +41,7 @@ Because the system becomes **_visible_**.
 
 ---
 
-## One constraint
+## Constraints
 
 Matryoshka asks you to accept one constraint.
 
@@ -51,9 +51,9 @@ Pools add a second one.
 
 > Shared resources are explicit and controlled.
 
-Two constraints. In return you get:
+Frame:
 
-* parts talk in one way only: messages(items)
+* parts talk in one way only: items
 * you always sure that item is in one place
 * you know what runs in parallel
 * you can swap one Master for another
@@ -61,12 +61,9 @@ Two constraints. In return you get:
 
 ---
 
-## Master is an Io task
+## Master is King
 
-Master is the main concept of Matryoshka.
-
-* Io creates tasks through `*.concurrent()`.
-* A Master is an Io task that follows the Matryoshka rules.
+Master is the main concept of Matryoshka.  
 
 Master is **not**:
 
@@ -74,9 +71,12 @@ Master is **not**:
 * an interface
 * a runtime
 
-> A Master runs on its own, as an Io task.
-> It owns its state.
-> It talks through mailboxes.
+Master
+
+- is Io task
+- owns its state
+- follows the Matryoshka rules
+- uses Items, Pools, Mailboxes
 
 Everything that runs in Matryoshka is a Master:
 
@@ -97,7 +97,8 @@ Single-job Coordinator Resource owner
 * Some Masters coordinate other Masters.
 * Some Masters own shared resources.
 
-Every part runs on its own. Some parts grow into coordinators.
+Every part runs on its own.   
+Some parts grow into coordinators.
 
 That is how real systems are built.
 
@@ -105,17 +106,16 @@ That is how real systems are built.
 
 ## Down to earth
 
-The whole model fits in a few lines.
-
-* A Master usually has one input mailbox.
-* A Master processes one message at a time
-    * Most of Masters has internal loop
-* A Master may send a message to any mailbox.
-    * Including its own.
-* Multiple Masters may share one mailbox.
-* A Master may borrow items from one or more Pools.
-* Pools may be shared by many Masters.
-* Mailboxes and Pools hold type-erased items.
+- A Master usually has one input mailbox.
+    - Or listens event sources of Io  
+- A Master processes one Item at a time
+    - Most Masters has internal loop
+- A Master may send a Item to any mailbox.
+    - Including its own.
+- Multiple Masters may share one mailbox.
+- A Master may borrow items from one or more Pools.
+- Pools may be shared by many Masters.
+- Mailboxes and Pools hold type-erased items.
 
 Nothing else is required.
 
@@ -133,18 +133,16 @@ Everything else is a Master, or a composition of Masters:
 * dispatchers
 * routers
 * schedulers
-* timers
 * services
 * actors
 * pipelines
-* reactors
 
 ---
 
 ## Four fundamental concepts
 
 ```text
-PolyNode
+Item/ItemHandle/PolyNode
     Everything exchanged.
 
 Mailbox
@@ -157,11 +155,9 @@ Master
     Everything runs inside one.
 ```
 
-Master is an Io task. The other three are code.
+Master is YOUR CODE. 
 
-The one-line summary below is all this page gives you — see  
-[Building Blocks](building-blocks/index.md) for a full page per concept, still no Zig  
-syntax, and [API Reference](api/polynode.md) once you're ready to write code.
+The other three are Matryoshka-Io code.
 
 ### Item vs ItemHandle and PolyNode
 
@@ -231,15 +227,6 @@ There is no big-bang adoption.
 * Add `Mailbox` when you need message passing.
 * Or use your own type-erased queue. It's up to you.
 
-Each step is useful right away.      
-Each step remains useful after the next one.  
-
-Keep reading:
-
-* [Building Blocks](building-blocks/index.md) — PolyNode, Mailbox, Pool, Master, named
-  and diagrammed.
-
-* [API Reference](api/polynode.md) — signatures and contracts.
 
 ---
 
@@ -256,3 +243,10 @@ If the answer is **yes**, you're already thinking in Matryoshka.
 
 Don't be afraid. Go ahead.
 
+
+---
+
+Keep reading:
+
+* [Building Blocks](building-blocks/index.md)
+* [API Reference](api/polynode.md)

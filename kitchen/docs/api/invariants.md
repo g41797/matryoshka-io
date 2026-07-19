@@ -1,5 +1,8 @@
 # API Reference — Invariants and Contracts
 
+---
+
+
 ## Invariants
 
 These hold at all times, for every node in the system:
@@ -97,12 +100,7 @@ Valid combinations:
 - Layer 1 + Layer 3 — type identity + object lifecycle, no message passing
 - Layer 1 + Layer 2 + Layer 3 + Io — full stack (Master)
 
-## Change log
-
-See `design/matryoshka-api-reference-020.md` "Change log" for the full version history —  
-not duplicated here to avoid drift between the site and the design source.
-
 ---
 
-Back to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on  
+Go to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on  
 these contracts.

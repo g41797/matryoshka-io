@@ -117,4 +117,6 @@ Matryoshka plugs into the same pattern:
 
 ---
 
-Next: [API Reference — Cancel Model and Object Lifecycle](cancel-and-lifecycle.md).
+
+Go to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on  
+these contracts.
