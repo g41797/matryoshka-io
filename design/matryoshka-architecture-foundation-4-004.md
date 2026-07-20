@@ -1484,13 +1484,13 @@ Master is where independent layers meet.
 ```text
           Hold
                │
-               ▼
+               V
           Mailbox
                │
-               ▼
+               V
             Pool
                │
-               ▼
+               V
            Master
 ```
 
@@ -2733,25 +2733,25 @@ Matryoshka consists of four layers.
 Layer 1
 Hold
     │
-    ▼
+    V
 PolyNode + Tag + MayItem
 
 Layer 2
 Movement
     │
-    ▼
+    V
 Mailbox
 
 Layer 3
 Lifecycle
     │
-    ▼
+    V
 Pool + Hooks
 
 Layer 4
 Coordination
     │
-    ▼
+    V
 Master
 ```
 

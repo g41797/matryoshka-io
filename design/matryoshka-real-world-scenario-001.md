@@ -63,31 +63,31 @@ Based on the discussion, the architects formalize the following requirements:
 ```text
   [ External Cameras ]
         │ (10,000 RTMP Streams)
-        ▼
+        V
    NETWORK INGEST
         │ (Waits on Memory Recycler event for empty buffers)
-        ▼
+        V
    [ Stream Context A ] ────┐
    [ Stream Context B ] ──┐ │
    [ Stream Context C ]   │ │ (If stream becomes active)
         │                 │ │
-        ▼                 ▼ ▼
+        V                 V V
   (Pending Buffers)    [ Ready Queue ]
                              │
-                             ▼
+                             V
    ENCODING CLUSTER (Fixed 64 Workers)
    1. Worker pops active Stream Context
    2. Worker processes pending buffers sequentially (Maintains state)
    3. Worker returns empty buffers to Memory Recycler
    4. Worker passes encoded segments to Storage Queue
                              │
-                             ▼
+                             V
                       [ Storage Queue ]
                              │
-                             ▼
+                             V
    STORAGE MASTER (Disk I/O)
         │
-        ▼
+        V
    [ HLS Storage ]
 ```
 
@@ -124,31 +124,31 @@ Two senior Zig programmers look at the Software Requirements. They map the compl
 ```text
   [ Network Sockets ]                                [ Memory Pool ]
         │                                                   │
-        ▼                                                   ▼
+        V                                                   V
    NETWORK TASK (Io.Select) ◄───(pool.getWaitResult event)──┘
         │ 
-        ▼
+        V
    [ StreamContext A ] ─────┐
    [ StreamContext B ] ───┐ │
    [ StreamContext C ]    │ │ (mailbox.send())
         │                 │ │
-        ▼                 ▼ ▼
+        V                 V V
   (Pending Buffers)    [ Ready Mailbox ]
                              │
-                             ▼
+                             V
    ENCODER WORKERS (Io.Group of 64)
    1. mailbox.receive(Ready Mailbox) -> gets StreamContext
    2. Worker processes pending buffers
    3. pool.put() -> returns empty buffers to Pool ──────────┐
    4. mailbox.send() -> passes encoded segments             │
                              │                              │
-                             ▼                              │
+                             V                              │
                      [ Storage Mailbox ]                    │
                              │                              │
-                             ▼                              │
+                             V                              │
    STORAGE TASK (Io.Select)                                 │
         │                                                   │
-        ▼                                                   │
+        V                                                   │
    [ File System ]                                          │
         ▲                                                   │
         └───────────────────────────────────────────────────┘

@@ -179,7 +179,7 @@ Where the architecture lives.
 ```text
   [ Cameras (simulated) ]
         │
-        ▼
+        V
   NETWORK MASTER (Io.Select)
   ├── pool.getWaitResult ──► VideoBuffer available? (backpressure: pauses when all buffers in use)
   │
@@ -188,10 +188,10 @@ Where the architecture lives.
   │     attach to StreamContext
   │     send StreamContext to ready_queue
   │
-  ▼
+  V
   [ ready_queue: Mailbox of StreamContext ]
         │
-        ▼
+        V
   ENCODING WORKERS (Io.Group)
   ├── mailbox.receive(ready_queue) ──► StreamContext (exclusive ownership)
   │     encode frame (sequential, lock-free)
@@ -201,16 +201,16 @@ Where the architecture lives.
   │     destroy StreamContext                                     │
   │     loop back to receive                              Network Master resumes
   │
-  ▼
+  V
   [ storage_mbh: Mailbox of EncodedSegment ]
         │
-        ▼
+        V
   STORAGE TASK (io.concurrent)
   ├── mailbox.receive(storage_mbh) ──► EncodedSegment
   │     write to storage (simulated: log)
   │     release segment
   │     loop back to receive
-  ▼
+  V
   [ Storage ]
 
   Shutdown sequence:

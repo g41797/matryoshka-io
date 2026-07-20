@@ -7,7 +7,7 @@
        │ mailbox.send_oob(job_queue, &cancel_slot) ← OOB: arrives at queue front
        └───────────────┴───────────────┘
                        │
-                       ▼
+                       V
            SPOOL MASTER (mailbox.receive loop on job_queue)
            ├── on PrintJob:
            │     mailbox.send(printer_inbox, &job_slot)   ← forward, ownership transferred
@@ -19,10 +19,10 @@
            │       yes → mailbox.send_oob(printer_inbox, &cancel_slot)
            │       no  → job already printing; Printer Master handles it
            │
-           ▼
+           V
            [ printer_inbox ]
                        │
-                       ▼
+                       V
            PRINTER MASTER (mailbox.receive loop on printer_inbox)
            ├── on PrintJob:
            │     var slot: Slot = job           ← exclusive ownership, no locks
@@ -35,10 +35,10 @@
            │     send PrintResult{.canceled} → current_job.reply_mbh
            │     destroy current job
            │
-           ▼
+           V
            [ reply_mbh — per client ]
                        │
-                       ▼
+                       V
               Client calls mailbox.receive(reply_mbh, ...)
               receives PrintResult{.ok} or PrintResult{.canceled} or PrintResult{.failed}
 

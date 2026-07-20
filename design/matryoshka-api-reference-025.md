@@ -1729,10 +1729,10 @@ Two patterns for producing Select events:
 ```text
   blockingFn ────► select.concurrent(field, blockingFn, args)
                         │
-                        ▼ (fn runs, result → queue)
+                        V (fn runs, result → queue)
                    Io.Select.queue
                       │   │
-                      ▼   ▼
+                      V   V
                completed  canceled
                (result)   (error.Canceled)
 ```
@@ -1751,10 +1751,10 @@ Cancel is something you do to a Future, not something that happens on its own:
   concurrent() ──► Future(T)
                       │
               ┌───────┼───────┐
-              ▼               ▼
+              V               V
           .await()        .cancel(io)
               │               │
-              ▼               ▼
+              V               V
            result      error.Canceled
 ```
 

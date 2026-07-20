@@ -104,16 +104,16 @@ Every Item has exactly one owner.
 ```
 Master
      │
-     ▼
+     V
  Mailbox
      │
-     ▼
+     V
  Master
      │
-     ▼
+     V
    Pool
      │
-     ▼
+     V
  Master
 ```
 
@@ -181,16 +181,16 @@ A typical flow looks like this.
 ```
 Pool
   │
-  ▼
+  V
 Master A
   │
-  ▼
+  V
 Mailbox
   │
-  ▼
+  V
 Master B
   │
-  ▼
+  V
 Pool
 ```
 

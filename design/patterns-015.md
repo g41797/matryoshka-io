@@ -527,7 +527,7 @@ Pattern.
 ```
 main ──Event(request)──► req_mbh ──► worker
                                         │ process
-                                        ▼
+                                        V
 main ◄──Event(response)── resp_mbh ◄── worker
 ```
 
@@ -872,7 +872,7 @@ Timer
 Socket
 External callback
         │
-        ▼
+        V
     Io.Select
 ```
 

@@ -39,6 +39,9 @@ Diagrams are sentences written using that vocabulary.
 
 # Design principles
 
+---
+
+
 ## Architecture first
 
 The notation describes architecture.
@@ -119,6 +122,9 @@ Complex systems are built by composing a few simple symbols.
 
 # Primitive symbols
 
+---
+
+
 ## Master
 
 ```
@@ -147,6 +153,9 @@ Examples
 
 ## Pool
 
+---
+
+
 ```
 [ Chunk ]
 
@@ -166,6 +175,9 @@ Pools never execute.
 ---
 
 ## Mailbox
+
+---
+
 
 Horizontal
 
@@ -191,6 +203,9 @@ Its orientation has no meaning.
 ---
 
 ## Movement
+
+---
+
 
 Movement is independent from the Mailbox.
 
@@ -218,6 +233,9 @@ They do not describe the Mailbox.
 
 # Application items
 
+---
+
+
 Application items are represented by their names.
 
 ```
@@ -244,6 +262,9 @@ The application does.
 
 # Mailbox contract
 
+---
+
+
 Text attached to a Mailbox declares the Item types that may traverse it.
 
 Example
@@ -268,6 +289,9 @@ Not the current mailbox contents.
 
 # Mailbox sharing
 
+---
+
+
 Sharing belongs to the Mailbox.
 
 Not to the Master.
@@ -282,6 +306,9 @@ It does not indicate an exact number.
 
 ## One producer
 
+---
+
+
 ```
 >==========
 ```
@@ -289,6 +316,9 @@ It does not indicate an exact number.
 ---
 
 ## Many producers
+
+---
+
 
 ```
 >>>==========
@@ -306,6 +336,9 @@ Typical examples
 
 ## One consumer
 
+---
+
+
 ```
 ==========>
 ```
@@ -313,6 +346,9 @@ Typical examples
 ---
 
 ## Many consumers
+
+---
+
 
 ```
 ==========>>>
@@ -329,6 +365,9 @@ Typical examples
 
 ## Many producers and many consumers
 
+---
+
+
 ```
 >>>==========>>>
 ```
@@ -336,6 +375,9 @@ Typical examples
 ---
 
 # Layout
+
+---
+
 
 The notation does not prescribe layout.
 
@@ -349,7 +391,13 @@ The page layout does not.
 
 # Examples
 
+---
+
+
 ## Worker
+
+---
+
 
 ```
 Chunk|Shutdown!
@@ -367,6 +415,9 @@ Chunk|Shutdown!
 
 ## Worker pool
 
+---
+
+
 ```
 Chunk|Shutdown!
 
@@ -382,6 +433,9 @@ Chunk|Shutdown!
 ---
 
 ## Logger
+
+---
+
 
 ```
 LogRecord
@@ -418,6 +472,9 @@ Response
 ---
 
 # Reading diagrams
+
+---
+
 
 The notation separates four independent concepts.
 
@@ -463,7 +520,236 @@ Together they describe the architecture.
 
 ---
 
+
+# Two views
+
+---
+
+
+There are **two views** of the same system.
+
+---
+
+
+## Implementation view
+
+---
+
+
+Mailbox and Pool are generic infrastructure.
+
+They know only about `ItemHandle` (`PolyNode`).
+
+```text
+Mailbox <-> ItemHandle
+Pool    <-> ItemHandle
+```
+
+They never know whether the handle belongs to a `Request`, `Chunk`, `Timer`, or `VideoBuffer`.
+
+---
+
+## Architectural (user) view
+
+---
+
+
+The developer never thinks in terms of `ItemHandle`.
+
+The developer thinks in terms of the application's objects.
+
+```text
+Request
+Response
+VideoBuffer
+StreamContext
+Shutdown!
+```
+
+So the diagrams intentionally show
+
+```text
+Request|Shutdown!
+
+>>>==========
+```
+
+instead of
+
+```text
+ItemHandle|ItemHandle
+```
+
+because the diagram communicates **the application's architecture**, not the runtime implementation.
+
+---
+
+The same applies to Pools.
+
+Implementation:
+
+```text
+Pool<ItemHandle>
+```
+
+Diagram:
+
+```text
+[ VideoBuffer ]
+
+[ Connection ]
+
+[ Chunk|Job ]
+```
+
+because those are the reusable application objects from the developer's point of view.
+
+---
+
+So the notation is deliberately **domain-oriented**, while the implementation is **type-erased**.
+
+The notation answers:
+
+> *What moves through the system?*
+
+The implementation answers:
+
+> *How is that movement implemented?*
+
+
+---
+
+The rule is:
+
+- Use the compact notation when it is sufficient.
+- Expand into concrete examples when it improves understanding.
+- Never violate the architectural semantics.
+- Optimize for communication, not minimal symbol count.
+
+---
+
+For example, if the notation says
+```
+==========>>>
+```
+means "many consumers", but the reader benefits from seeing actual Masters, I will draw
+```
+==========>>>
+
+{ Encoder #1 }
+{ Encoder #2 }
+{ Encoder #3 }
+```
+
+Likewise for producers:
+```
+>>>==========
+
+may become
+
+{ Camera #1 }
+{ Camera #2 }
+{ Camera #3 }
+
+      │
+      V
+
+>>>==========
+```
+
+---
+
+# Clarifications
+
+---
+
+
+The diagrams should look like flow charts, where every element of the flow is expressed using the Matryoshka notation.
+
+That means free usage of:
+
+Horizontal mailboxes
+```
+==========
+```
+
+Vertical mailboxes
+```
+||
+||
+||
+```
+
+Horizontal movement
+```
+>>>
+
+<<<
+```
+
+Vertical movement
+```
+VVV
+
+^^^
+```
+
+and combine them naturally in one drawing.
+
+For example, a decoder 
+
+- at the top sending work 
+- to a vertical mailbox
+- with three workers below
+- is completely valid.
+
+Likewise, a Pool 
+
+- may sit on the side 
+- because it is not part of the communication path 
+- but of the ownership path.
+
+The resulting diagrams 
+
+- should resemble architecture sketches 
+- suitable for whiteboard
+- not sequence diagrams or UML.
+
+
+
+---
+
+
+# Layers
+
+
+---
+
+
+The reader should be able to tell immediately which layer they're reading:
+
+- External — what the system does.
+- Architecture — how responsibilities are organized.
+- Implementation — how it's built.
+
+---
+
+
+| Level          | Good                           | Avoid                                 |
+| -------------- | ------------------------------ | ------------------------------------- |
+| External       | Scalable.                      | Adds workers.                         |
+| External       | Works with limited memory.     | Reuses buffers.                       |
+| Architecture   | Pool manages reusable buffers. | `std.ArrayList` buffer cache.         |
+| Implementation | Uses intrusive pools.          | (this belongs in implementation docs) |
+
+
+---
+
+
 # Non-goals
+
+---
+
 
 The notation does not describe
 
@@ -480,6 +766,9 @@ Those belong to implementation.
 ---
 
 # Future extensions
+
+---
+
 
 Possible extensions include
 
@@ -499,6 +788,9 @@ New symbols should be introduced only when absolutely necessary.
 
 # Design goal
 
+---
+
+
 The notation should be learnable in five minutes.
 
 A developer should be able to sketch a Matryoshka architecture on a whiteboard.
@@ -507,9 +799,17 @@ Another Matryoshka developer should immediately understand it.
 
 The notation should become the common language for discussing Matryoshka-Io systems.
 
+
 ---
+
 
 # When
 
+---
+
+
 Who knows...
+
+
+---
 

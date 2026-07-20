@@ -182,7 +182,7 @@ People
 
         │
 
-        ▼
+        V
 
 Discussion
 
@@ -192,19 +192,19 @@ Domain Whiteboard
 
         │
 
-        ▼
+        V
 
 SRS
 
         │
 
-        ▼
+        V
 
 Whiteboard Evolution
 
         │
 
-        ▼
+        V
 
 Implementation
 ```

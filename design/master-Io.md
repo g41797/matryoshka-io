@@ -48,7 +48,7 @@ For example:
                   │
        wait/select/poll/epoll/...
                   │
-                  ▼
+                  V
           +---------------+
           | Io Bridge     |
           | (Master)      |
@@ -56,10 +56,10 @@ For example:
                   │
           send message/job
                   │
-                  ▼
+                  V
              Master Mailbox
                   │
-                  ▼
+                  V
                Master
 ```
 

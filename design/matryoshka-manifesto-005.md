@@ -235,7 +235,7 @@ Inside the system, all of these are the same thing: a message in a mailbox.
                   │
             wait for events
                   │
-                  ▼
+                  V
           +---------------+
           | Bridge        |
           | (a Master)    |
@@ -243,10 +243,10 @@ Inside the system, all of these are the same thing: a message in a mailbox.
                   │
              send message
                   │
-                  ▼
+                  V
              Master Mailbox
                   │
-                  ▼
+                  V
                Master
 ```
 

@@ -125,12 +125,12 @@ It talks through Mailboxes.
 ```text
 io.concurrent()
         │
-        ▼
+        V
      Io task
         │
 follows Matryoshka rules
         │
-        ▼
+        V
      Master
 ```
 

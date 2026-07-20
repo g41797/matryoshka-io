@@ -131,7 +131,7 @@ Timer
 Socket
 External callback
         │
-        ▼
+        V
     Io.Select
 ```
 
