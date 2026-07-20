@@ -10,16 +10,6 @@ Every stream is independent.
 
 Frames flow through the system.
 
-Workers process frames.
-
-Buffers are reused.
-
-Memory is limited.
-
-Concurrency is required.
-
-Ordering is preserved.
-
 The system never stops receiving work.
 
 ---
@@ -544,9 +534,9 @@ Encodes target format.
 
 Writes video to storage.
 
-Reuses memory.
+Used memory is limited.
 
-Scales by adding workers.
+Scalable.
 
 Preserves frame order.
 
