@@ -1,7 +1,7 @@
 # Patterns — Pool Patterns
 
 Concepts: [Building Blocks — Pool](../building-blocks/pool.md).  
-API: [API Reference — Pool](../api/pool.md).
+API: [API Reference — Pool](../api/pool/index.md).
 
 ### Pool mode — .available_or_new
 

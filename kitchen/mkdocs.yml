@@ -43,13 +43,38 @@ nav:
       - Pool: building-blocks/pool.md
       - Master: building-blocks/master.md
   - API Reference:
-      - PolyNode & ItemHandle & Slot: api/polynode.md
+      - PolyNode & ItemHandle & Slot:
+          - Overview: api/polynode/index.md
+          - reset / is_linked: api/polynode/functions.md
+          - Defining user types — manual step by step: api/polynode/manual-definition.md
+          - stdlib compatibility: api/polynode/stdlib-compatibility.md
       - PolyHelper: api/polyhelper.md
-      - Mailbox: api/mailbox.md
-      - Pool: api/pool.md
-      - Tag Identity & Slot Programming: api/tags-and-slots.md
-      - Cooperative Cleanup: api/cleanup.md
-      - Matryoshka & Master: api/root-and-master.md
+      - Mailbox:
+          - Overview: api/mailbox/index.md
+          - send / send_oob: api/mailbox/send.md
+          - receive / try_receive / receive_batch: api/mailbox/receive.md
+          - wakeUpAll / close / destroy / is_it_you: api/mailbox/control.md
+          - Error sets: api/mailbox/errors.md
+          - Event source helpers: api/mailbox/events.md
+      - Pool:
+          - Overview: api/pool/index.md
+          - get / get_wait: api/pool/get.md
+          - put / put_all: api/pool/put.md
+          - init / close / destroy / is_it_you: api/pool/control.md
+          - Error sets: api/pool/errors.md
+          - Event source helpers: api/pool/events.md
+          - Hook discipline: api/pool/hooks-discipline.md
+          - Starting point: api/pool/next-steps.md
+      - Tag Identity & Slot Programming:
+          - Overview & Tag identity: api/tags-and-slots/index.md
+          - Slot-based programming: api/tags-and-slots/slot-programming.md
+      - Cooperative Cleanup:
+          - "Pattern 1: defer-put-early": api/cleanup/index.md
+          - "Pattern 2: defer-destroy-early": api/cleanup/pattern-2.md
+          - "Pattern 3: defer for received mailbox item": api/cleanup/pattern-3.md
+          - "Pattern 4: transfer clears the slot": api/cleanup/pattern-4.md
+          - Pattern summary: api/cleanup/summary.md
+          - No raw allocator calls: api/cleanup/no-raw-allocator.md
   - Patterns & Cookbook:
       - Slot & PolyNode Idioms: patterns/slot-and-polynode.md
       - Mailbox & Topology Patterns: patterns/mailbox-and-topology.md

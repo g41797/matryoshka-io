@@ -118,5 +118,4 @@ Matryoshka plugs into the same pattern:
 ---
 
 
-Go to: [Patterns & Cookbook](../patterns/index.md) for reusable code shapes built on  
-these contracts.
+Go to: [Patterns & Cookbook](../patterns/index.md) 

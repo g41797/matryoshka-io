@@ -138,4 +138,5 @@ try EventPolyHelper.create(alloc, &slot);
 
 ---
 
-Next: [API Reference — matryoshka Root and Master](root-and-master.md).
+Next: [Patterns & Cookbook](../patterns/index.md) 
+

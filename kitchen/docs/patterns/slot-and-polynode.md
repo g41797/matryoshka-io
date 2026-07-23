@@ -1,9 +1,9 @@
 # Patterns — Slot and PolyNode Idioms
 
 Concepts: [Building Blocks — PolyNode](../building-blocks/polynode.md).  
-API: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md).
+API: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode/index.md).
 
-The slot rule in full: [API Reference — Tag Identity and Slot Programming](../api/tags-and-slots.md).
+The slot rule in full: [API Reference — Tag Identity and Slot Programming](../api/tags-and-slots/index.md).
 
 ## Slot idioms
 
@@ -189,7 +189,7 @@ Why.
 - Raw `allocator.create` skips both. The item is unusable for dispatch.
 
 Exempt: `mailbox.zig` / `pool.zig` internals, PolyHelper implementations, pool hook bodies, non-PolyNode structs.  
-Full list: [API Reference — Cooperative Cleanup](../api/cleanup.md).
+Full list: [API Reference — Cooperative Cleanup](../api/cleanup/index.md).
 
 ---
 
@@ -330,7 +330,7 @@ Use.
 - Pointer comparison for infrastructure handles.
 - User fields (`kind`, `role`) for application roles.
 
-Details: [API Reference — Tag Identity](../api/tags-and-slots.md).
+Details: [API Reference — Tag Identity](../api/tags-and-slots/index.md).
 
 ### Wrapper type for infrastructure handles
 
@@ -392,7 +392,7 @@ Why.
 
 - Replaces relying on the future await as a completion signal, or a separate shutdown message, with handing the mailbox back.
 
-Details: [API Reference — Transporting infra handles](../api/tags-and-slots.md).
+Details: [API Reference — Transporting infra handles](../api/tags-and-slots/index.md).
 
 ### Pool-as-message
 

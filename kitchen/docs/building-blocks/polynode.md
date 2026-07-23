@@ -73,5 +73,5 @@ Given a handle, you can identify the Item it came from and cast back to it:
 
 Next: [Mailbox](mailbox.md) — how a handle moves from one owner to another.
 
-See also: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode.md) for the actual  
+See also: [API Reference — PolyNode, ItemHandle, Slot](../api/polynode/index.md) for the actual  
 Zig types and functions.

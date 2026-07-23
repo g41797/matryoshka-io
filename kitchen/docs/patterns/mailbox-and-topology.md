@@ -1,7 +1,7 @@
 # Patterns — Mailbox and Topology Patterns
 
 Concepts: [Building Blocks — Mailbox](../building-blocks/mailbox.md).  
-API: [API Reference — Mailbox](../api/mailbox.md).
+API: [API Reference — Mailbox](../api/mailbox/index.md).
 
 ## Mailbox patterns
 

@@ -10,12 +10,6 @@ It is a complete _redesign_
 
 - include _integration_ with Zig Io. 
 
-The name reflects that integration.
-
----
-
-The result is **Matryoshka-Tk**.
-
 ---
 
 ## Why Master?

@@ -42,7 +42,7 @@ A Pool is not storage.
 - `put` can delete it and hand back a different item instead.
 - Nothing you `put` in is guaranteed to still be there on the next `get`.
 - No fixed count/order/identity survives a put/get sequence unless your hooks guarantee it.
-- See [API Reference — Pool](../api/pool.md) for the four `put` outcomes.
+- See [API Reference — Pool](../api/pool/put.md) for the four `put` outcomes.
 
 - A Pool resource alone never defines a complete pattern.
 - Useful work always needs at least one other input too: a Mailbox message, a
@@ -73,4 +73,4 @@ That wait ends the moment some other `{ Job Processor }` calls `put()`.
 
 Next: [Master](master.md) — who coordinates all of this.
 
-See also: [API Reference — Pool](../api/pool.md) for the actual Zig functions.
+See also: [API Reference — Pool](../api/pool/index.md) for the actual Zig functions.
