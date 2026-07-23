@@ -33,7 +33,7 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-tk-implementation-plan-042.md (slim, state-only)
+- Plan: matryoshka-tk-implementation-plan-043.md (slim, state-only)
 - Rules: rules-026.md
 - New Mindset reference: matryoshka-new-mindset-001.md
 - Thinking model: matryoshka-model-003.md
@@ -254,7 +254,15 @@ lines; design/src-loc-counter-001.md) + badge next to API button on
 both the mkdocs build-time hook (`kitchen/hooks/count_lines.py`) and a  
 standalone script (`kitchen/tools/count_src_loc.sh`); API button hidden via  
 CSS (`display: none`, markup kept). DONE (doc/tooling-only, 167/167 tests  
-unchanged).
+unchanged).  
+REBRAND — repo renamed to matryoshka-tk. Mechanical pass (file renames,  
+safe-regex text swap) done pre-clone; this session verified every deferred  
+item in matryoshka-tk-rebrand-checklist-001.md: no stray matryoshka-io  
+paths (outside the checklist itself and exempt STATUS-LOG.md history), no  
+hardcoded repo-slug in .github/workflows/*.yml, no stray bare Io/io  
+mentions. DONE (doc-only, 167/167 tests unchanged). Deferred editorial/  
+conceptual prose pass (README intro, manifesto, landing candidates)  
+remains owner's call, not actioned. Plan version 043 created.
 
 **Next stage**: CANDIDATES (composed README + landing docs from a repo-wide  
 `.md` audit, `design/candidates/`) — requirements-gathering done, execution  

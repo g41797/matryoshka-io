@@ -1,6 +1,6 @@
-# Matryoshka Zig — Implementation Plan (042)
+# Matryoshka Zig — Implementation Plan (043)
 
-Replaces [matryoshka-tk-implementation-plan-041.md](matryoshka-tk-implementation-plan-041.md).
+Replaces [matryoshka-tk-implementation-plan-042.md](matryoshka-tk-implementation-plan-042.md).
 
 ## Status
 
@@ -29,6 +29,15 @@ question below needs an answer before Pass 1 starts.
   by both the mkdocs build-time hook (`kitchen/hooks/count_lines.py`) and a  
   standalone script (`kitchen/tools/count_src_loc.sh`); API button hidden  
   via CSS. DONE (doc/tooling-only, 167/167 tests unchanged).
+- REBRAND — repo rename to matryoshka-tk. Mechanical pass (file renames,
+  safe-regex text swap) done before clone; this session verified every
+  deferred checklist item (`design/matryoshka-tk-rebrand-checklist-001.md`):
+  no stray `matryoshka-io` paths outside the checklist itself and the
+  exempt `STATUS-LOG.md` history, no hardcoded repo-slug in
+  `.github/workflows/*.yml`, no stray bare `Io`/`io` mentions. DONE
+  (doc-only, 167/167 tests unchanged). Deferred editorial/conceptual prose
+  pass (README intro, manifesto, landing candidates) remains owner's call,
+  not actioned.
 
 See `design/STATUS.md` Session Log for full per-stage detail — this plan file  
 stays state-only per the slim-plan rule.
