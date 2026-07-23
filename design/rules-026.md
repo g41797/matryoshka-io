@@ -528,7 +528,7 @@ Banned words.
      The principle still applies to any future `zig build docs` target —  
      `apidocs` (rooted at `src/matryoshka.zig`) stays well under this size  
      and needs no special handling.
-   * Historical detail (DOC 20 removed the affected targets): matryoshka-io
+   * Historical detail (DOC 20 removed the affected targets): matryoshka-tk
      hit this after INTR 6 (2026-07-07) with a combined `examples/`  
      autodoc target (~70+ files); same symptom confirmed in the sibling  
      `tofu` repo (commit `1020ba27`, "Fix build of docs. Update GitHub  
@@ -597,7 +597,7 @@ Kitchen script order.
 
 New plan version vs update.
 - Create a new plan version after each completed stage or INTR.
-- Plans are new versions of `design/matryoshka-io-implementation-plan-NNN.md`, not separate files.
+- Plans are new versions of `design/matryoshka-tk-implementation-plan-NNN.md`, not separate files.
 - Collapse done stages to one-line summaries. Keep active and future stages in full detail.
 - Old plan versions stay as historical record. Do not delete them.
 

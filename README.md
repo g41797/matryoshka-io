@@ -1,15 +1,15 @@
-![](kitchen/_logo/matryoshka-io-logo.png)
+![](kitchen/_logo/matryoshka-tk-logo.png)
 
 ---
 
-# Matryoshka-Io — a practical way to build great software systems
+# Matryoshka-Tk — a practical way to build great software systems
 
 ---  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Linux](https://github.com/g41797/matryoshka-io/actions/workflows/linux.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/linux.yml)
-[![Windows](https://github.com/g41797/matryoshka-io/actions/workflows/windows.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/windows.yml)
-[![macOS](https://github.com/g41797/matryoshka-io/actions/workflows/mac.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/mac.yml)
-[![Deploy Documentation](https://github.com/g41797/matryoshka-io/actions/workflows/docs.yml/badge.svg)](https://github.com/g41797/matryoshka-io/actions/workflows/docs.yml)
+[![Linux](https://github.com/g41797/matryoshka-tk/actions/workflows/linux.yml/badge.svg)](https://github.com/g41797/matryoshka-tk/actions/workflows/linux.yml)
+[![Windows](https://github.com/g41797/matryoshka-tk/actions/workflows/windows.yml/badge.svg)](https://github.com/g41797/matryoshka-tk/actions/workflows/windows.yml)
+[![macOS](https://github.com/g41797/matryoshka-tk/actions/workflows/mac.yml/badge.svg)](https://github.com/g41797/matryoshka-tk/actions/workflows/mac.yml)
+[![Deploy Documentation](https://github.com/g41797/matryoshka-tk/actions/workflows/docs.yml/badge.svg)](https://github.com/g41797/matryoshka-tk/actions/workflows/docs.yml)
 
 
 ---
@@ -39,7 +39,7 @@ I can't teach you to fish.
 
 But I can give you a fishing rod.
 
-Matryoshka-Io is that *fishing rod* for *building software systems*.
+Matryoshka-Tk is that *fishing rod* for *building software systems*.
 
 - It does not think for you.
 - You still design the system.
@@ -64,7 +64,7 @@ Zig Io gives you excellent tools:
 
 There are many ways to combine them.
 
-Matryoshka-Io takes a different approach.
+Matryoshka-Tk takes a different approach.
 
 It _removes choices_:
 
@@ -85,7 +85,7 @@ Because the system becomes **_visible_**.
 
 ## Four building blocks. One principle. Common language.
 
-Every Matryoshka-Io system is built from _four building blocks_:
+Every Matryoshka-Tk system is built from _four building blocks_:
 
 - **Master** — execution
 - **Item** — state/data/command/...
@@ -103,7 +103,7 @@ You stop talking about:
 - mutexes
 - queues
 
-You start talking on Matryoshka-Io language:
+You start talking on Matryoshka-Tk language:
 
 - Masters
 - Items
@@ -120,7 +120,7 @@ A **Master** is
 
 - an _Threaded_ Io _task_
 - created by _concurrent()_
-- follows the Matryoshka-Io rules
+- follows the Matryoshka-Tk rules
 - holds its own state
 - works with Items
 - communicate with another Masters and/or application
@@ -170,10 +170,10 @@ You are thinking in terms of:
 
 on API level one of the arguments is _file handle_.
 
-The same is for Matryoshka-Io API
+The same is for Matryoshka-Tk API
 
 - you are thinking in terms of _Item_ - Application entity
-- API is working with _ItemHandle_ - Matryoshka-Io entity
+- API is working with _ItemHandle_ - Matryoshka-Tk entity
 
 
 ---
@@ -212,7 +212,7 @@ An empty Pool is
 - not an error
 - it is backpressure.
 
-Matryoshka-Io supports backpressure 'naturally'
+Matryoshka-Tk supports backpressure 'naturally'
 
 ---
 
@@ -239,7 +239,7 @@ Can you describe your application using only
 
 If
 - **yes** - you are on the right way
-- no - [you still have the chance](https://github.com/g41797/matryoshka-io)
+- no - [you still have the chance](https://github.com/g41797/matryoshka-tk)
 
 ---
 

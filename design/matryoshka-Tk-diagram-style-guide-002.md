@@ -1,6 +1,6 @@
-# Matryoshka-Io Diagram Style Guide
+# Matryoshka-Tk Diagram Style Guide
 
-> A guide for communicating software architecture using Matryoshka-Io notation.
+> A guide for communicating software architecture using Matryoshka-Tk notation.
 
 ---
 
@@ -29,7 +29,7 @@ The notation should also be readable by
 - maintainers
 - new team members
 
-No previous Matryoshka-Io knowledge should be required.
+No previous Matryoshka-Tk knowledge should be required.
 
 ---
 

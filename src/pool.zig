@@ -12,7 +12,7 @@
 
 const _doc_stub = void;
 
-/// A pool, viewed as a PolyNode.
+/// A pool, viewed as a ItemHandle.
 ///
 /// Sendable, embeddable like any handle.
 pub const PoolHandle = polynode.ItemHandle;

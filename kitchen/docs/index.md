@@ -19,7 +19,7 @@ hide:
 
 <div class="hero-image">  
   <a href="manifesto/">  
-    <img src="assets/matryoshka-io-logo.png" alt="Matryoshka-Io — Start Building" />  
+    <img src="assets/matryoshka-tk-logo.png" alt="Matryoshka-Tk — Start Building" />  
   </a>  
 </div>
 

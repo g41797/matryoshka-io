@@ -31,10 +31,10 @@ pub const PolyNode = struct {
     tag: *const anyopaque = undefined,
 };
 
-/// Pointer to a PolyNode.
+/// Type-erased access to Item.
 pub const ItemHandle = *PolyNode;
 
-/// Optional item pointer.
+/// "Container" for ItemHandle.
 pub const Slot = ?ItemHandle;
 
 /// Clears the intrusive list links.

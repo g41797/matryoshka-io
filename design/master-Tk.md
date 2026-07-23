@@ -31,7 +31,7 @@ In other words:
 
 > Everything that happens in the system eventually becomes a message delivered to a Master's mailbox.
 
-Whether that message originated from another Master, a timer, a socket becoming readable, a completed asynchronous operation, or a signal is an implementation detail. The Master still processes one message at a time using the same model. That is a strong conceptual bridge between Matryoshka and Matryoshka-Io.
+Whether that message originated from another Master, a timer, a socket becoming readable, a completed asynchronous operation, or a signal is an implementation detail. The Master still processes one message at a time using the same model. That is a strong conceptual bridge between Matryoshka and Matryoshka-Tk.
 
 Exactly. I think you've identified the missing architectural piece.
 
@@ -79,7 +79,7 @@ This fits your philosophy perfectly:
 >
 > Everything enters the system as a message delivered to a mailbox.
 
-Then Matryoshka-Io becomes simply a collection of bridge Masters:
+Then Matryoshka-Tk becomes simply a collection of bridge Masters:
 
 * Socket Bridge
 * Timer Bridge
@@ -122,7 +122,7 @@ I would avoid mentioning sockets, files, timers, or epoll in the manifesto. Thos
 
 So your manifesto could simply add one sentence after "Down to earth":
 
-> **With Matryoshka-Io, external work is translated into ordinary messages and delivered to Masters through their mailboxes. The application model remains unchanged.**
+> **With Matryoshka-Tk, external work is translated into ordinary messages and delivered to Masters through their mailboxes. The application model remains unchanged.**
 
 That keeps the separation very clear:
 
@@ -250,7 +250,7 @@ then Matryoshka is:
 
 Yes, and that’s a very realistic constraint.
 
-If Matryoshka-Io requires developers to constantly “think in Io”, it will lose most users immediately.
+If Matryoshka-Tk requires developers to constantly “think in Io”, it will lose most users immediately.
 
 So the important conclusion is:
 

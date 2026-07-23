@@ -35,7 +35,7 @@ Not exotic. Shows up the moment a system outgrows one function.
 
 Same system. Same boxes. Three small blocks added.
 
-![Same system with Matryoshka-Io](assets/diagrams/matryoshka-solution.svg)
+![Same system with Matryoshka-Tk](assets/diagrams/matryoshka-solution.svg)
 
 The three pains now have names.
 

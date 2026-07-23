@@ -12,7 +12,7 @@ discard list and one-line reasons per file.
 
 ## Part A — design/ corpus
 
-Discarded files (see `audit-001.md` for reasons) are not indexed here: `collected-context-005.md`, `docs-tooling-approach-002.md`, `matryoshka-io-docs-plan-015.md`, `matryoshka-cookbook-structure.md`, `rules-024.md`, `matryoshka-io-implementation-plan-041.md`, `patterns-015.md`.
+Discarded files (see `audit-001.md` for reasons) are not indexed here: `collected-context-005.md`, `docs-tooling-approach-002.md`, `matryoshka-tk-docs-plan-015.md`, `matryoshka-cookbook-structure.md`, `rules-024.md`, `matryoshka-tk-implementation-plan-041.md`, `patterns-015.md`.
 
 ## design/boring-manifesto.md
 
@@ -40,7 +40,7 @@ Structured as a glossary-with-rationale: states the founding principle first, th
 - Separates architecture from implementation: explains PolyNode and Handles as implementation mechanisms (intrusive containers, runtime type ID, type-erased communication), explicitly not part of the architectural vocabulary.
 - Closes with a "reading guide" fixing what each term always means in the docs, plus a reframing pitch to introduce Matryoshka as "an architecture built from Masters that communicate Items," not "a library containing PolyNode, Mailbox and Pool."
 
-## design/master-Io.md
+## design/master-Tk.md
 
 A conversational/exploratory design note (reads like a captured brainstorm dialogue) working out how Matryoshka relates to Zig's `Io` runtime — specifically, how Masters receive Io-originated events (sockets, timers, signals, cancellation) without Io leaking into the application-facing model.
 
@@ -53,7 +53,7 @@ Predates the New Mindset's `io.concurrent()`-based Master definition and uses "o
 - Lists what Io alone lacks (system boundaries, communication structure, resource-sharing model, isolation) versus what Matryoshka adds (Masters, Mailboxes, Pools as structural constraints).
 - Closes with a design rule: if a developer has to mention Io while designing, it's already too visible — Io should be powerful but hidden.
 
-## design/matryoshka-io-model.md
+## design/matryoshka-tk-model.md
 
 A short, dense reference note that reduces the whole model to a capability list, a mapping table, and a tight ruleset — no prose exposition, meant as a distilled reference rather than an introduction.
 
@@ -66,7 +66,7 @@ Doesn't explicitly use `io.concurrent()` language but is compatible with New Min
 - A "down to ground" precise ruleset: one input mailbox per Master, one message processed at a time, sends to any mailbox (including its own), mailboxes/pools may be shared, items may be typed or type-erased.
 - Closes with a self-check question for whether Matryoshka fits a given system.
 
-## design/matryoshka-io-readme.md
+## design/matryoshka-tk-readme.md
 
 A full draft README for the project, written entirely in New Mindset terms (`io.concurrent()`-based Master), covering intent, the four core concepts, the Matryoshka/Io relationship, incremental adoption, and philosophy — essentially a complete top-to-bottom README shape already.
 
@@ -178,7 +178,7 @@ Matryoshka API reference for Zig 0.16. Function-by-function documentation of the
 - "Slot-based programming" section: the slot rule, why acquisition APIs assert null, cooperative cleanup/defer patterns.
 - Closing "Master (Layer 4)" section stating explicitly that there is no `Master` module/struct — Master is an `io.concurrent()` task that composes the lower layers — plus a table of what Masters are built from, and a note on the cancel model.
 
-## design/matryoshka-io-0.16-implementation-guide-001.md
+## design/matryoshka-tk-0.16-implementation-guide-001.md
 
 A porting/feasibility guide for implementing Matryoshka (originally an Odin project) in Zig 0.16. Written as an internal engineering document, not reader-facing prose — its purpose is design decisions and risk analysis for the port, not explanation for newcomers.
 
@@ -224,10 +224,10 @@ A complete worked example: designing a large-scale video transcoding pipeline (t
 ## Part B — kitchen/docs + README corpus
 
 
-## /home/g41797/dev/root/github.com/g41797/matryoshka-io/README.md
+## /home/g41797/dev/root/github.com/g41797/matryoshka-tk/README.md
 
 The current, live repository README. Persuasion-first document explaining  
-what Matryoshka-Io is and why it exists, written in the project's staccato  
+what Matryoshka-Tk is and why it exists, written in the project's staccato  
 house style.
 
 - Opens with the "first rule of building great software systems" quote
@@ -248,7 +248,7 @@ house style.
 - Closes with an incremental-adoption pitch ("Try Matryoshka without
   fear") and the "Be Master of your systems" tagline.
 
-## /home/g41797/dev/root/github.com/g41797/matryoshka-io/kitchen/_logo/logo-description.md
+## /home/g41797/dev/root/github.com/g41797/matryoshka-tk/kitchen/_logo/logo-description.md
 
 An image-generation prompt describing the project's mascot logo (a  
 wedding-car scene with a tuxedoed mascot driving a Matryoshka bride away  
@@ -264,7 +264,7 @@ from a wedding).
 
 ## kitchen/docs/addendums/matryoshka-and-rethinking.md
 
-A point-by-point comparison between Matryoshka-Io and the paper  
+A point-by-point comparison between Matryoshka-Tk and the paper  
 "Rethinking Classical Concurrency Patterns" (written for Go), arguing  
 both reach similar conclusions from different starting points (channels  
 vs. object placement).
@@ -285,7 +285,7 @@ An earlier draft of the "what is Matryoshka" framing that the current
 README now carries — largely overlapping with README.md's opening  
 sections but phrased differently in places.
 
-- "What is Matryoshka-Io?" section defining it as a practical way to
+- "What is Matryoshka-Tk?" section defining it as a practical way to
   build software systems on top of Zig Threaded Io, explicitly not a  
   framework/runtime/event loop, described as a small "frame."
 - "What kind of systems is it for?" section: CPU-bound systems on Zig
@@ -560,7 +560,7 @@ storage) under memory constraints, with a real implementation
 
 The doc site's landing/nav page.
 
-- Repeats the README tagline "Matryoshka-Io — a practical way to build
+- Repeats the README tagline "Matryoshka-Tk — a practical way to build
   great software systems," with a subhead "Building Blocks for Modular  
   Monoliths."
 - A flat link list to the Manifesto, Building Blocks, API Reference,
@@ -732,13 +732,13 @@ short titled sections rather than the README's flowing sections.
 - "Putting everything together" closing section: a linear flow diagram
   (Pool → Master A → Mailbox → Master B → Pool) summarizing the model.
 
-## kitchen/docs/misc/matryoshka-io-ads.md
+## kitchen/docs/misc/matryoshka-tk-ads.md
 
 A draft first-person forum/community introduction post (matches the  
 "Ziggit Showcase" audience described in placement-separation.md).
 
 - Opens as a direct-address introduction: "Hello everyone. I'd like to
-  introduce Matryoshka-Io," explicitly denying it is a framework/  
+  introduce Matryoshka-Tk," explicitly denying it is a framework/  
   runtime/event loop.
 - "The main idea" section: the same Master/Item/Mailbox/Pool four-concept
   model as the other misc/ drafts, plus the "share by communicating"  
@@ -751,13 +751,13 @@ A draft first-person forum/community introduction post (matches the
   documentation — ends with placeholders for repository/documentation  
   links, confirming this is a draft template rather than a finished post.
 
-## kitchen/docs/misc/what-is-matryoshka-io.md
+## kitchen/docs/misc/what-is-matryoshka-tk.md
 
 Another from-scratch architecture explainer draft, close in structure to  
 how-matryoshka-system-works.md but reordered and with an added  
 "architecture first" section.
 
-- "What is Matryoshka-Io?" opening, denying framework/runtime/event-loop
+- "What is Matryoshka-Tk?" opening, denying framework/runtime/event-loop
   status, introducing it as a small architectural model.
 - "The idea" section: application objects (requests, connections, jobs,
   sessions, buffers, timers) go through one common lifecycle (created,  

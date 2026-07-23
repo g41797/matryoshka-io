@@ -1,6 +1,6 @@
 # Matryoshka Zig — Implementation Plan (042)
 
-Replaces [matryoshka-io-implementation-plan-041.md](matryoshka-io-implementation-plan-041.md).
+Replaces [matryoshka-tk-implementation-plan-041.md](matryoshka-tk-implementation-plan-041.md).
 
 ## Status
 
@@ -24,10 +24,10 @@ question below needs an answer before Pass 1 starts.
   `io.concurrent()`, architecture-docs ownership-language pass): DONE.  
   167/167 tests unchanged throughout.
 - LANDING 1: src/ LOC counter (non-recursive, excludes empty/comment/import
-  lines; design/src-loc-counter-001.md) + badge next to API button on
-  `kitchen/docs/index.md`; shared logic in `kitchen/tools/src_loc.py` used
-  by both the mkdocs build-time hook (`kitchen/hooks/count_lines.py`) and a
-  standalone script (`kitchen/tools/count_src_loc.sh`); API button hidden
+  lines; design/src-loc-counter-001.md) + badge next to API button on  
+  `kitchen/docs/index.md`; shared logic in `kitchen/tools/src_loc.py` used  
+  by both the mkdocs build-time hook (`kitchen/hooks/count_lines.py`) and a  
+  standalone script (`kitchen/tools/count_src_loc.sh`); API button hidden  
   via CSS. DONE (doc/tooling-only, 167/167 tests unchanged).
 
 See `design/STATUS.md` Session Log for full per-stage detail — this plan file  
@@ -46,8 +46,8 @@ variants (Ziggit, Discord, Reddit) are deferred to a later stage — different
 audience/tone/timing concerns, premature to scope now.
 
 Existing untracked drafts in `kitchen/docs/misc/` (`README-15-07-2026.md`,  
-`readme-landing.md`, `how-matryoshka-system-works.md`, `matryoshka-io-ads.md`,  
-`what-is-matryoshka-io.md`) are INPUT material for audit, not finished  
+`readme-landing.md`, `how-matryoshka-system-works.md`, `matryoshka-tk-ads.md`,  
+`what-is-matryoshka-tk.md`) are INPUT material for audit, not finished  
 deliverables — same status as every other `.md` in the repo.
 
 All new candidate/composed docs go in a new `design/candidates/` folder,  

@@ -1,6 +1,6 @@
-# What is Matryoshka-Io?
+# What is Matryoshka-Tk?
 
-Matryoshka-Io (or simply **Matryoshka**) is a practical way to build concurrent software systems with Zig Io.
+Matryoshka-Tk (or simply **Matryoshka**) is a practical way to build concurrent software systems with Zig Io.
 
 It is not:
 

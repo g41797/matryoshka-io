@@ -2,18 +2,18 @@
 
 ---
 
-- matryoshka-io - is name of the project/repository
+- matryoshka-tk - is name of the project/repository
 - matryoshka - is name of the module
 
 ---
 
 
-Add *Matryoshka-Io* to build.zig.zon:  
+Add *Matryoshka-Tk* to build.zig.zon:  
 ```bash
-zig fetch --save git+https://github.com/g41797/matryoshka-io
+zig fetch --save git+https://github.com/g41797/matryoshka-tk
 ```
 
-Add *matryoshka-io* to build.zig:
+Add *matryoshka-tk* to build.zig:
 
 ```zig title="Add dependency"
     const tofu: *build.Dependency = b.dependency("matryoshka", .{

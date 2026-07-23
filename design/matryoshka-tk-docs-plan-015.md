@@ -1,8 +1,8 @@
 # Matryoshka Zig — Documentation Plan (015)
 
-New version of `matryoshka-io-docs-plan-014.md`. That version predates the DOC 20  
+New version of `matryoshka-tk-docs-plan-014.md`. That version predates the DOC 20  
 example-catalog session below. Superseded, not overwritten — see  
-`matryoshka-io-docs-plan-014.md` for the prior version.
+`matryoshka-tk-docs-plan-014.md` for the prior version.
 
 ---
 
@@ -52,7 +52,7 @@ owner-flagged as likely to be reshuffled later.
 - `design/rules-019.md` → `-020.md` — "Doc-generation module size" rule updated: general
   principle kept, the multi-target staging workaround marked historical (targets removed).
 - `design/context.md` — rules/plan/docs-plan pointers bumped.
-- `design/matryoshka-io-implementation-plan-039.md` → `-040.md` — DOC 20 summary bullet.
+- `design/matryoshka-tk-implementation-plan-039.md` → `-040.md` — DOC 20 summary bullet.
 - `design/STATUS.md` — Sources of Truth pointers; DOC 20 stage line; mirrored session log entry.
 
 **Verification**:
@@ -121,8 +121,8 @@ re-surface them as "missing."
 - `design/patterns-010.md` → `design/patterns-011.md` — the 7 Bucket-B entries
   added in place; everything else carried over unchanged.
 - `design/context.md` — patterns pointer → -011; docs plan → -012; plan → -038.
-- `design/matryoshka-io-docs-plan-011.md` → `-012.md` — this entry + Stages update.
-- `design/matryoshka-io-implementation-plan-037.md` → `-038.md` — DOC 14 bullet.
+- `design/matryoshka-tk-docs-plan-011.md` → `-012.md` — this entry + Stages update.
+- `design/matryoshka-tk-implementation-plan-037.md` → `-038.md` — DOC 14 bullet.
 - `design/STATUS.md` — sources updated; DOC 14 stage line; mirrored session log entry.
 
 **Verification**:
@@ -185,8 +185,8 @@ only repetition.
 **Changes**:
 - `design/patterns-010.md` (new) — the unified catalog per the structure above.
 - `design/context.md` — patterns pointer → -010; docs plan → -011; plan → -037.
-- `design/matryoshka-io-docs-plan-010.md` → `-011.md` — this entry + Stages update.
-- `design/matryoshka-io-implementation-plan-036.md` → `-037.md` — DOC 13 bullet.
+- `design/matryoshka-tk-docs-plan-010.md` → `-011.md` — this entry + Stages update.
+- `design/matryoshka-tk-implementation-plan-036.md` → `-037.md` — DOC 13 bullet.
 - `design/STATUS.md` — sources updated; DOC 13 stage line; mirrored session log entry.
 
 **Verification**:
@@ -241,8 +241,8 @@ unchanged — only the flagged wording.
 **Changes**:
 - `design/matryoshka-manifesto-003.md` (new) — -002 with the rewrites above.
 - `design/context.md` — manifesto pointer → -003; docs plan → -010; plan → -036.
-- `design/matryoshka-io-docs-plan-009.md` → `-010.md` — this entry + Stages update.
-- `design/matryoshka-io-implementation-plan-035.md` → `-036.md` — DOC 12 bullet.
+- `design/matryoshka-tk-docs-plan-009.md` → `-010.md` — this entry + Stages update.
+- `design/matryoshka-tk-implementation-plan-035.md` → `-036.md` — DOC 12 bullet.
 - `design/STATUS.md` — sources updated; DOC 12 stage line; mirrored session log entry.
 
 **Verification**:
@@ -266,9 +266,9 @@ docs-site Concepts entry page.
 **Participants**: human (owner) + Claude.
 
 **Summary**: owner directed a new manifesto version. Sources of mindset: `README.md`  
-(voice to match), `design/matryoshka-io-model.md`, `design/matryoshka-manifesto.md`  
+(voice to match), `design/matryoshka-tk-model.md`, `design/matryoshka-manifesto.md`  
 (original, stays untouched), `design/matryoshka-master.md` (Master as role, four  
-fundamental concepts), `design/master-Io.md` (Io hidden behind Mailboxes, bridge  
+fundamental concepts), `design/master-Tk.md` (Io hidden behind Mailboxes, bridge  
 Masters, "why not just Io"). Target audience effect: after one read, understand the  
 model and want to use matryoshka because it solves their problems. Style per  
 rules-010.md: simple English, staccato rhythm, banned-word clean. Owner authorized  
@@ -287,7 +287,7 @@ too visible"; hybrid-car framing) → start small (PolyNode → Pool → Mailbox
 useful) → the simple question + "Be Master of your systems."
 
 **Source-coverage notes**: all concept-level ideas from the five sources carried over.  
-Deliberately out of scope (per master-Io.md's own guidance): sockets/files/epoll,  
+Deliberately out of scope (per master-Tk.md's own guidance): sockets/files/epoll,  
 specific event-source APIs, "schedule itself" Io capability list — implementation  
 detail below manifesto level. Source wordings with banned words ("efficiently",  
 "powerful", "delivered") reworded; "big-bang commitment" → "big-bang adoption".
@@ -295,8 +295,8 @@ detail below manifesto level. Source wordings with banned words ("efficiently",
 **Changes**:
 - `design/matryoshka-manifesto-002.md` (new) — the manifesto per the arc above.
 - `design/context.md` — manifesto pointer added; docs plan → -009; plan → -035.
-- `design/matryoshka-io-docs-plan-008.md` → `-009.md` — this entry + Stages update.
-- `design/matryoshka-io-implementation-plan-034.md` → `-035.md` — DOC 11 bullet.
+- `design/matryoshka-tk-docs-plan-008.md` → `-009.md` — this entry + Stages update.
+- `design/matryoshka-tk-implementation-plan-034.md` → `-035.md` — DOC 11 bullet.
 - `design/STATUS.md` — sources updated; DOC 11 stage line; mirrored session log entry.
 
 **Verification**:
@@ -354,8 +354,8 @@ of the two relocated blocks, one added `---` separator, the new Change-log row.
 **Changes**:
 - `design/matryoshka-api-reference-019.md` (new) — order per above.
 - `design/context.md` — API pointer → -019; docs plan → -008; plan → -034.
-- `design/matryoshka-io-docs-plan-007.md` → `-008.md` — this entry + Stages update.
-- `design/matryoshka-io-implementation-plan-033.md` → `-034.md` — DOC 10 bullet.
+- `design/matryoshka-tk-docs-plan-007.md` → `-008.md` — this entry + Stages update.
+- `design/matryoshka-tk-implementation-plan-033.md` → `-034.md` — DOC 10 bullet.
 - `design/STATUS.md` — sources updated; DOC 10 stage line; mirrored session log entry.
 
 **Verification**:
@@ -417,7 +417,7 @@ needed folding back in before dropping the block.
   API surface.
 - `design/context.md` — API reference pointer → -018 (with a one-line note on the
   reorder); docs plan pointer → -007; plan pointer → -033.
-- `design/matryoshka-io-implementation-plan-032.md` → `-033.md` — DOC 9 summary bullet.
+- `design/matryoshka-tk-implementation-plan-032.md` → `-033.md` — DOC 9 summary bullet.
 - `design/STATUS.md` — Sources of Truth (API pointer → -018), Stage 9 line (DOC 9
   entry), this session log mirrored.
 
@@ -460,7 +460,7 @@ second page, Building Blocks is exactly where these four terms get defined direc
   `matryoshka-model-003.md` and the Observable by Human page.
 - `kitchen/docs/building-blocks/index.md` — added a link to the new page.
 - `kitchen/mkdocs.yml` — "Building Blocks" nav entry gains the new page.
-- `design/matryoshka-io-docs-plan-005.md` → `-006.md` — this entry + Stages update.
+- `design/matryoshka-tk-docs-plan-005.md` → `-006.md` — this entry + Stages update.
 - `design/context.md` — docs plan pointer → -006.
 - `design/STATUS.md` — DOC 8 stage line; mirrored session log entry.
 
@@ -509,7 +509,7 @@ other as companions.
   `031-select_graceful_shutdown.zig` and `018-master_with_pool.zig` as working examples.
 - `kitchen/docs/building-blocks/index.md` — rewritten from stub to landing page.
 - `kitchen/mkdocs.yml` — "Building Blocks" nav entry expanded to Overview + the new page.
-- `design/matryoshka-io-docs-plan-004.md` → `-005.md` — this entry + Stages update.
+- `design/matryoshka-tk-docs-plan-004.md` → `-005.md` — this entry + Stages update.
 - `design/context.md` — docs plan pointer → -005.
 - `design/STATUS.md` — DOC 7 stage line; mirrored session log entry.
 
@@ -570,7 +570,7 @@ and `.zig` files untouched.
   linking the two new pages.
 - `kitchen/mkdocs.yml` — nav: "Concepts" entry expanded from a bare `concepts/index.md`
   into an Overview + two-page subsection.
-- `design/matryoshka-io-docs-plan-003.md` → `-004.md` — this section; Stages updated.
+- `design/matryoshka-tk-docs-plan-003.md` → `-004.md` — this section; Stages updated.
 - `design/context.md`, `design/STATUS.md` — docs plan pointer → -004; DOC 6 stage line;
   session log entry.
 
@@ -596,7 +596,7 @@ Concepts story, Building Blocks and Cookbook stub sections still unpopulated.
 
 **Summary**: Owner asked for an audit of four candidate content sources before scoping  
 DOC 5 — `design/*.md`, `kitchen/docs/*.md`, the Odin `matryoshka` repo's `kitchen/docs/`,  
-and a 4255-line ChatGPT brainstorm transcript (`/home/g41797/Downloads/matryoshka-io-long-session.md`).  
+and a 4255-line ChatGPT brainstorm transcript (`/home/g41797/Downloads/matryoshka-tk-long-session.md`).  
 Owner's direction: don't design the whole site in one stage — start top-down, with one  
 entry-point page answering "what is a Matryoshka-based system and why," then grow detail  
 pages in later DOC stages.
@@ -642,7 +642,7 @@ fix and file-splitting deferred to a later DOC stage).
 - `kitchen/mkdocs.yml` — nav: added "Matryoshka Based Systems", "Concepts", "Building
   Blocks", "Cookbook" entries after Home, before Reference. Existing Storytelling/Concepts  
   (old)/Chat Logs entries left untouched.
-- `design/matryoshka-io-docs-plan-002.md` → `-003.md` — this section; Stages updated.
+- `design/matryoshka-tk-docs-plan-002.md` → `-003.md` — this section; Stages updated.
 - `design/context.md`, `design/STATUS.md` — docs plan pointer → -003; Stage 9 line; session
   log entry.
 
@@ -676,23 +676,23 @@ owner instruction: all session info goes at the very beginning of the doc plan.
 - Sibling repo `tofu` (`/home/g41797/dev/root/github.com/g41797/tofu`) is the prototype for
   this mkdocs + autodocs approach — read for reference, not yet borrowed from.
 - `kitchen/` folder rule confirmed: tofu scatters its housekeeping files across many
-  locations (root scripts, `docs_site/`, `docs/`, `.github/workflows/`), but matryoshka-io  
+  locations (root scripts, `docs_site/`, `docs/`, `.github/workflows/`), but matryoshka-tk  
   follows the Odin `matryoshka` repo's convention instead — all tools/scripts/configs live  
   under `kitchen/` and its subfolders only.
 - Audit method: read files directly inline in this session (not delegated to a subagent),
   owner explicitly chose this over an Explore-agent delegation for full traceability.
 - Audit paths confirmed by owner: tofu repo (whole repo, not just one folder — housekeeping
-  is scattered there); Odin `matryoshka/kitchen/`; matryoshka-io's own `kitchen/`.
+  is scattered there); Odin `matryoshka/kitchen/`; matryoshka-tk's own `kitchen/`.
 
 **What was produced this session**:
 - Full audit of tofu's doc-generation flow (scripts, `build.zig` docs step, mkdocs config,
   CI workflow, local-preview gap) — see "Stage DOC 1" section below for the tables and  
   flow diagram.
 - Comparison note: Odin `matryoshka/kitchen/` has dedicated preview scripts that tofu lacks.
-- Finding: matryoshka-io already has `.github/workflows/docs.yml` (copied from tofu) with no
+- Finding: matryoshka-tk already has `.github/workflows/docs.yml` (copied from tofu) with no
   supporting infra yet built — open item for a future DOC stage.
-- This file (`matryoshka-io-docs-plan-002.md`) created as the new version of
-  `matryoshka-io-docs-plan-001.md` (stale, frozen at INTR 5).
+- This file (`matryoshka-tk-docs-plan-002.md`) created as the new version of
+  `matryoshka-tk-docs-plan-001.md` (stale, frozen at INTR 5).
 - `design/context.md` and `design/STATUS.md` updated to point at this version; a matching
   DOC 1 entry added to STATUS.md's own Session Log.
 
@@ -724,7 +724,7 @@ Audit only. No borrowing, no implementation, no `kitchen/` or `.zig` changes thi
 
 ### Housekeeping layout in tofu
 
-Unlike matryoshka/matryoshka-io's single `kitchen/` folder, tofu's housekeeping is  
+Unlike matryoshka/matryoshka-tk's single `kitchen/` folder, tofu's housekeeping is  
 scattered: root scripts (`docs_zig.sh`, `docs_site.sh`), `docs_site/` (mkdocs project),  
 `docs/` (generated output, committed), `.github/workflows/docs.yml` (CI), plus unrelated  
 root scripts (`zbta_*.sh`) and editor config (`.idea`, `.vscode`, `.run`).
@@ -767,7 +767,7 @@ CI (.github/workflows/docs.yml, push to main):
 
 ### Cross-repo comparison
 
-matryoshka-io already has `.github/workflows/docs.yml` — an exact copy of tofu's (same  
+matryoshka-tk already has `.github/workflows/docs.yml` — an exact copy of tofu's (same  
 paths, same pip plugins, same steps) — but none of the supporting infra exists yet: no  
 `docs_zig.sh`, no `docs_site/`, no `build.zig` `docs` step, no committed `docs/` output.  
 The CI workflow was pre-copied ahead of the infra it depends on. Open item for a future  
@@ -776,10 +776,10 @@ DOC stage: decide whether to keep it pre-copied or hold back until infra exists.
 Odin matryoshka's approach differs: `kitchen/mkdocs.yml` + `kitchen/tools/build_site.sh`,  
 `generate_apidocs.sh`, `preview_apidocs.sh`, `preview_site.sh` (dedicated preview scripts,  
 unlike tofu) + `kitchen/docs/apidocs` (committed odin-doc output) — everything under one  
-`kitchen/` folder, consistent with matryoshka-io's own `kitchen/` convention. Its CI  
+`kitchen/` folder, consistent with matryoshka-tk's own `kitchen/` convention. Its CI  
 (`.github/workflows/docs.yml`) not read this pass — odin-language specific tooling  
 (`odin-doc` binary instead of `zig build docs`); flag for later comparison only if useful,  
-since matryoshka-io is Zig, not Odin.
+since matryoshka-tk is Zig, not Odin.
 
 ---
 
@@ -794,7 +794,7 @@ Full contents read: `.github/workflows/docs.yml`, `kitchen/mkdocs.yml`,
 `preview_site.sh`, `get_odin_doc.sh`.
 
 What Odin's `kitchen/` already has, self-contained in one folder (matching  
-matryoshka-io's own `kitchen/` convention, unlike tofu's scattered layout):
+matryoshka-tk's own `kitchen/` convention, unlike tofu's scattered layout):
 - `kitchen/mkdocs.yml` — mkdocs-material config, `docs_dir: docs`, `site_dir: output`
   (both relative to `kitchen/`, not repo root like tofu).
 - `kitchen/tools/build_site.sh` — one-shot: regenerate apidocs, then `mkdocs build`.
@@ -815,9 +815,9 @@ specific renderer's quirks. None of this applies to Zig.
 
 ### Conclusion — mix confirmed
 
-matryoshka-io's doc infra should mix the two:
+matryoshka-tk's doc infra should mix the two:
 - Layout, organization, CI shape, local-preview scripts — borrow from Odin
-  `matryoshka/kitchen/` (single-folder convention already required by matryoshka-io's own  
+  `matryoshka/kitchen/` (single-folder convention already required by matryoshka-tk's own  
   rules; preview scripts tofu lacks).
 - Autodoc generation mechanism — borrow from tofu's `build.zig` `docs` step
   (Zig-native `getEmittedDocs()`), replacing Odin's external-renderer approach, which does  
@@ -831,9 +831,9 @@ matryoshka-io's doc infra should mix the two:
    `sources.tar`. `grep` for absolute `href="/"` paths found zero matches. Architecturally  
    nothing like Odin's per-package static HTML tree — no analogous  
    relative-path/asset-copy/cache-busting problem to work around.
-2. **matryoshka-io needs 3 doc targets, not tofu's 2.** tofu's `docs` step builds 2
+2. **matryoshka-tk needs 3 doc targets, not tofu's 2.** tofu's `docs` step builds 2
    `addObject` targets: `tofu` (lib) + `cookbook` (recipes, imports `tofu` + `mailbox`).  
-   matryoshka-io's `build.zig` already defines the equivalent shape but with three modules:  
+   matryoshka-tk's `build.zig` already defines the equivalent shape but with three modules:  
    `matryoshka` (`src/matryoshka.zig`, the lib), `examples` (`examples/examples.zig`,  
    imports `matryoshka` + `helpers`), `stories` (`stories/stories.zig`, imports `matryoshka`
    + `helpers`) — plus an unexported `helpers` module used by both. A future `docs` step
@@ -841,10 +841,10 @@ matryoshka-io's doc infra should mix the two:
    (3, or 4 if `helpers` also gets its own docs page).
 3. **mkdocs nav content needs fresh authoring, not a 1:1 borrow.** Odin's `mkdocs.yml` nav
    is one page-pair (quickref + deepdive) per architecture block, sourced from  
-   `kitchen/docs/block*_{quickref,deepdive}.md`. matryoshka-io's existing `kitchen/docs/*.md`  
+   `kitchen/docs/block*_{quickref,deepdive}.md`. matryoshka-tk's existing `kitchen/docs/*.md`  
    are a different shape — topical asides (storytelling docs, slot-vs-ref-counting,  
    tag-vs-tagged-union, typeErasedQueue-vs-mailbox, test-example-story), not a per-layer  
-   quickref/deepdive pair — and matryoshka-io's real narrative source of truth lives in  
+   quickref/deepdive pair — and matryoshka-tk's real narrative source of truth lives in  
    `design/` (rules, patterns, model, api-reference, stories), not `kitchen/docs/`. Neither  
    prototype's nav can be borrowed as-is; nav content and structure need fresh authoring in  
    a later DOC stage.
@@ -864,7 +864,7 @@ convention (see `[[reference_odin_matryoshka]]` memory); no new evidence contrad
 
 ### "DOCS folder" claim — checked against both prototypes, refuted as stated
 
-matryoshka-io's current pre-copied `.github/workflows/docs.yml` has:  
+matryoshka-tk's current pre-copied `.github/workflows/docs.yml` has:  
 ```yaml
 - uses: actions/upload-pages-artifact@v3
   with:
@@ -882,11 +882,11 @@ points `upload-pages-artifact` directly at `path: kitchen/output` — no top-lev
 folder exists or is needed. `actions/upload-pages-artifact` accepts any path, nested or  
 not; there is no GitHub Pages requirement that the artifact source be named `docs/` or  
 live at repo root — that naming only matters for the older, non-Actions "deploy from a  
-branch" Pages mode, which neither tofu nor Odin nor matryoshka-io uses.
+branch" Pages mode, which neither tofu nor Odin nor matryoshka-tk uses.
 
-**Conclusion**: matryoshka-io does **not** need a new top-level `DOCS` folder. Keeping  
+**Conclusion**: matryoshka-tk does **not** need a new top-level `DOCS` folder. Keeping  
 `site_dir` under `kitchen/` (Odin-style) satisfies GitHub Pages deployment identically  
-while also satisfying the must-rule. matryoshka-io's pre-copied `docs.yml` currently still  
+while also satisfying the must-rule. matryoshka-tk's pre-copied `docs.yml` currently still  
 points at the tofu-style top-level `path: docs/` — this needs fixing once `site_dir` is  
 finalized in a build stage, or it will silently deploy an empty/missing artifact.
 
@@ -900,7 +900,7 @@ kitchen/
     <existing *.md>           # matryoshka-storytelling-*.md, slot-vs-ref-counting.md,
                               # tag-vs-tagged-union.md, typeErasedQueue-vs-mailbox.md,
                               # test-example-story.md, matryoshka-readme-chat.md,
-                              # matryoshka-io-chat-prolog.md — kept as-is, added to nav
+                              # matryoshka-tk-chat-prolog.md — kept as-is, added to nav
     apidocs/                  # generated: matryoshka (src) module's getEmittedDocs() output
     examplesdocs/             # generated: examples module's getEmittedDocs() output —
                               # stories folded in here too (examples imports it, just like
@@ -917,7 +917,7 @@ kitchen/
 Key differences from both prototypes:
 - **2 generated-doc subfolders — src vs examples — matching tofu's split exactly**
   (tofu: `apidocs` for the `tofu` lib, `recipes` for the combined `cookbook` target).  
-  matryoshka-io: `apidocs` for `matryoshka` (src), `examplesdocs` for `examples`, with  
+  matryoshka-tk: `apidocs` for `matryoshka` (src), `examplesdocs` for `examples`, with  
   `stories` folded into the `examples` doc target rather than getting its own subfolder —  
   same way tofu's `cookbook` target already pulls in `mailbox` alongside its own recipes.  
   **This supersedes DOC 2 finding #2's "3 targets" note** — owner has directed a 2-way  
@@ -933,7 +933,7 @@ Key differences from both prototypes:
 
 ### Open items carried forward
 
-- matryoshka-io's `.github/workflows/docs.yml` needs fixing: wrong `path:` (`docs/` should
+- matryoshka-tk's `.github/workflows/docs.yml` needs fixing: wrong `path:` (`docs/` should
   become `kitchen/output`), and references a non-existent `docs_zig.sh` and `build.zig`  
   `docs` step — flagged for the stage that actually builds the infra.
 - mkdocs nav content still needs fresh authoring (DOC 2 finding #3, unchanged).
@@ -962,7 +962,7 @@ layout (2-way src/examples split, no top-level `DOCS` folder, everything under `
   Odin-specific `odin-doc`/sed post-processing needed (Zig's autodoc is native).
 - `.gitignore` — added `/kitchen/docs/apidocs/`, `/kitchen/docs/examplesdocs/`,
   `/kitchen/output/` (build artifacts).
-- `.github/workflows/docs.yml` — fixed trigger `paths:` to match matryoshka-io's actual
+- `.github/workflows/docs.yml` — fixed trigger `paths:` to match matryoshka-tk's actual
   layout (`src/**`, `helpers/**`, `examples/**`, `stories/**`, `kitchen/**`, `build.zig`),  
   fixed the autodoc step to `./kitchen/tools/docs_zig.sh`, fixed the mkdocs build step to  
   `cd kitchen && mkdocs build -f mkdocs.yml` with only `mkdocs-material` installed, fixed  
@@ -983,7 +983,7 @@ None — layout, script set, and 2-way target split matched the proposal exactly
 
 ### Follow-up — reference-page nav/UX (still DOC 4 scope)
 Odin's `kitchen/docs/api_reference.md` gives readers a choice ("Open here" vs "Open in new  
-tab") before linking into its standalone generated API site. Owner directed matryoshka-io  
+tab") before linking into its standalone generated API site. Owner directed matryoshka-tk  
 to skip the choice: both `apidocs/` and `examplesdocs/` are standalone generated sites  
 (Zig autodoc HTML/JS/WASM, not mkdocs pages), so both always open in a new tab, no prompt.  
 Added `kitchen/docs/api_reference.md` and `kitchen/docs/examples_reference.md` (each a  
@@ -1131,7 +1131,7 @@ dropped. DONE.
 DOC 10 — dependency-order the API reference (api-reference-018 → -019): send/receive  
 diagrams into mailbox, Tag identity after pool, Slot-based programming + Cooperative  
 cleanup patterns after pool — nothing used before it is introduced. DONE.  
-DOC 11 — write matryoshka-manifesto-002.md from README mindset + model/master/master-Io  
+DOC 11 — write matryoshka-manifesto-002.md from README mindset + model/master/master-Tk  
 sources; staccato, banned-word clean, persuasion-first. DONE.  
 DOC 12 — de-smart the manifesto (manifesto-002 → -003): abstract architect-speak  
 rewritten into plain human language, structure unchanged. DONE.  
@@ -1177,7 +1177,7 @@ candidate: split api-reference-020.md into mkdocs Reference pages.
 - [matryoshka-model-003.md](matryoshka-model-003.md) — thinking model
 - [rules-017.md](rules-017.md) — coding, doc, and process rules
 - [patterns-011.md](patterns-011.md) — unified pattern and idiom catalog, DOC 14 output
-- [matryoshka-io-docs-plan-013.md](matryoshka-io-docs-plan-013.md) — prior version, superseded
+- [matryoshka-tk-docs-plan-013.md](matryoshka-tk-docs-plan-013.md) — prior version, superseded
 - [matryoshka-api-reference-020.md](matryoshka-api-reference-020.md) — DOC 18 output, base for future Reference pages
 - [matryoshka-manifesto-003.md](matryoshka-manifesto-003.md) — DOC 12 output, current manifesto
 - tofu repo: `/home/g41797/dev/root/github.com/g41797/tofu`

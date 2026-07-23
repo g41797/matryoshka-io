@@ -1,4 +1,4 @@
-# Matryoshka-Io
+# Matryoshka-Tk
 
 *A practical way to build concurrent software systems with Zig Io.*
 
@@ -60,4 +60,4 @@ If yes, you are already thinking in Matryoshka.
 **Be Master of your systems.**
 
 - [Read the full picture →](landing-long-001.md)
-- [The repository →](https://github.com/g41797/matryoshka-io)
+- [The repository →](https://github.com/g41797/matryoshka-tk)

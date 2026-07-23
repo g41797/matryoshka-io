@@ -12,7 +12,7 @@
 
 const _doc_stub = void;
 
-/// A mailbox, viewed as a PolyNode.
+/// A mailbox, viewed as a ItemHandle.
 /// Sendable, storable, embeddable like any handle.
 pub const MailboxHandle = polynode.ItemHandle;
 

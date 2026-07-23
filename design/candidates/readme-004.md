@@ -1,4 +1,4 @@
-# Matryoshka-Io - A practical way to build concurrent software systems with Zig Io
+# Matryoshka-Tk - A practical way to build concurrent software systems with Zig Io
 
 ---
 
@@ -26,7 +26,7 @@ I can't teach you to fish.
 
 But I can give you a fishing rod.  
 
-Matryoshka-Io is that *fishing rod* for *building software systems*.
+Matryoshka-Tk is that *fishing rod* for *building software systems*.
 
 - It does not think for you.    
 - You still design the system.    
@@ -51,7 +51,7 @@ Zig Io gives you excellent tools:
 
 There are many ways to combine them.  
 
-Matryoshka-Io takes a different approach.  
+Matryoshka-Tk takes a different approach.  
 
 It _removes choices_:
 
@@ -72,7 +72,7 @@ Because the system becomes **_visible_**.
 
 ## Four building blocks. One principle. Common language.  
 
-Every Matryoshka-Io system is built from _four building blocks_:
+Every Matryoshka-Tk system is built from _four building blocks_:
 
 - **Master** — execution
 - **Item** — state/data/command/...
@@ -90,7 +90,7 @@ You stop talking about:
 - mutexes
 - queues
 
-You start talking on Matryoshka-Io language:
+You start talking on Matryoshka-Tk language:
 
 - Masters
 - Items
@@ -104,7 +104,7 @@ A **Master** is
 
 - an _Threaded_ Io _task_
 - created by `_concurrent()_`
-- follows the Matryoshka-Io rules
+- follows the Matryoshka-Tk rules
 - holds its own state
 - works with Items
 - communicate with another Masters and/or application
@@ -172,10 +172,10 @@ You are thinking in terms of:
 
 on API level one of the arguments is _file handle_.  
 
-The same is for Matryoshka-Io API
+The same is for Matryoshka-Tk API
 
 - you are thinking in terms of _Item_ - Application entity    
-- API is working with _ItemHandle_ - Matryoshka-Io entity
+- API is working with _ItemHandle_ - Matryoshka-Tk entity
 
 
 ### Mailbox
@@ -208,7 +208,7 @@ An empty Pool is
 - not an error 
 - it is backpressure. 
 
-Matryoshka-Io supports backpressure 'naturally'
+Matryoshka-Tk supports backpressure 'naturally'
 
 ---
 
@@ -235,7 +235,7 @@ Can you describe your application using only
 
 If 
 - **yes** - you are on the right way
-- no - [you still have the chance](https://github.com/g41797/matryoshka-io)   
+- no - [you still have the chance](https://github.com/g41797/matryoshka-tk)   
 
 ---
 

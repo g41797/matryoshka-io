@@ -1,4 +1,4 @@
-# Matryoshka-Io Notation
+# Matryoshka-Tk Notation
 
 > A visual language for discussing concurrent software systems.
 
@@ -6,7 +6,7 @@
 
 # Why
 
-Matryoshka-Io defines four architectural building blocks.
+Matryoshka-Tk defines four architectural building blocks.
 
 * Master
 * Item
@@ -797,7 +797,7 @@ A developer should be able to sketch a Matryoshka architecture on a whiteboard.
 
 Another Matryoshka developer should immediately understand it.
 
-The notation should become the common language for discussing Matryoshka-Io systems.
+The notation should become the common language for discussing Matryoshka-Tk systems.
 
 
 ---

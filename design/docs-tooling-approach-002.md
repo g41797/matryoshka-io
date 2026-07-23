@@ -3,7 +3,7 @@
 Replaces [docs-tooling-approach-001.md](docs-tooling-approach-001.md) —  
 wording-only change (dropped the banned word "pitch", see rules-022).
 
-Companion to [matryoshka-io-docs-plan-003.md](matryoshka-io-docs-plan-003.md).  
+Companion to [matryoshka-tk-docs-plan-003.md](matryoshka-tk-docs-plan-003.md).  
 Captures the working method established during DOC 5, so later DOC stages  
 follow the same discipline without re-deriving it.
 

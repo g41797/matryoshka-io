@@ -2,7 +2,7 @@
 
 ---
 
-Matryoshka-Io originated as [Matryoshka](https://github.com/g41797/matryoshka){target="_blank" rel="noopener"}, a library written in Odin.
+Matryoshka-Tk originated as [Matryoshka](https://github.com/g41797/matryoshka){target="_blank" rel="noopener"}, a library written in Odin.
 
 The Zig version is **not a transpilation**.  
 
@@ -14,7 +14,7 @@ The name reflects that integration.
 
 ---
 
-The result is **Matryoshka-Io**.
+The result is **Matryoshka-Tk**.
 
 ---
 

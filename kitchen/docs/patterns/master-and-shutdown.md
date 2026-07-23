@@ -66,7 +66,7 @@ Example: `examples/layer2/062-shutdown_exit.zig`.
 
 Actually these patterns were written for usage by AI during generation of Examples.  
 
-You can borrow several ideas here, but Matryoshka-Io does not dictate how to proceed.    
+You can borrow several ideas here, but Matryoshka-Tk does not dictate how to proceed.    
 
 It's your system.  
 

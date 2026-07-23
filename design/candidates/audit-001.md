@@ -24,13 +24,13 @@ This audit does not compose those docs. It only extracts candidate ideas and mar
 
 - `design/collected-context-005.md` — pure process/state tracking (stage checklist, test counts, file paths, changelog); zero persuasive/explanatory content.
 - `design/docs-tooling-approach-002.md` — pure process doc describing the mkdocs/kitchen tooling workflow; no content for README or landing pages.
-- `design/matryoshka-io-docs-plan-015.md` — pure session log / process changelog for doc tooling work, zero persuasive or explanatory content.
+- `design/matryoshka-tk-docs-plan-015.md` — pure session log / process changelog for doc tooling work, zero persuasive or explanatory content.
 - `design/matryoshka-cookbook-structure.md` — a numbered table of contents (200 recipe titles), no prose, no narrative, nothing quotable.
 - `design/rules-024.md` — internal coding/doc process rules for contributors, no persuasive value for external-facing docs.
-- `design/matryoshka-io-implementation-plan-041.md` — slim state-only project plan (what's done, what's next), zero persuasive content.
+- `design/matryoshka-tk-implementation-plan-041.md` — slim state-only project plan (what's done, what's next), zero persuasive content.
 - `design/patterns-015.md` — reference catalog of code patterns; intro is a short utility note, not persuasive framing worth pulling on its own.
 
-Not audited (per scope): `design/STATUS.md`, `design/context.md`, `design/task*.md`, `design/matryoshka-io-implementation-plan-040.md` (superseded by -041).
+Not audited (per scope): `design/STATUS.md`, `design/context.md`, `design/task*.md`, `design/matryoshka-tk-implementation-plan-040.md` (superseded by -041).
 
 ---
 
@@ -71,7 +71,7 @@ Mindset tag: new-mindset
 
 Feeds: README, landing-short, landing-long
 
-### design/master-Io.md
+### design/master-Tk.md
 
 Mindset tag: old-mindset-but-salvageable
 
@@ -90,7 +90,7 @@ Heavy use of "ownership" language throughout; no `io.concurrent()` mention; pred
 
 Feeds: README, landing-short, landing-long
 
-### design/matryoshka-io-model.md
+### design/matryoshka-tk-model.md
 
 Mindset tag: neutral
 
@@ -103,7 +103,7 @@ Mindset tag: neutral
 
 Feeds: README, landing-short, landing-long
 
-### design/matryoshka-io-readme.md
+### design/matryoshka-tk-readme.md
 
 Mindset tag: new-mindset
 
@@ -285,7 +285,7 @@ Note: the bulk of this file (steps 1-7, PolyHelper mechanics, error tables, canc
 
 Feeds: README, landing-short, landing-long
 
-### design/matryoshka-io-0.16-implementation-guide-001.md
+### design/matryoshka-tk-0.16-implementation-guide-001.md
 
 Mindset tag: mixed — framing section is old-mindset-but-salvageable ("ownership" language throughout, needs rewording), later sections correctly reference `io.concurrent()`.
 
@@ -343,7 +343,7 @@ Sibling audit covers design/*.md separately.
 
 ## KEPT files
 
-### /home/g41797/dev/root/github.com/g41797/matryoshka-io/README.md
+### /home/g41797/dev/root/github.com/g41797/matryoshka-tk/README.md
 
 Mindset tag: new-mindset
 
@@ -375,7 +375,7 @@ baseline rather than raw material.
 - "Be Master of your systems." — closing line/tagline. Feeds README,
   landing-short.
 
-### /home/g41797/dev/root/github.com/g41797/matryoshka-io/kitchen/_logo/logo-description.md
+### /home/g41797/dev/root/github.com/g41797/matryoshka-tk/kitchen/_logo/logo-description.md
 
 Mindset tag: neutral
 
@@ -673,7 +673,7 @@ pattern as the print-server story. Strong second worked-example.
 
 Mindset tag: neutral (pure nav stub, kept for one line)
 
-- Tagline: "Matryoshka-Io — a practical way to build great software
+- Tagline: "Matryoshka-Tk — a practical way to build great software
   systems" / subhead "Building Blocks for Modular Monoliths" — the  
   second phrase doesn't appear in the current README and is a candidate  
   alternate subhead. Feeds README (candidate subhead), landing-short.
@@ -839,7 +839,7 @@ compression it offers.
   language and reconciled against the PolyNode-based vocabulary used  
   elsewhere.
 
-### kitchen/docs/misc/matryoshka-io-ads.md
+### kitchen/docs/misc/matryoshka-tk-ads.md
 
 Mindset tag: old-mindset-but-salvageable
 
@@ -849,7 +849,7 @@ Heavy "ownership" language throughout, needs a rewrite pass, but the
 framing device (introduce, then show, not explain) is exactly right for  
 that audience per the placement-separation.md guidance.
 
-- Opening framing: "Hello everyone. I'd like to introduce Matryoshka-Io.
+- Opening framing: "Hello everyone. I'd like to introduce Matryoshka-Tk.
   It is an architectural layer built on top of Zig Io. Not a framework.  
   Not another runtime. Not another event loop." — good literal template  
   for a future forum-post landing variant, not README/doc-site material  
@@ -860,7 +860,7 @@ that audience per the placement-separation.md guidance.
   to admit limitations rather than polish them away. Not README material,  
   useful pattern reference only.
 
-### kitchen/docs/misc/what-is-matryoshka-io.md
+### kitchen/docs/misc/what-is-matryoshka-tk.md
 
 Mindset tag: old-mindset-but-salvageable
 

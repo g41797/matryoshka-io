@@ -316,7 +316,7 @@ EncodedSegment
 
 External view.
 
-Not Matryoshka-Io.
+Not Matryoshka-Tk.
 
 - Receives video from many cameras.
 - Processes many streams simultaneously.

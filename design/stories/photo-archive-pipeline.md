@@ -196,7 +196,7 @@ The same architectural pattern applies to many other systems, including video pr
 # PNG is better choice
 
 
-The goal of the document is to explain **Matryoshka-Io**, not JPEG support in Zig. If readers see "JPEG," some Zig developers may immediately think:
+The goal of the document is to explain **Matryoshka-Tk**, not JPEG support in Zig. If readers see "JPEG," some Zig developers may immediately think:
 
 > "Wait, Zig std doesn't support JPEG."
 

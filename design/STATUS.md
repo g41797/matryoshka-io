@@ -1,4 +1,4 @@
-# matryoshka-io STATUS
+# matryoshka-tk STATUS
 
 ## Rules
 - Read STATUS.md in full each session. It says where we are and what is next.
@@ -24,7 +24,7 @@
 
 ## Sources of Truth
 - API: matryoshka-api-reference-025.md
-- Zig details: matryoshka-io-0.16-implementation-guide-001.md
+- Zig details: matryoshka-tk-0.16-implementation-guide-001.md
 - Architecture: matryoshka-architecture-foundation-4-004.md
 - Architecture introduction: matryoshka-architecture-003.md
 - Tests: task1-tests-001.md (73 scenarios, Layers 1-3), task2-tests-001.md (16 scenarios, Layer 4)
@@ -33,12 +33,12 @@
 - Legacy mailbox: /home/g41797/dev/root/github.com/g41797/mailbox/
 - Odin proto: /home/g41797/dev/root/github.com/g41797/matryoshka/
 - tofu (build infra): /home/g41797/dev/root/github.com/g41797/tofu/
-- Plan: matryoshka-io-implementation-plan-042.md (slim, state-only)
+- Plan: matryoshka-tk-implementation-plan-042.md (slim, state-only)
 - Rules: rules-026.md
 - New Mindset reference: matryoshka-new-mindset-001.md
 - Thinking model: matryoshka-model-003.md
 - Patterns: patterns-015.md
-- Docs plan: matryoshka-io-docs-plan-015.md
+- Docs plan: matryoshka-tk-docs-plan-015.md
 - Manifesto: matryoshka-manifesto-005.md
 - Latest context: collected-context-005.md
 - CANDIDATES (composed docs, pending owner review before promotion): design/candidates/readme-004.md, design/candidates/landing-short-002.md, design/candidates/landing-long-003.md
@@ -54,7 +54,7 @@ Three layers: polynode, mailbox, pool. Both mailbox and pool optional.
 
 ## Folder Structure
 ```
-matryoshka-io/
+matryoshka-tk/
 ├── build.zig
 ├── build.zig.zon
 ├── README.md
@@ -129,7 +129,7 @@ EXMPL 4 — Description as code: staccato descriptions moved into source `///` c
 EXMPL 4b — Descriptive entry-point names: `pub fn run` renamed to `pub fn @"<description>"` in all 66 example files; test-wrapper call sites updated. DONE. Plan version 031 created.  
 EXMPL 4c — Eliminated all remaining live `drain` occurrences (8 files: prose word-swaps + `batchDrainToPool`/`MasterBatchDrainFailed`/barrel-alias identifier renames). DONE.  
 Stage 9 — Docs + README + autodocs. PLANNED.  
-DOC 1 — tofu audit + docs plan skeleton. DONE. Plan version matryoshka-io-docs-plan-002.md created.  
+DOC 1 — tofu audit + docs plan skeleton. DONE. Plan version matryoshka-tk-docs-plan-002.md created.  
 DOC 2 — confirm tofu + Odin mix decision. DONE (audit only, no implementation).  
 DOC 3 — kitchen/ doc folder layout proposal + DOCS-folder claim check. DONE (analysis only).  
 DOC 4 — build kitchen/ doc infra (build.zig docs step, mkdocs.yml, tools/, docs.yml fix), verify locally. DONE.  
@@ -145,8 +145,8 @@ DOC 10 — dependency-order the API reference (api-reference-018 → -019): send
 diagrams into mailbox, Tag identity after pool, Slot-based programming + Cooperative  
 cleanup patterns after pool — nothing used before it is introduced. DONE (doc-only,  
 167/167 tests unchanged). Plan version 034 created.  
-DOC 11 — write matryoshka-manifesto-002.md: consolidated README + matryoshka-io-model +  
-matryoshka-master + master-Io mindset into one persuasion-first manifesto (one  
+DOC 11 — write matryoshka-manifesto-002.md: consolidated README + matryoshka-tk-model +  
+matryoshka-master + master-Tk mindset into one persuasion-first manifesto (one  
 constraint, Master is a role, four fundamental concepts, Io as hidden transport behind  
 Mailboxes, start small). DONE (doc-only, 167/167 tests unchanged). Plan version 035  
 created.  
@@ -247,7 +247,7 @@ and a lower-confidence bucket left untouched, owner's call). Followed by a
 "spawns a worker thread"/"joins the thread" language corrected to  
 `io.concurrent`/future-await across `matryoshka-api-reference-025.md`,  
 `patterns-015.md`, and two `kitchen/docs` mirrors; 5 stale  
-`matryoshka-api-reference-022.md` cross-references in patterns-015.md fixed.
+`matryoshka-api-reference-022.md` cross-references in patterns-015.md fixed.  
 LANDING 1 — src/ LOC counter (non-recursive, excludes empty/comment/import  
 lines; design/src-loc-counter-001.md) + badge next to API button on  
 `kitchen/docs/index.md`, shared logic in `kitchen/tools/src_loc.py` used by  

@@ -20,7 +20,7 @@ of scope — deferred to later stages.
   distinctive phrasing. Composition must keep this texture, not flatten it  
   into generic propositional summaries. Reuse strong lines close to  
   verbatim where the source already has good phrasing (e.g.  
-  `matryoshka-io-readme.md`'s "Be Master of your systems").
+  `matryoshka-tk-readme.md`'s "Be Master of your systems").
 - **No stories**: do not pull from `design/stories/*`, `kitchen/docs/story/print-server/*`.
 - **New-mindset only**: no "ownership" framing, no banned/AI-sh words
   (rules-024.md list). Sources tagged old-mindset-but-salvageable need a  
@@ -36,16 +36,16 @@ try the library, often within seconds.
 
 **Length budget**: short-to-medium. Long enough to establish the mindset and  
 show it's not "just another framework," short enough to read in one screen  
-or two without scrolling fatigue. `matryoshka-io-readme.md` is roughly the  
+or two without scrolling fatigue. `matryoshka-tk-readme.md` is roughly the  
 right length — use it as the calibration point.
 
 **Tone**: direct, confident, a little wry. Not corporate, not academic.
 
-**Primary source**: `design/matryoshka-io-readme.md` — new-mindset, no  
+**Primary source**: `design/matryoshka-tk-readme.md` — new-mindset, no  
 rewrite needed, use as the structural skeleton.
 
 **Supporting sources** (need old-mindset word-swap before reuse):  
-`kitchen/docs/misc/what-is-matryoshka-io.md` (problem-statement paragraph),  
+`kitchen/docs/misc/what-is-matryoshka-tk.md` (problem-statement paragraph),  
 `kitchen/docs/misc/how-matryoshka-system-works.md` (pull-quote: "share by  
 communicating").
 
@@ -109,7 +109,7 @@ then what it deliberately isn't.
 **Primary sources**: `matryoshka-manifesto-005.md` (one-constraint framing,  
 four fundamental concepts, Io-hidden-behind-Mailboxes), `matryoshka-new-mindset-001.md`  
 (Master-is-a-task definition, `io.concurrent()` connection),  
-`matryoshka-terminology.md` (vocabulary precision), `design/matryoshka-io-readme.md`  
+`matryoshka-terminology.md` (vocabulary precision), `design/matryoshka-tk-readme.md`  
 (incremental-adoption narrative, file-handle analogy).
 
 **Must include**: everything README has, expanded — plus the "how it plays  
@@ -124,9 +124,9 @@ mindset-level content in this stage.
 
 ## Open items for Pass 3
 
-- Reconcile: `matryoshka-io-readme.md` vs `kitchen/docs/misc/readme-landing.md`
+- Reconcile: `matryoshka-tk-readme.md` vs `kitchen/docs/misc/readme-landing.md`
   vs `kitchen/docs/misc/README-15-07-2026.md` — three files with overlapping  
-  purpose. Pass 3 should treat `matryoshka-io-readme.md` as primary (already  
+  purpose. Pass 3 should treat `matryoshka-tk-readme.md` as primary (already  
   new-mindset) and treat the two `misc/` variants as alternate drafts to  
   mine for anything the primary lacks, not as co-equal sources.
 - Confirm final filenames before Pass 3 starts: suggest
