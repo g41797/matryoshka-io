@@ -245,7 +245,9 @@ If
 
 ## Master is King
 
-Only Master(_your code_)
+Master is YOUR CODE.  
+
+Only Master
 
 - makes decisions
 - owns application state

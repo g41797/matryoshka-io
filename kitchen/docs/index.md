@@ -25,6 +25,7 @@ hide:
 
 <div class="hero-buttons-top">  
   <a href="apidocs/" class="hero-button hero-button-secondary" target="_blank" rel="noopener">API</a>  
+  <span class="hero-loc-badge">{{ src_loc() }} Lines Of Code</span>  
 </div>
 
 </div>

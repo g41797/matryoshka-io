@@ -35,6 +35,7 @@ theme:
 nav:
   - Home: index.md
   - The Manifesto: manifesto.md
+  - History:  history.md
   - Building Blocks:
       - Introduction: building-blocks/index.md
       - Item: building-blocks/polynode.md
@@ -151,6 +152,10 @@ nav:
       - Mailbox vs TypeErasedQueue: addendums/typeErasedQueue-vs-mailbox.md
       - Notation: addendums/matryoshka-io-notation.md
       - Installation: addendums/installation.md
+      - API : addendums/api_reference.md
+
+hooks:
+  - hooks/count_lines.py
 
 plugins:
   - search

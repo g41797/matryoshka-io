@@ -154,6 +154,31 @@ body:has(.hero-wrapper) .md-sidebar {
   box-shadow: 0 4px 12px rgba(205, 220, 57, 0.3);
 }
 
+/* API button hidden on landing page - markup kept, toggle by removing this rule */
+.hero-buttons-top .hero-button {
+  display: none;
+}
+
+/* LOC badge - companion stat next to the API button */
+.hero-loc-badge {
+  display: inline-block;
+  padding: 0.35rem 1rem;
+  font-size: 0.8rem;
+  font-family: var(--md-code-font, monospace);
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+
+[data-md-color-scheme="default"] .hero-loc-badge {
+  background-color: rgba(0, 0, 0, 0.06);
+  color: rgba(0, 0, 0, 0.65);
+}
+
+[data-md-color-scheme="slate"] .hero-loc-badge {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
 /* ===================================================================
    Responsive Design
    =================================================================== */

@@ -1,6 +1,6 @@
-# Matryoshka Zig — Implementation Plan (041)
+# Matryoshka Zig — Implementation Plan (042)
 
-Replaces [matryoshka-io-implementation-plan-040.md](matryoshka-io-implementation-plan-040.md).
+Replaces [matryoshka-io-implementation-plan-041.md](matryoshka-io-implementation-plan-041.md).
 
 ## Status
 
@@ -23,6 +23,12 @@ question below needs an answer before Pass 1 starts.
 - New Mindset (banned words, Phase A/B/C, code migration `Thread.spawn` →
   `io.concurrent()`, architecture-docs ownership-language pass): DONE.  
   167/167 tests unchanged throughout.
+- LANDING 1: src/ LOC counter (non-recursive, excludes empty/comment/import
+  lines; design/src-loc-counter-001.md) + badge next to API button on
+  `kitchen/docs/index.md`; shared logic in `kitchen/tools/src_loc.py` used
+  by both the mkdocs build-time hook (`kitchen/hooks/count_lines.py`) and a
+  standalone script (`kitchen/tools/count_src_loc.sh`); API button hidden
+  via CSS. DONE (doc/tooling-only, 167/167 tests unchanged).
 
 See `design/STATUS.md` Session Log for full per-stage detail — this plan file  
 stays state-only per the slim-plan rule.

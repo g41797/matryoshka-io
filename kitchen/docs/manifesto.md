@@ -1,11 +1,40 @@
-# Matryoshka Manifesto
-
-## First rule of building great software systems
-
-> If you want to build a great software system, start by building a software system.
 
 ---
 
+
+## First rule
+
+> If you want to build a great software system,
+> start by building a software system.
+
+We know how to write Zig libraries.
+
+We are still learning how to build Zig systems.
+
+Especially after the introduction of `std.Io`.
+
+---
+
+## Promise
+
+*They say,*
+
+> "Give someone a fish, and you feed them for a day.    
+> Teach them to fish, and you feed them for a lifetime."
+
+I can't teach you to fish.
+
+But I can give you a fishing rod.
+
+Matryoshka-Io is that *fishing rod* for *building software systems*.
+
+- It does not think for you.
+- You still design the system.
+- You still solve the hard problems.
+
+It simply brings a *little more order* to your thinking.
+
+---
 
 ## The problem
 
@@ -41,212 +70,183 @@ Because the system becomes **_visible_**.
 
 ---
 
-## Constraints
+## Four building blocks. One principle. Common language.
 
-Matryoshka asks you to accept one constraint.
+Every Matryoshka-Io system is built from _four building blocks_:
 
-> Everything is a Master communicating via Mailboxes.
+- **Master** — execution
+- **Item** — state/data/command/...
+- **Mailbox** — communication
+- **Pool** — resource reuse
 
-Pools add a second one.
+They all follow one _principle_:
 
-> Shared resources are explicit and controlled.
+> **Share by communicating.**
 
-Frame:
+You stop talking about:
 
-* parts talk in one way only: items
-* you always sure that item is in one place
-* you know what runs in parallel
-* you can swap one Master for another
-* you can understand one Master without reading the whole system
+- tasks
+- futures
+- mutexes
+- queues
+
+You start talking on Matryoshka-Io language:
+
+- Masters
+- Items
+- Mailboxes
+- Pools
+
+
+---
+
+
+### Master
+
+A **Master** is
+
+- an _Threaded_ Io _task_
+- created by _concurrent()_
+- follows the Matryoshka-Io rules
+- holds its own state
+- works with Items
+- communicate with another Masters and/or application
+
+
+---
+
+
+### Item
+
+An **Item** is
+
+- movable application object
+  - Request
+  - Connection
+  - Session
+  - Buffer
+  - Job
+  - ...
+- **allocated** (as all building blocks)
+- outlive the function that created them
+
+The one rule that matters:
+
+> An Item is in exactly one place at any moment.
+
+**ONE PLACE**:
+
+- or Master uses it
+- or a Mailbox holds it
+- or a Pool holds it
+
+> **Never several at once**.
+
+---
+
+### Item and ItemHandle.
+
+The documentation talks about _Item(s)_.      
+The API works with an **ItemHandle**.
+
+You are thinking in terms of:
+
+- read _file_
+- write _file_
+- close _file_
+
+on API level one of the arguments is _file handle_.
+
+The same is for Matryoshka-Io API
+
+- you are thinking in terms of _Item_ - Application entity
+- API is working with _ItemHandle_ - Matryoshka-Io entity
+
+
+---
+
+
+### Mailbox
+
+A **Mailbox** moves an Item from one Master to another:
+
+- One Master places an Item in
+  - Mailbox ensures that it's only owner of Item
+- Another Master later receives it
+  - Mailbox ensures that receiver is only owner of Item
+
+---
+
+
+### Pool
+
+A **Pool**
+
+- create new Items
+- holds reusable Items
+
+Usually Master
+
+- gets Item from Pool
+- process Item
+- on finish
+  - send Item to another Master for further processing
+  - returns Item to Pool
+
+A Pool is not storage.  
+An empty Pool is
+
+- not an error
+- it is backpressure.
+
+Matryoshka-Io supports backpressure 'naturally'
+
+---
+
+## You can’t win the lottery if you don’t buy a ticket.
+
+Start with Items.
+
+Add a Pool when reuse becomes useful.
+
+Add a Mailbox when communication becomes useful.
+
+Organize long-running tasks as Masters.
+
+Each step is useful right away.
+
+Each step stays useful after the next one.
+
+Can you describe your application using only
+
+- Masters
+- Items
+- Mailboxes
+- Pools
+
+If
+
+- **yes** - you are on the right way
+- no - [you still have the chance](https://github.com/g41797/matryoshka-io){target="_blank" rel="noopener"}
 
 ---
 
 ## Master is King
 
-Master is the main concept of Matryoshka.  
+Master is YOUR CODE.
 
-Master is **not**:
+Only Master
 
-* a type
-* an interface
-* a runtime
+- makes decisions
+- owns application state
+- talks to building blocks
 
-Master
+Another building blocks are "slaves":
 
-- is Io task
-- owns its state
-- follows the Matryoshka rules
-- uses Items, Pools, Mailboxes
-
-Everything that runs in Matryoshka is a Master:
-
-```text
-Io tasks
-    │
-    ├── ordinary task
-    ├── ordinary task
-    └── Master
-             │
-    ┌────────┼────────-┐
-    │        │         │
-Single-job Coordinator Resource owner
- Master      Master       Master
-```
-
-* Some Masters do one job.
-* Some Masters coordinate other Masters.
-* Some Masters own shared resources.
-
-Every part runs on its own.   
-Some parts grow into coordinators.
-
-That is how real systems are built.
+- Mailbox - communication
+- Pool - storage/reuse
+- Item - "data"
 
 ---
 
-## Down to earth
-
-- A Master usually has one input mailbox.
-    - Or listens event sources of Io  
-- A Master processes one Item at a time
-    - Most Masters has internal loop
-- A Master may send a Item to any mailbox.
-    - Including its own.
-- Multiple Masters may share one mailbox.
-- A Master may borrow items from one or more Pools.
-- Pools may be shared by many Masters.
-- Mailboxes and Pools hold type-erased items.
-
-Nothing else is required.
-
-| Capability          | Primitive                  |
-| ------------------- | --------------------------- |
-| Receive             | Mailbox                    |
-| Send                | Mailbox                    |
-| Share communication | Shared Mailbox             |
-| Borrow resources    | Pool                       |
-| Share resources     | Shared Pool                |
-| Heterogeneous data  | Type-erased Mailbox / Pool |
-
-Everything else is a Master, or a composition of Masters:
-
-* dispatchers
-* routers
-* schedulers
-* services
-* actors
-* pipelines
-
----
-
-## Four fundamental concepts
-
-```text
-Item/ItemHandle/PolyNode
-    Everything exchanged.
-
-Mailbox
-    Everything communicates.
-
-Pool
-    Everything reusable lives here.
-
-Master
-    Everything runs inside one.
-```
-
-Master is YOUR CODE. 
-
-The other three are Matryoshka-Io code.
-
-### Item vs ItemHandle and PolyNode
-
-- Item is allocatable application object.  
-- Matryoshka-Io does not work with Items.  
-- It works with ItemHandles:  
-```zig
-pub const ItemHandle = *PolyNode;
-```
-You will learn internals later.    
-
-For now - just remember
-
-- Item - for application and/or master code
-- ItemHandle (actually address of PolyHandle) - for Matryoshka-Io
-     - PolyNode is embedded within every Item  
-
-
-### Mailbox
-
-`Mailbox`:
-
-* transfers Items  between Masters
-* does not know or care about the concrete item type
-
-### Pool
-
-`Pool`:
-
-* creates new Items or gets them from available 
-* returns items for reuse instead of destroying them
-* does not know or care about the concrete item type
-
-### Together
-
-`PolyNode` is 
-
-- small struct within any Item
-- used for Item handling
-
-`Mailbox` and `Pool` are ItemHandles containers on steroids.
-
-The steroids are simple:
-
-* intrusion
-* type erasure
-* item transfer
-* item reuse
-
-Nothing else.
-
-* No interfaces.
-* No framework.
-
-The whole _troika_ is only several hundreds LOC.
-
----
-
-
-## Start small and where to go next
-
-There is no big-bang adoption.
-
-* Start your first Master with the simplest Item
-    * don' t forget embed  `PolyNode`
-* Add `Pool` when item reuse becomes useful.
-* Add `Mailbox` when you need message passing.
-* Or use your own type-erased queue. It's up to you.
-
-
----
-
-## A simple question
-
-Can you describe your application using only:
-
-* Masters
-* Items
-* Mailboxes
-* Pools
-
-If the answer is **yes**, you're already thinking in Matryoshka.
-
-Don't be afraid. Go ahead.
-
-
----
-
-Keep reading:
-
-* [Building Blocks](building-blocks/index.md)
-* [API Reference](api/polynode.md)
+Be Master **of your** systems.

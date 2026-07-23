@@ -628,11 +628,11 @@ The rule is:
 
 ---
 
-For example, if the notation says
+For example, if the notation says  
 ```
 ==========>>>
 ```
-means "many consumers", but the reader benefits from seeing actual Masters, I will draw
+means "many consumers", but the reader benefits from seeing actual Masters, I will draw  
 ```
 ==========>>>
 
@@ -641,7 +641,7 @@ means "many consumers", but the reader benefits from seeing actual Masters, I wi
 { Encoder #3 }
 ```
 
-Likewise for producers:
+Likewise for producers:  
 ```
 >>>==========
 
@@ -668,26 +668,26 @@ The diagrams should look like flow charts, where every element of the flow is ex
 
 That means free usage of:
 
-Horizontal mailboxes
+Horizontal mailboxes  
 ```
 ==========
 ```
 
-Vertical mailboxes
+Vertical mailboxes  
 ```
 ||
 ||
 ||
 ```
 
-Horizontal movement
+Horizontal movement  
 ```
 >>>
 
 <<<
 ```
 
-Vertical movement
+Vertical movement  
 ```
 VVV
 

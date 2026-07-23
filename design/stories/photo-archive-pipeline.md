@@ -191,3 +191,37 @@ Each stage has a clear input and output.
 The reader can focus on the architecture rather than the image-processing algorithms.
 
 The same architectural pattern applies to many other systems, including video processing, document conversion, data transformation, and network protocols.
+
+
+# PNG is better choice
+
+
+The goal of the document is to explain **Matryoshka-Io**, not JPEG support in Zig. If readers see "JPEG," some Zig developers may immediately think:
+
+> "Wait, Zig std doesn't support JPEG."
+
+That distracts from the architectural lesson.
+
+Using **PNG + zstbi** avoids that issue because it's a common combination in the Zig ecosystem.
+
+The story becomes:
+
+* Client uploads a PNG image.
+* The system reads the PNG.
+* The system uncompresses it into pixels.
+* The system creates a thumbnail.
+* The system compresses the thumbnail as PNG.
+* The system stores:
+
+    * the original PNG
+    * the thumbnail PNG
+
+
+In architecture section:
+
+> The system uncompresses the PNG image into pixels.
+
+Then, in an implementation section or code example:
+
+> This implementation uses `zstbi` to read and write PNG images.
+
